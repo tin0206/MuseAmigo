@@ -5,12 +5,14 @@ class SearchScreen extends StatefulWidget {
   final String? initialQuery;
   final bool showResults;
   final String? initialFilter;
+  final String? initialExhibition;
 
   const SearchScreen({
     super.key,
     this.initialQuery,
     this.showResults = false,
     this.initialFilter,
+    this.initialExhibition,
   });
 
   @override
@@ -21,44 +23,59 @@ class _SearchScreenState extends State<SearchScreen> {
   late final TextEditingController _controller;
   bool _showingResults = false;
   String _activeQuery = '';
-  String _selectedFilter = 'All';
+  String _selectedFilterType = 'All';
+  String _selectedFilterExhibition = 'All';
+  String _activeFilterMode = 'floor'; // 'floor' or 'exhibition'
+  String _sortBy = 'default'; // 'default' or 'a-z'
 
   static const Color _brandRed = Color(0xFFCC353A);
 
-  static const _recentSearches = ['Tank', 'Weapons', 'Room'];
-  static const _trending = ['Garden', 'Tank', 'Weapons', 'Room'];
-  static const _filters = ['All', 'B1', 'Floor 1', 'Floor 2', 'Hall'];
+  static const _recentSearches = ['Tank', 'Weapons', 'Room', 'Exhibition'];
+  static const _trending = ['Garden', 'Tank', 'Weapons', 'Room', 'Exhibition'];
+  static const _filterTypes = ['All', 'B1', 'Floor 1', 'Floor 2', 'Hall'];
+  static const _filterExhibitions = [
+    'All',
+    'Exhibition of paintings',
+    'Exhibition of weapons',
+    'Colonial History',
+  ];
 
   static const _allResults = <_ResultItem>[
     _ResultItem(
       title: "President's Office",
       location: 'In the Hall',
       floor: 'Floor 1',
+      exhibition: 'Exhibition of paintings',
     ),
     _ResultItem(
       title: 'The old war room',
       location: 'Underground',
       floor: 'B1',
+      exhibition: 'Exhibition of weapons',
     ),
     _ResultItem(
       title: 'Roof of Reunification Palace',
       location: 'In the Hall',
       floor: 'Floor 2',
+      exhibition: 'Colonial History',
     ),
     _ResultItem(
       title: "President's Office 1",
       location: 'In the Hall',
       floor: 'Floor 1',
+      exhibition: 'Exhibition of paintings',
     ),
     _ResultItem(
       title: 'The old war room 1',
       location: 'Underground',
       floor: 'B1',
+      exhibition: 'Exhibition of weapons',
     ),
     _ResultItem(
       title: 'Roof of Reunification Palace 1',
       location: 'In the Hall',
       floor: 'Floor 2',
+      exhibition: 'Colonial History',
     ),
   ];
 
@@ -68,8 +85,16 @@ class _SearchScreenState extends State<SearchScreen> {
     _controller = TextEditingController(text: widget.initialQuery ?? '');
     _activeQuery = widget.initialQuery ?? '';
     if (widget.initialFilter != null &&
-        _filters.contains(widget.initialFilter)) {
-      _selectedFilter = widget.initialFilter!;
+        _filterTypes.contains(widget.initialFilter)) {
+      _selectedFilterType = widget.initialFilter!;
+      _activeFilterMode = 'floor';
+    }
+    if (widget.initialExhibition != null &&
+        _filterExhibitions.contains(widget.initialExhibition)) {
+      _selectedFilterExhibition = widget.initialExhibition!;
+      if (widget.initialExhibition != 'All') {
+        _activeFilterMode = 'exhibition';
+      }
     }
     _showingResults = widget.showResults || (_activeQuery.isNotEmpty);
   }
@@ -96,8 +121,22 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   List<_ResultItem> get _filteredResults {
-    if (_selectedFilter == 'All') return _allResults;
-    return _allResults.where((r) => r.floor.contains(_selectedFilter)).toList();
+    var results = List<_ResultItem>.from(_allResults);
+    if (_selectedFilterType != 'All') {
+      results = results
+          .where((r) => r.floor.contains(_selectedFilterType))
+          .toList();
+    }
+    if (_selectedFilterExhibition != 'All') {
+      results = results
+          .where((r) => r.exhibition == _selectedFilterExhibition)
+          .toList();
+    }
+    // Apply sorting
+    if (_sortBy == 'a-z') {
+      results.sort((a, b) => a.title.compareTo(b.title));
+    }
+    return results;
   }
 
   @override
@@ -170,51 +209,104 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             ),
             if (_showingResults) ...[
-              // ── Filter chips ─────────────────────────────────────────
-              SizedBox(
-                height: 50,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
+              // ── Filter chips (Type) - Show only when in floor mode ────
+              if (_activeFilterMode == 'floor')
+                SizedBox(
+                  height: 50,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    itemCount: _filterTypes.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (context, index) {
+                      final filter = _filterTypes[index];
+                      final selected = _selectedFilterType == filter;
+                      return GestureDetector(
+                        onTap: () => setState(() {
+                          _selectedFilterType = filter;
+                          _activeFilterMode = 'floor';
+                        }),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: selected ? _brandRed : Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: selected
+                                  ? _brandRed
+                                  : const Color(0xFFDDDDDD),
+                            ),
+                          ),
+                          child: Text(
+                            filter,
+                            style: TextStyle(
+                              color: selected
+                                  ? Colors.white
+                                  : const Color(0xFF171A21),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                  itemCount: _filters.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (context, index) {
-                    final filter = _filters[index];
-                    final selected = _selectedFilter == filter;
-                    return GestureDetector(
-                      onTap: () => setState(() => _selectedFilter = filter),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: selected ? _brandRed : Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: selected
-                                ? _brandRed
-                                : const Color(0xFFDDDDDD),
-                          ),
-                        ),
-                        child: Text(
-                          filter,
-                          style: TextStyle(
-                            color: selected
-                                ? Colors.white
-                                : const Color(0xFF171A21),
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
                 ),
-              ),
+              // ── Filter chips (Exhibition) - Show only when in exhibition mode ───
+              if (_activeFilterMode == 'exhibition')
+                SizedBox(
+                  height: 50,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    itemCount: _filterExhibitions.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (context, index) {
+                      final filter = _filterExhibitions[index];
+                      final selected = _selectedFilterExhibition == filter;
+                      return GestureDetector(
+                        onTap: () => setState(() {
+                          _selectedFilterExhibition = filter;
+                          _activeFilterMode = 'exhibition';
+                        }),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: selected ? _brandRed : Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: selected
+                                  ? _brandRed
+                                  : const Color(0xFFDDDDDD),
+                            ),
+                          ),
+                          child: Text(
+                            filter,
+                            style: TextStyle(
+                              color: selected
+                                  ? Colors.white
+                                  : const Color(0xFF171A21),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
               // ── Results count + sort ──────────────────────────────────
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
@@ -229,22 +321,27 @@ class _SearchScreenState extends State<SearchScreen> {
                       ),
                     ),
                     const Spacer(),
-                    Row(
-                      children: const [
-                        Icon(
-                          Icons.filter_list_rounded,
-                          size: 18,
-                          color: Color(0xFF6D7785),
-                        ),
-                        SizedBox(width: 4),
-                        Text(
-                          'Sort by',
-                          style: TextStyle(
+                    GestureDetector(
+                      onTap: () => setState(() {
+                        _sortBy = _sortBy == 'default' ? 'a-z' : 'default';
+                      }),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.filter_list_rounded,
+                            size: 18,
                             color: Color(0xFF6D7785),
-                            fontSize: 14,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 4),
+                          Text(
+                            _sortBy == 'default' ? 'Sort by' : 'A-Z',
+                            style: const TextStyle(
+                              color: Color(0xFF6D7785),
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -355,10 +452,12 @@ class _ResultItem {
     required this.title,
     required this.location,
     required this.floor,
+    required this.exhibition,
   });
   final String title;
   final String location;
   final String floor;
+  final String exhibition;
 }
 
 // ── Recent row ─────────────────────────────────────────────────────────────────

@@ -53,6 +53,7 @@ class MuseAmigoApp extends StatelessWidget {
               initialQuery: args?['query'] as String?,
               showResults: args?['showResults'] as bool? ?? false,
               initialFilter: args?['filter'] as String?,
+              initialExhibition: args?['exhibition'] as String?,
             ),
           );
         }

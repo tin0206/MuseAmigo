@@ -176,7 +176,17 @@ class _HomeScreenState extends State<HomeScreen> {
                         itemCount: _areas.length,
                         separatorBuilder: (_, __) => const SizedBox(width: 12),
                         itemBuilder: (context, index) {
-                          return _AreaCard(area: _areas[index]);
+                          return _AreaCard(
+                            area: _areas[index],
+                            onTap: () => Navigator.of(context).pushNamed(
+                              AppRoutes.search,
+                              arguments: <String, dynamic>{
+                                'query': _areas[index].label,
+                                'exhibition': _areas[index].label,
+                                'showResults': true,
+                              },
+                            ),
+                          );
                         },
                       ),
                     ),
@@ -312,79 +322,86 @@ class _AreaItem {
 }
 
 class _AreaCard extends StatelessWidget {
-  const _AreaCard({required this.area});
+  const _AreaCard({required this.area, required this.onTap});
   final _AreaItem area;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 160,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.asset(
-              'assets/images/museum.jpg',
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                color: Colors.grey.shade300,
-                child: const Icon(Icons.image_not_supported_outlined, size: 40),
-              ),
-            ),
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    Colors.black.withValues(alpha: 0.65),
-                  ],
-                  stops: const [0.45, 1.0],
+    return GestureDetector(
+      onTap: onTap,
+      child: SizedBox(
+        width: 160,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.asset(
+                'assets/images/museum.jpg',
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  color: Colors.grey.shade300,
+                  child: const Icon(
+                    Icons.image_not_supported_outlined,
+                    size: 40,
+                  ),
                 ),
               ),
-            ),
-            Positioned(
-              left: 10,
-              right: 10,
-              bottom: 10,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    area.label,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.location_on,
-                        color: Colors.white70,
-                        size: 12,
-                      ),
-                      const SizedBox(width: 2),
-                      Text(
-                        area.sublabel,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 11,
-                        ),
-                      ),
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.65),
                     ],
+                    stops: const [0.45, 1.0],
                   ),
-                ],
+                ),
               ),
-            ),
-          ],
+              Positioned(
+                left: 10,
+                right: 10,
+                bottom: 10,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      area.label,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.location_on,
+                          color: Colors.white70,
+                          size: 12,
+                        ),
+                        const SizedBox(width: 2),
+                        Text(
+                          area.sublabel,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
