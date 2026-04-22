@@ -10,6 +10,8 @@ class Museum3DMapScreen extends StatefulWidget {
 class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
   String _selectedFloor = 'Floor 1';
   bool _show3D = true;
+  _RouteOption? _activeRoute;
+  int _currentStopIndex = 0;
 
   static const Color _brandRed = Color(0xFFCC353A);
   static const Color _artifactColor = Color(0xFFCC353A);
@@ -32,7 +34,16 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
     ),
     // ── Floor 2 ──────────────────────────────────────────────────────
     _MapLocation(name: 'Art Gallery', floor: 'Floor 2', x: 0.2, y: 0.25),
+    _MapLocation(
+      name: 'Photography Gallery',
+      floor: 'Floor 2',
+      x: 0.18,
+      y: 0.2,
+    ),
     _MapLocation(name: 'Conference Hall', floor: 'Floor 2', x: 0.65, y: 0.3),
+    _MapLocation(name: 'Peace Memorial', floor: 'Floor 2', x: 0.55, y: 0.44),
+    _MapLocation(name: 'Diplomatic Room', floor: 'Floor 2', x: 0.78, y: 0.42),
+    _MapLocation(name: 'Media Room', floor: 'Floor 2', x: 0.74, y: 0.6),
     _MapLocation(name: 'Library', floor: 'Floor 2', x: 0.75, y: 0.55),
     _MapLocation(
       name: 'Souvenir Shop',
@@ -50,6 +61,21 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
     ),
   ];
 
+  static const _stopDescriptions = <String, String>{
+    'Main Entrance':
+        'Start from the main entrance, then follow the route markers to your next stop.',
+    'Tank T-54':
+        'T-54 tank No. 843 is a legendary Vietnam People\'s Army tank linked to April 30, 1975 history.',
+    'Room of War':
+        'Explore archival photos and artifacts that document key wartime events.',
+    'President Room':
+        'The President Room preserves original furniture and command equipment.',
+    'Peace Memorial':
+        'This area highlights the transition from conflict to peace and reunification.',
+    'Rooftop Cafe':
+        'Take a break with a panoramic rooftop view before continuing your visit.',
+  };
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -59,53 +85,17 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
           children: [
             // ── Top bar ────────────────────────────────────────────────
             Container(
-              color: _brandRed,
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      height: 44,
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(22),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.search,
-                            color: Color(0xFF9CA3AF),
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Search artifacts, rooms...',
-                            style: TextStyle(
-                              color: Colors.black.withValues(alpha: 0.5),
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+              color: Colors.white,
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+              child: const Center(
+                child: Text(
+                  'Map',
+                  style: TextStyle(
+                    color: Color(0xFF171A21),
+                    fontSize: 30,
+                    fontWeight: FontWeight.w700,
                   ),
-                  const SizedBox(width: 10),
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(22),
-                    ),
-                    child: const ClipOval(
-                      child: Image(
-                        image: AssetImage('assets/images/model.png'),
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
             // ── Floor filters + 3D toggle ──────────────────────────────
@@ -200,6 +190,9 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                         locations: _locations
                             .where((loc) => loc.floor == _selectedFloor)
                             .toList(),
+                        routePoints: _routePointsForCurrentFloor(),
+                        visitedStopNames: _visitedStopNamesForCurrentFloor(),
+                        currentStopName: _currentStopNameForCurrentFloor(),
                         show3D: _show3D,
                         markerColor: _artifactColor,
                       ),
@@ -238,19 +231,34 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
               ),
             ),
             // ── Legend ──────────────────────────────────────────────────
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-              child: Row(
-                children: [
-                  const _LegendItem(color: _artifactColor, label: 'Artifacts'),
-                  const SizedBox(width: 16),
-                  const _LegendItem(color: _restroomColor, label: 'Restrooms'),
-                  const SizedBox(width: 16),
-                  const _LegendItem(color: _cafeColor, label: 'Cafes'),
-                ],
+            if (_activeRoute != null)
+              _NavigationPanel(
+                route: _activeRoute!,
+                currentStopIndex: _currentStopIndex,
+                description: _descriptionForCurrentStop(),
+                onStop: _stopNavigation,
+                onNext: _nextStop,
+              )
+            else
+              Container(
+                color: Colors.white,
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                child: Row(
+                  children: [
+                    const _LegendItem(
+                      color: _artifactColor,
+                      label: 'Artifacts',
+                    ),
+                    const SizedBox(width: 16),
+                    const _LegendItem(
+                      color: _restroomColor,
+                      label: 'Restrooms',
+                    ),
+                    const SizedBox(width: 16),
+                    const _LegendItem(color: _cafeColor, label: 'Cafes'),
+                  ],
+                ),
               ),
-            ),
           ],
         ),
       ),
@@ -298,8 +306,8 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
     _showRouteReady(route);
   }
 
-  void _showRouteReady(_RouteOption route) {
-    showModalBottomSheet<void>(
+  Future<void> _showRouteReady(_RouteOption route) async {
+    final started = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
@@ -308,6 +316,111 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
       ),
       builder: (_) => _RouteReadySheet(route: route),
     );
+    if (started == true && mounted) {
+      _startNavigation(route);
+    }
+  }
+
+  void _startNavigation(_RouteOption route) {
+    final firstFloor = _floorOfStop(route.stops.first.name);
+    setState(() {
+      _activeRoute = route;
+      _currentStopIndex = 0;
+      if (firstFloor != null) {
+        _selectedFloor = firstFloor;
+      }
+    });
+  }
+
+  void _stopNavigation() {
+    setState(() {
+      _activeRoute = null;
+      _currentStopIndex = 0;
+    });
+  }
+
+  void _nextStop() {
+    final route = _activeRoute;
+    if (route == null) return;
+    if (_currentStopIndex >= route.stops.length - 1) {
+      _stopNavigation();
+      return;
+    }
+    final nextIndex = _currentStopIndex + 1;
+    final nextFloor = _floorOfStop(route.stops[nextIndex].name);
+    setState(() {
+      _currentStopIndex = nextIndex;
+      if (nextFloor != null) {
+        _selectedFloor = nextFloor;
+      }
+    });
+  }
+
+  List<_MapLocation> _routePointsForCurrentFloor() {
+    final route = _activeRoute;
+    if (route == null) {
+      return const <_MapLocation>[];
+    }
+    final points = <_MapLocation>[];
+    for (final stop in route.stops) {
+      final loc = _findLocationByName(stop.name);
+      if (loc != null && loc.floor == _selectedFloor) {
+        points.add(loc);
+      }
+    }
+    return points;
+  }
+
+  Set<String> _visitedStopNamesForCurrentFloor() {
+    final route = _activeRoute;
+    if (route == null) {
+      return const <String>{};
+    }
+    final visited = <String>{};
+    for (int i = 0; i < _currentStopIndex; i++) {
+      final stopName = route.stops[i].name;
+      final loc = _findLocationByName(stopName);
+      if (loc != null && loc.floor == _selectedFloor) {
+        visited.add(stopName);
+      }
+    }
+    return visited;
+  }
+
+  String? _currentStopNameForCurrentFloor() {
+    final route = _activeRoute;
+    if (route == null || route.stops.isEmpty) {
+      return null;
+    }
+    final stopName = route.stops[_currentStopIndex].name;
+    final loc = _findLocationByName(stopName);
+    if (loc != null && loc.floor == _selectedFloor) {
+      return stopName;
+    }
+    return null;
+  }
+
+  String _descriptionForCurrentStop() {
+    final route = _activeRoute;
+    if (route == null) {
+      return '';
+    }
+    final stopName = route.stops[_currentStopIndex].name;
+    return _stopDescriptions[stopName] ??
+        'Follow the highlighted path to continue your museum journey.';
+  }
+
+  _MapLocation? _findLocationByName(String name) {
+    for (final loc in _locations) {
+      if (loc.name == name) {
+        return loc;
+      }
+    }
+    return null;
+  }
+
+  String? _floorOfStop(String stopName) {
+    return _findLocationByName(stopName)?.floor;
   }
 }
 
@@ -1003,7 +1116,7 @@ class _RouteReadySheet extends StatelessWidget {
                   Expanded(
                     flex: 2,
                     child: ElevatedButton.icon(
-                      onPressed: () => Navigator.of(context).pop(),
+                      onPressed: () => Navigator.of(context).pop(true),
                       icon: const Icon(Icons.navigation_outlined, size: 18),
                       label: const Text(
                         'Start Navigation',
@@ -1029,15 +1142,177 @@ class _RouteReadySheet extends StatelessWidget {
   }
 }
 
+class _NavigationPanel extends StatelessWidget {
+  const _NavigationPanel({
+    required this.route,
+    required this.currentStopIndex,
+    required this.description,
+    required this.onStop,
+    required this.onNext,
+  });
+
+  final _RouteOption route;
+  final int currentStopIndex;
+  final String description;
+  final VoidCallback onStop;
+  final VoidCallback onNext;
+
+  @override
+  Widget build(BuildContext context) {
+    final currentStop = route.stops[currentStopIndex];
+    final isLast = currentStopIndex == route.stops.length - 1;
+    return Container(
+      color: const Color(0xFFCC353A),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'Navigating - Stop ${currentStopIndex + 1}/${route.stops.length}',
+                style: const TextStyle(color: Colors.white, fontSize: 12),
+              ),
+              const Spacer(),
+              GestureDetector(
+                onTap: onStop,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.24),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    'Stop',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'To:',
+            style: TextStyle(color: Colors.white, fontSize: 16),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            currentStop.name,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 30,
+              height: 1,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: List.generate(route.stops.length, (i) {
+              final done = i <= currentStopIndex;
+              return Expanded(
+                child: Container(
+                  margin: EdgeInsets.only(
+                    right: i == route.stops.length - 1 ? 0 : 4,
+                  ),
+                  height: 3,
+                  decoration: BoxDecoration(
+                    color: done
+                        ? Colors.white
+                        : Colors.white.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              );
+            }),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        currentStop.name,
+                        style: const TextStyle(
+                          color: Color(0xFF111827),
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    const Icon(
+                      Icons.volume_up_outlined,
+                      color: Color(0xFFCC353A),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  description,
+                  style: const TextStyle(
+                    color: Color(0xFF4B5563),
+                    height: 1.4,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: onNext,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: const Color(0xFFCC353A),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              child: Text(
+                isLast ? 'Finish' : 'Next  →',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // ── Custom 3D Painter ──────────────────────────────────────────────────────
 
 class Museum3DPainter extends CustomPainter {
   final List<_MapLocation> locations;
+  final List<_MapLocation> routePoints;
+  final Set<String> visitedStopNames;
+  final String? currentStopName;
   final bool show3D;
   final Color markerColor;
 
   Museum3DPainter({
     required this.locations,
+    required this.routePoints,
+    required this.visitedStopNames,
+    required this.currentStopName,
     required this.show3D,
     required this.markerColor,
   });
@@ -1056,9 +1331,46 @@ class Museum3DPainter extends CustomPainter {
     // Draw basic 3D floor plan
     _draw3DFloor(canvas, size, paint, fillPaint);
 
+    // Draw active route path if available
+    _drawRoutePath(canvas, size);
+
     // Draw location markers
     for (final location in locations) {
       _drawLocationMarker(canvas, size, location);
+    }
+  }
+
+  void _drawRoutePath(Canvas canvas, Size size) {
+    if (routePoints.length < 2) {
+      return;
+    }
+
+    for (int i = 0; i < routePoints.length - 1; i++) {
+      final from = routePoints[i];
+      final to = routePoints[i + 1];
+      final isCompletedSegment = visitedStopNames.contains(to.name);
+
+      final glowPaint = Paint()
+        ..color = isCompletedSegment
+            ? const Color(0x8822C55E)
+            : const Color(0x88FF4A4A)
+        ..strokeWidth = 8
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round;
+
+      final linePaint = Paint()
+        ..color = isCompletedSegment
+            ? const Color(0xFF22C55E)
+            : const Color(0xFFFF4A4A)
+        ..strokeWidth = 2.8
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round;
+
+      final fromOffset = Offset(size.width * from.x, size.height * from.y);
+      final toOffset = Offset(size.width * to.x, size.height * to.y);
+
+      canvas.drawLine(fromOffset, toOffset, glowPaint);
+      canvas.drawLine(fromOffset, toOffset, linePaint);
     }
   }
 
@@ -1106,10 +1418,27 @@ class Museum3DPainter extends CustomPainter {
     final x = size.width * location.x;
     final y = size.height * location.y;
 
+    final isVisited = visitedStopNames.contains(location.name);
+    final isCurrent = currentStopName == location.name;
+    final baseColor = location.color ?? markerColor;
+    final markerColorByProgress = isVisited
+        ? const Color(0xFF22C55E)
+        : isCurrent
+        ? const Color(0xFFF59E0B)
+        : baseColor;
+
     // Draw marker circle
     final markerPaint = Paint()
-      ..color = location.color ?? markerColor
+      ..color = markerColorByProgress
       ..style = PaintingStyle.fill;
+
+    if (isCurrent) {
+      final ringPaint = Paint()
+        ..color = const Color(0xFFFFFFFF)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.8;
+      canvas.drawCircle(Offset(x, y), 9, ringPaint);
+    }
 
     canvas.drawCircle(Offset(x, y), 6, markerPaint);
 
@@ -1131,7 +1460,11 @@ class Museum3DPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(Museum3DPainter oldDelegate) {
-    return oldDelegate.locations != locations || oldDelegate.show3D != show3D;
+    return oldDelegate.locations != locations ||
+        oldDelegate.routePoints != routePoints ||
+        oldDelegate.visitedStopNames != visitedStopNames ||
+        oldDelegate.currentStopName != currentStopName ||
+        oldDelegate.show3D != show3D;
   }
 }
 
