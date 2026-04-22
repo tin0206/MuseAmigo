@@ -526,11 +526,7 @@ class _BottomNav extends StatelessWidget {
                 color: Color(0xFFCC353A),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.radar_rounded,
-                color: Colors.white,
-                size: 26,
-              ),
+              child: const Icon(Icons.gps_fixed, color: Colors.white, size: 26),
             ),
           ),
           _NavItem(

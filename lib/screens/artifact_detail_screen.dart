@@ -89,6 +89,7 @@ class ArtifactDetailScreen extends StatelessWidget {
                   ),
                 ],
               ),
+              const SizedBox(height: 12),
               Transform.translate(
                 offset: const Offset(0, -22),
                 child: Container(
