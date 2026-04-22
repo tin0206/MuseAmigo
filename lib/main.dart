@@ -2,9 +2,8 @@ import 'package:device_preview/device_preview.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:museamigo/app_routes.dart';
-import 'package:museamigo/screens/explore_map_screen.dart';
+import 'package:museamigo/screens/main_shell.dart';
 import 'package:museamigo/screens/forgot_password_screen.dart';
-import 'package:museamigo/screens/home_screen.dart';
 import 'package:museamigo/screens/login_screen.dart';
 import 'package:museamigo/screens/artifact_detail_screen.dart';
 import 'package:museamigo/screens/search_screen.dart';
@@ -42,8 +41,8 @@ class MuseAmigoApp extends StatelessWidget {
         AppRoutes.signUp: (_) => const SignUpScreen(),
         AppRoutes.forgotPassword: (_) => const ForgotPasswordScreen(),
         AppRoutes.onboarding: (_) => const OnboardingFlowScreen(),
-        AppRoutes.home: (_) => const HomeScreen(),
-        AppRoutes.exploreMap: (_) => const ExploreMapScreen(),
+        AppRoutes.home: (_) => const MainShell(),
+        AppRoutes.exploreMap: (_) => const MainShell(initialIndex: 1),
       },
       onGenerateRoute: (settings) {
         if (settings.name == AppRoutes.search) {
