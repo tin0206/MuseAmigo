@@ -7,4 +7,7 @@ class AppRoutes {
   static const search = '/search';
   static const artifactDetail = '/artifact-detail';
   static const exploreMap = '/explore-map';
+  static const profileOptions = '/profile-options';
+  static const myTickets = '/my-tickets';
+  static const settings = '/settings';
 }

@@ -7,7 +7,10 @@ import 'package:museamigo/screens/explore_map_screen.dart';
 import 'package:museamigo/screens/forgot_password_screen.dart';
 import 'package:museamigo/screens/login_screen.dart';
 import 'package:museamigo/screens/artifact_detail_screen.dart';
+import 'package:museamigo/screens/my_tickets_screen.dart';
+import 'package:museamigo/screens/profile_options_screen.dart';
 import 'package:museamigo/screens/search_screen.dart';
+import 'package:museamigo/screens/settings_screen.dart';
 import 'package:museamigo/screens/onboarding_flow_screen.dart';
 import 'package:museamigo/screens/sign_up_screen.dart';
 
@@ -44,6 +47,9 @@ class MuseAmigoApp extends StatelessWidget {
         AppRoutes.onboarding: (_) => const OnboardingFlowScreen(),
         AppRoutes.home: (_) => const MainShell(),
         AppRoutes.exploreMap: (_) => const ExploreMapScreen(),
+        AppRoutes.profileOptions: (_) => const ProfileOptionsScreen(),
+        AppRoutes.myTickets: (_) => const MyTicketsScreen(),
+        AppRoutes.settings: (_) => const SettingsScreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == AppRoutes.search) {
