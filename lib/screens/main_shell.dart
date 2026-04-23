@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:museamigo/app_routes.dart';
 import 'package:museamigo/screens/ai_assistant_screen.dart';
 import 'package:museamigo/screens/home_screen.dart';
+import 'package:museamigo/screens/journey_screen.dart';
 import 'package:museamigo/screens/museum_3d_map_screen.dart';
 import 'package:museamigo/widgets/app_bottom_nav.dart';
 
@@ -41,35 +42,12 @@ class _MainShellState extends State<MainShell> {
           Museum3DMapScreen(),
           Museum3DMapScreen(),
           AIAssistantScreen(),
-          _JourneyPlaceholderScreen(),
+          JourneyScreen(),
         ],
       ),
       bottomNavigationBar: AppBottomNav(
         selectedIndex: _currentIndex,
         onTap: _onTabTap,
-      ),
-    );
-  }
-}
-
-class _JourneyPlaceholderScreen extends StatelessWidget {
-  const _JourneyPlaceholderScreen();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Color(0xFFF3F4F6),
-      body: SafeArea(
-        child: Center(
-          child: Text(
-            'Journey coming soon',
-            style: TextStyle(
-              fontSize: 18,
-              color: Color(0xFF6B7280),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
       ),
     );
   }
