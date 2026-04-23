@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:museamigo/app_routes.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -12,6 +13,943 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _audioGuide = true;
   bool _autoPlay = false;
   bool _indoorNavigation = true;
+  String _fontSize = 'Medium';
+  String _language = 'English';
+  Color _primaryColor = const Color(0xFFCC353A);
+
+  void _showColorSchemeDialog(BuildContext context) {
+    const quickPicks = [
+      Color(0xFF6C4BE8),
+      Color(0xFFF59E0B),
+      Color(0xFFB45309),
+      Color(0xFF10B981),
+      Color(0xFF3B82F6),
+      Color(0xFF60A5FA),
+      Color(0xFFCC353A),
+    ];
+    Color selected = _primaryColor;
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, ss) => Dialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Custom Color',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFFCC353A),
+                            ),
+                          ),
+                          Text(
+                            'Enter a hex color code',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF6B7280),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      icon: const Icon(Icons.close, size: 20),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                const Text(
+                  'Hex Color Code',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF171A21),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF3F4F6),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: selected,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'Primary Color',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Color(0xFF6B7280),
+                              ),
+                            ),
+                            Text(
+                              '#${selected.value.toRadixString(16).substring(2).toUpperCase()}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF171A21),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF3F4F6),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: const Color(0xFFE5E7EB),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'Secondary Color',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Color(0xFF6B7280),
+                              ),
+                            ),
+                            const Text(
+                              '#FFFFFF',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF171A21),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                const Text(
+                  'Quick picks',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF171A21),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: quickPicks.map((c) {
+                    final isSel = selected.value == c.value;
+                    return GestureDetector(
+                      onTap: () => ss(() => selected = c),
+                      child: Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: c,
+                          shape: BoxShape.circle,
+                          border: isSel
+                              ? Border.all(
+                                  color: const Color(0xFF171A21),
+                                  width: 2.5,
+                                )
+                              : null,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(ctx).pop(),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFFE5E7EB)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        child: const Text(
+                          'Cancel',
+                          style: TextStyle(color: Color(0xFF374151)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          setState(() => _primaryColor = selected);
+                          Navigator.of(ctx).pop();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFCC353A),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        icon: const Icon(Icons.check, size: 16),
+                        label: const Text('Apply'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showFontSizeDialog(BuildContext context) {
+    String temp = _fontSize;
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, ss) => Dialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Font Size',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF171A21),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      icon: const Icon(Icons.close, size: 20),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Choose your preferred reading size',
+                  style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+                ),
+                const SizedBox(height: 12),
+                ...['Small', 'Medium', 'Large'].map((s) {
+                  final sel = temp == s;
+                  return GestureDetector(
+                    onTap: () => ss(() => temp = s),
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: sel
+                            ? const Color(0xFFFBECEE)
+                            : const Color(0xFFF3F4F6),
+                        borderRadius: BorderRadius.circular(10),
+                        border: sel
+                            ? Border.all(color: const Color(0xFFCC353A))
+                            : null,
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              s,
+                              style: TextStyle(
+                                fontSize: s == 'Small'
+                                    ? 13
+                                    : s == 'Medium'
+                                    ? 15
+                                    : 18,
+                                fontWeight: sel
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                                color: sel
+                                    ? const Color(0xFFCC353A)
+                                    : const Color(0xFF374151),
+                              ),
+                            ),
+                          ),
+                          if (sel)
+                            const Icon(
+                              Icons.check_circle,
+                              color: Color(0xFFCC353A),
+                              size: 18,
+                            ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+                const SizedBox(height: 4),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      setState(() => _fontSize = temp);
+                      Navigator.of(ctx).pop();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFCC353A),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: const Text(
+                      'Apply',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showLanguageDialog(BuildContext context) {
+    String temp = _language;
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, ss) => Dialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Language',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF171A21),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      icon: const Icon(Icons.close, size: 20),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                ...[('Vietnamese', '🇻🇳'), ('English', '🇬🇧')].map((e) {
+                  final sel = temp == e.$1;
+                  return GestureDetector(
+                    onTap: () => ss(() => temp = e.$1),
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 14,
+                      ),
+                      decoration: BoxDecoration(
+                        color: sel
+                            ? const Color(0xFFFBECEE)
+                            : const Color(0xFFF3F4F6),
+                        borderRadius: BorderRadius.circular(10),
+                        border: sel
+                            ? Border.all(color: const Color(0xFFCC353A))
+                            : null,
+                      ),
+                      child: Row(
+                        children: [
+                          Text(e.$2, style: const TextStyle(fontSize: 22)),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              e.$1,
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: sel
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                                color: sel
+                                    ? const Color(0xFFCC353A)
+                                    : const Color(0xFF374151),
+                              ),
+                            ),
+                          ),
+                          if (sel)
+                            const Icon(
+                              Icons.check_circle,
+                              color: Color(0xFFCC353A),
+                              size: 18,
+                            ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+                const SizedBox(height: 4),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      setState(() => _language = temp);
+                      Navigator.of(ctx).pop();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFCC353A),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: const Text(
+                      'Apply',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showPrivacySecurityDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Privacy & Security',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF171A21),
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    icon: const Icon(Icons.close, size: 20),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _privacyRow('Change Password', () {
+                Navigator.of(ctx).pop();
+                _showChangePasswordDialog(context);
+              }),
+              const SizedBox(height: 8),
+              _privacyRow('Data & Permissions', () {
+                Navigator.of(ctx).pop();
+                _showDataPermissionsDialog(context);
+              }),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _privacyRow(String label, VoidCallback onTap) {
+    return Material(
+      color: const Color(0xFFF3F4F6),
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF171A21),
+                  ),
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: Color(0xFF9CA3AF)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showChangePasswordDialog(BuildContext context) {
+    bool showCurrent = false, showNew = false, showConfirm = false;
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, ss) => Dialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Change Password',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF171A21),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      icon: const Icon(Icons.close, size: 20),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                _pwField(
+                  'Current Password',
+                  !showCurrent,
+                  () => ss(() => showCurrent = !showCurrent),
+                ),
+                const SizedBox(height: 10),
+                _pwField(
+                  'New Password',
+                  !showNew,
+                  () => ss(() => showNew = !showNew),
+                ),
+                const SizedBox(height: 10),
+                _pwField(
+                  'Confirm New Password',
+                  !showConfirm,
+                  () => ss(() => showConfirm = !showConfirm),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFCC353A),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                    ),
+                    icon: const Icon(Icons.key_rounded, size: 18),
+                    label: const Text(
+                      'Change Password',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _pwField(String label, bool obscure, VoidCallback onToggle) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontSize: 13, color: Color(0xFF374151)),
+        ),
+        const SizedBox(height: 4),
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFFF3F4F6),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: TextField(
+            obscureText: obscure,
+            decoration: InputDecoration(
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 12,
+              ),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  obscure
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                  size: 18,
+                  color: const Color(0xFF9CA3AF),
+                ),
+                onPressed: onToggle,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showDataPermissionsDialog(BuildContext context) {
+    bool saveLocally = true;
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, ss) => Dialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Data & Permissions',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF171A21),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      icon: const Icon(Icons.close, size: 20),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFBFDBFE)),
+                  ),
+                  child: const Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.storage_rounded,
+                        color: Color(0xFF3B82F6),
+                        size: 20,
+                      ),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Local Data Storage',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF1D4ED8),
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'This setting allows the app to save your achievements, discovered artifacts, and museum journey data locally on your device for offline access.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF3B82F6),
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Save Museum Data Locally',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF171A21),
+                        ),
+                      ),
+                    ),
+                    Switch.adaptive(
+                      value: saveLocally,
+                      onChanged: (v) => ss(() => saveLocally = v),
+                      activeColor: const Color(0xFFCC353A),
+                    ),
+                  ],
+                ),
+                const Text(
+                  'Allow the app to store your achievements, progress, and discovered artifacts on your device',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF6B7280),
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF3F4F6),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Data that will be saved:',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF171A21),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      ...[
+                        'Achievements and badges earned',
+                        "Artifacts you've discovered",
+                        'Journey progress and points',
+                        'Favorite exhibits and bookmarks',
+                      ].map(
+                        (s) => Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                '• ',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Color(0xFFCC353A),
+                                ),
+                              ),
+                              Expanded(
+                                child: Text(
+                                  s,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF374151),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFCC353A),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                    ),
+                    icon: const Icon(Icons.save_outlined, size: 18),
+                    label: const Text(
+                      'Save Preferences',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showLogoutConfirmDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Confirm Logout',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF171A21),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Are you sure you want to log out?',
+                style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFFE5E7EB)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text(
+                        'No',
+                        style: TextStyle(color: Color(0xFF374151)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        Navigator.of(context).pushNamedAndRemoveUntil(
+                          AppRoutes.login,
+                          (route) => false,
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFCC353A),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text(
+                        'Yes',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,53 +975,61 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
               ),
               const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
+              Material(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                child: InkWell(
                   borderRadius: BorderRadius.circular(14),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: const Color(0xFFCC353A)),
-                      ),
-                      child: ClipOval(
-                        child: Image.asset(
-                          'assets/images/model.png',
-                          fit: BoxFit.cover,
+                  onTap: () =>
+                      Navigator.of(context).pushNamed(AppRoutes.editProfile),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: const Color(0xFFCC353A)),
+                          ),
+                          child: ClipOval(
+                            child: Image.asset(
+                              'assets/images/model.png',
+                              fit: BoxFit.cover,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Justin Nguyen',
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w700,
-                            ),
+                        const SizedBox(width: 10),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Justin Nguyen',
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'justin@museum.com',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF6B7280),
+                                ),
+                              ),
+                            ],
                           ),
-                          SizedBox(height: 2),
-                          Text(
-                            'justin@museum.com',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF6B7280),
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                        const Icon(
+                          Icons.chevron_right,
+                          color: Color(0xFF9CA3AF),
+                        ),
+                      ],
                     ),
-                    const Icon(Icons.chevron_right, color: Color(0xFF9CA3AF)),
-                  ],
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -97,25 +1043,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChanged: (v) => setState(() => _themeLight = v),
               ),
               const SizedBox(height: 8),
-              const _ArrowTile(
+              _ArrowTile(
                 icon: Icons.palette_outlined,
                 title: 'Color Scheme',
-                subtitle: 'Gold',
+                subtitle: 'Custom',
                 trailingDot: true,
+                onTap: () => _showColorSchemeDialog(context),
               ),
               const SizedBox(height: 8),
-              const _ArrowTile(
+              _ArrowTile(
                 icon: Icons.text_fields_rounded,
                 title: 'Font Size',
-                subtitle: 'Medium',
+                subtitle: _fontSize,
+                onTap: () => _showFontSizeDialog(context),
               ),
               const SizedBox(height: 16),
               const _SectionLabel(text: 'MUSEUM EXPERIENCE'),
               const SizedBox(height: 8),
-              const _ArrowTile(
+              _ArrowTile(
                 icon: Icons.language_outlined,
                 title: 'Language',
-                subtitle: 'English',
+                subtitle: _language,
+                onTap: () => _showLanguageDialog(context),
               ),
               const SizedBox(height: 8),
               _ToggleTile(
@@ -144,22 +1093,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 16),
               const _SectionLabel(text: 'ACCOUNT & PRIVACY'),
               const SizedBox(height: 8),
-              const _ArrowTile(
+              _ArrowTile(
                 icon: Icons.shield_outlined,
                 title: 'Privacy & Security',
                 subtitle: 'Data preferences',
+                onTap: () => _showPrivacySecurityDialog(context),
               ),
               const SizedBox(height: 8),
-              const _ArrowTile(
+              _ArrowTile(
                 icon: Icons.confirmation_number_outlined,
                 title: 'My Tickets',
                 subtitle: 'View bookings',
+                onTap: () =>
+                    Navigator.of(context).pushNamed(AppRoutes.myTickets),
               ),
               const SizedBox(height: 8),
-              const _ArrowTile(
+              _ArrowTile(
                 icon: Icons.emoji_events_outlined,
                 title: 'Achievements',
                 subtitle: 'View badges',
+                onTap: () =>
+                    Navigator.of(context).pushNamed(AppRoutes.achievements),
               ),
               const SizedBox(height: 16),
               const _SectionLabel(text: 'SUPPORT'),
@@ -179,7 +1133,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
-                  onPressed: () {},
+                  onPressed: () => _showLogoutConfirmDialog(context),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFFCC353A),
                     side: const BorderSide(color: Color(0xFFEFCDD0)),
@@ -213,20 +1167,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
 class _SectionLabel extends StatelessWidget {
   const _SectionLabel({required this.text});
-
   final String text;
-
   @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontSize: 11,
-        color: Color(0xFF8A93A3),
-        fontWeight: FontWeight.w700,
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Text(
+    text,
+    style: const TextStyle(
+      fontSize: 11,
+      color: Color(0xFF8A93A3),
+      fontWeight: FontWeight.w700,
+    ),
+  );
 }
 
 class _ArrowTile extends StatelessWidget {
@@ -235,60 +1185,68 @@ class _ArrowTile extends StatelessWidget {
     required this.title,
     required this.subtitle,
     this.trailingDot = false,
+    this.onTap,
   });
-
   final IconData icon;
   final String title;
   final String subtitle;
   final bool trailingDot;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 30,
-            height: 30,
-            decoration: const BoxDecoration(
-              color: Color(0xFFF3F4F6),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, size: 16, color: const Color(0xFFCC353A)),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF171A21),
-                  ),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              Container(
+                width: 30,
+                height: 30,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF3F4F6),
+                  shape: BoxShape.circle,
                 ),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: Color(0xFF6B7280),
-                  ),
+                child: Icon(icon, size: 16, color: const Color(0xFFCC353A)),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF171A21),
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF6B7280),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              if (trailingDot)
+                const CircleAvatar(
+                  radius: 9,
+                  backgroundColor: Color(0xFFCC353A),
+                )
+              else
+                const Icon(Icons.chevron_right, color: Color(0xFF9CA3AF)),
+            ],
           ),
-          if (trailingDot)
-            const CircleAvatar(radius: 9, backgroundColor: Color(0xFFCC353A))
-          else
-            const Icon(Icons.chevron_right, color: Color(0xFF9CA3AF)),
-        ],
+        ),
       ),
     );
   }
@@ -302,7 +1260,6 @@ class _ToggleTile extends StatelessWidget {
     required this.value,
     required this.onChanged,
   });
-
   final IconData icon;
   final String title;
   final String subtitle;

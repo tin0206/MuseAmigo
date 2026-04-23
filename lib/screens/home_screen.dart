@@ -100,9 +100,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(width: 10),
                   GestureDetector(
-                    onTap: () => Navigator.of(
-                      context,
-                    ).pushNamed(AppRoutes.profileOptions),
+                    onTap: () =>
+                        Navigator.of(context).pushNamed(AppRoutes.settings),
                     child: ClipOval(
                       child: Image.asset(
                         'assets/images/model.png',

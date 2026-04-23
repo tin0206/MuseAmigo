@@ -69,17 +69,21 @@ class ExploreMapScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: const ClipOval(
-                      child: Image(
-                        image: AssetImage('assets/images/model.png'),
-                        fit: BoxFit.cover,
+                  GestureDetector(
+                    onTap: () =>
+                        Navigator.of(context).pushNamed(AppRoutes.settings),
+                    child: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: const ClipOval(
+                        child: Image(
+                          image: AssetImage('assets/images/model.png'),
+                          fit: BoxFit.cover,
+                        ),
                       ),
                     ),
                   ),
