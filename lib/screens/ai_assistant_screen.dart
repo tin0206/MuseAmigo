@@ -136,7 +136,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                     },
                     child: const Icon(
                       Icons.arrow_back_ios_new,
-                      color: Colors.black,
+                      color: Colors.white,
                       size: 20,
                     ),
                   ),
