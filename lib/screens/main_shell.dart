@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:museamigo/app_routes.dart';
 import 'package:museamigo/screens/ai_assistant_screen.dart';
+import 'package:museamigo/screens/artifact_scan_screen.dart';
 import 'package:museamigo/screens/home_screen.dart';
 import 'package:museamigo/screens/journey_screen.dart';
 import 'package:museamigo/screens/museum_3d_map_screen.dart';
@@ -31,6 +32,108 @@ class _MainShellState extends State<MainShell> {
     setState(() => _currentIndex = index);
   }
 
+  Future<void> _openScanFlow() async {
+    final scannedCode = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => const ArtifactScanScreen(),
+        fullscreenDialog: true,
+      ),
+    );
+
+    if (!mounted || scannedCode == null || scannedCode.isEmpty) {
+      return;
+    }
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.white,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 18),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 70,
+                height: 70,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFCC353A),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.auto_awesome,
+                  color: Colors.white,
+                  size: 34,
+                ),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'Congratulations!',
+                style: TextStyle(
+                  fontSize: 34,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF171A21),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 6),
+              RichText(
+                textAlign: TextAlign.center,
+                text: const TextSpan(
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Color(0xFF6B7280),
+                    height: 1.35,
+                  ),
+                  children: [
+                    TextSpan(text: 'You\'ve unlocked '),
+                    TextSpan(
+                      text: 'T-54 Tank No. 843',
+                      style: TextStyle(
+                        color: Color(0xFFCC353A),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    TextSpan(text: ' in your Virtual 3D Collection!'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF4EFFD),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Text(
+                  '✨ This artifact now has enhanced storytelling and 3D viewing available',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Color(0xFF7B42D9),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                '🎉 Added to your collection',
+                style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -48,6 +151,7 @@ class _MainShellState extends State<MainShell> {
       bottomNavigationBar: AppBottomNav(
         selectedIndex: _currentIndex,
         onTap: _onTabTap,
+        onCenterTap: _openScanFlow,
       ),
     );
   }

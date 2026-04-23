@@ -5,10 +5,12 @@ class AppBottomNav extends StatelessWidget {
     super.key,
     required this.selectedIndex,
     required this.onTap,
+    required this.onCenterTap,
   });
 
   final int? selectedIndex;
   final ValueChanged<int> onTap;
+  final VoidCallback onCenterTap;
 
   @override
   Widget build(BuildContext context) {
@@ -35,15 +37,19 @@ class AppBottomNav extends StatelessWidget {
             onTap: () => onTap(1),
           ),
           GestureDetector(
-            onTap: () => onTap(2),
+            onTap: onCenterTap,
             child: Container(
               width: 56,
               height: 56,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: Color(0xFFCC353A),
-                shape: BoxShape.circle,
+                borderRadius: BorderRadius.circular(9999),
               ),
-              child: const Icon(Icons.gps_fixed, color: Colors.white, size: 26),
+              child: const Icon(
+                Icons.crop_free_rounded,
+                color: Colors.white,
+                size: 30,
+              ),
             ),
           ),
           _NavItem(
