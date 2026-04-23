@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:museamigo/app_routes.dart';
 import 'package:museamigo/screens/ai_assistant_screen.dart';
 import 'package:museamigo/screens/artifact_scan_screen.dart';
 import 'package:museamigo/screens/home_screen.dart';
