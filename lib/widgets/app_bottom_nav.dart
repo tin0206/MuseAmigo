@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:museamigo/l10n/translations.dart';
 
 class AppBottomNav extends StatelessWidget {
   const AppBottomNav({
@@ -26,13 +27,13 @@ class AppBottomNav extends StatelessWidget {
         children: [
           _NavItem(
             icon: Icons.home_rounded,
-            label: 'Home',
+            label: 'Home'.tr,
             selected: currentIndex == 0,
             onTap: () => onTap(0),
           ),
           _NavItem(
             icon: Icons.map_outlined,
-            label: 'Map',
+            label: 'Map'.tr,
             selected: currentIndex == 1,
             onTap: () => onTap(1),
           ),
@@ -54,13 +55,13 @@ class AppBottomNav extends StatelessWidget {
           ),
           _NavItem(
             icon: Icons.chat_bubble_outline_rounded,
-            label: 'AI',
+            label: 'AI'.tr,
             selected: currentIndex == 3,
             onTap: () => onTap(3),
           ),
           _NavItem(
             icon: Icons.route_outlined,
-            label: 'Journey',
+            label: 'Journey'.tr,
             selected: currentIndex == 4,
             onTap: () => onTap(4),
           ),

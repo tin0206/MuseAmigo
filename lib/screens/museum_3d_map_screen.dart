@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:museamigo/l10n/translations.dart';
 
 class Museum3DMapScreen extends StatefulWidget {
   const Museum3DMapScreen({super.key});
@@ -85,10 +86,10 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
             Container(
               color: Colors.white,
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-              child: const Center(
+              child: Center(
                 child: Text(
-                  'Map',
-                  style: TextStyle(
+                  'Map'.tr,
+                  style: const TextStyle(
                     color: Color(0xFF171A21),
                     fontSize: 30,
                     fontWeight: FontWeight.w700,
@@ -156,14 +157,18 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                         vertical: 5,
                       ),
                       decoration: BoxDecoration(
-                        color: selected ? Theme.of(context).colorScheme.primary : Colors.white,
+                        color: selected
+                            ? Theme.of(context).colorScheme.primary
+                            : Colors.white,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: selected ? Theme.of(context).colorScheme.primary : const Color(0xFFDDDDDD),
+                          color: selected
+                              ? Theme.of(context).colorScheme.primary
+                              : const Color(0xFFDDDDDD),
                         ),
                       ),
                       child: Text(
-                        floor,
+                        floor.tr,
                         style: TextStyle(
                           color: selected
                               ? Colors.white
@@ -245,15 +250,12 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                   children: [
                     _LegendItem(
                       color: Theme.of(context).colorScheme.primary,
-                      label: 'Artifacts',
+                      label: 'Artifacts'.tr,
                     ),
                     const SizedBox(width: 16),
-                    const _LegendItem(
-                      color: _restroomColor,
-                      label: 'Restrooms',
-                    ),
+                    _LegendItem(color: _restroomColor, label: 'Restrooms'.tr),
                     const SizedBox(width: 16),
-                    const _LegendItem(color: _cafeColor, label: 'Cafes'),
+                    _LegendItem(color: _cafeColor, label: 'Cafes'.tr),
                   ],
                 ),
               ),
@@ -460,74 +462,75 @@ class _RouteOption {
   });
 }
 
-List<_LocationOption> _getAllLocationOptions(Color primary) => <_LocationOption>[
-  _LocationOption(
-    name: 'Room of War',
-    subtitle: 'Hall A — Floor 1',
-    icon: Icons.location_on,
-    iconColor: primary,
-  ),
-  _LocationOption(
-    name: 'President Room',
-    subtitle: 'Hall B — Floor 1',
-    icon: Icons.location_on,
-    iconColor: primary,
-  ),
-  _LocationOption(
-    name: 'Tank T-54',
-    subtitle: 'Hall C — Floor 1',
-    icon: Icons.location_on,
-    iconColor: primary,
-  ),
-  _LocationOption(
-    name: 'Classroom',
-    subtitle: 'Hall D — Floor 1',
-    icon: Icons.visibility_outlined,
-    iconColor: primary,
-  ),
-  _LocationOption(
-    name: 'Main Entrance',
-    subtitle: 'Entrance — Floor 1',
-    icon: Icons.meeting_room_outlined,
-    iconColor: Color(0xFF6B7280),
-  ),
-  _LocationOption(
-    name: 'Cafe Nile',
-    subtitle: 'Central — Floor 1',
-    icon: Icons.coffee_outlined,
-    iconColor: Color(0xFFF59E0B),
-  ),
-  _LocationOption(
-    name: 'Photography Gallery',
-    subtitle: 'Hall E — Floor 2',
-    icon: Icons.visibility_outlined,
-    iconColor: primary,
-  ),
-  _LocationOption(
-    name: 'Peace Memorial',
-    subtitle: 'Hall F — Floor 2',
-    icon: Icons.location_on,
-    iconColor: primary,
-  ),
-  _LocationOption(
-    name: 'Diplomatic Room',
-    subtitle: 'Hall G — Floor 2',
-    icon: Icons.location_on,
-    iconColor: primary,
-  ),
-  _LocationOption(
-    name: 'Media Room',
-    subtitle: 'Hall H — Floor 2',
-    icon: Icons.visibility_outlined,
-    iconColor: primary,
-  ),
-  _LocationOption(
-    name: 'Rooftop Cafe',
-    subtitle: 'Rooftop — Floor 2',
-    icon: Icons.coffee_outlined,
-    iconColor: Color(0xFFF59E0B),
-  ),
-];
+List<_LocationOption> _getAllLocationOptions(Color primary) =>
+    <_LocationOption>[
+      _LocationOption(
+        name: 'Room of War',
+        subtitle: 'Hall A — Floor 1',
+        icon: Icons.location_on,
+        iconColor: primary,
+      ),
+      _LocationOption(
+        name: 'President Room',
+        subtitle: 'Hall B — Floor 1',
+        icon: Icons.location_on,
+        iconColor: primary,
+      ),
+      _LocationOption(
+        name: 'Tank T-54',
+        subtitle: 'Hall C — Floor 1',
+        icon: Icons.location_on,
+        iconColor: primary,
+      ),
+      _LocationOption(
+        name: 'Classroom',
+        subtitle: 'Hall D — Floor 1',
+        icon: Icons.visibility_outlined,
+        iconColor: primary,
+      ),
+      _LocationOption(
+        name: 'Main Entrance',
+        subtitle: 'Entrance — Floor 1',
+        icon: Icons.meeting_room_outlined,
+        iconColor: Color(0xFF6B7280),
+      ),
+      _LocationOption(
+        name: 'Cafe Nile',
+        subtitle: 'Central — Floor 1',
+        icon: Icons.coffee_outlined,
+        iconColor: Color(0xFFF59E0B),
+      ),
+      _LocationOption(
+        name: 'Photography Gallery',
+        subtitle: 'Hall E — Floor 2',
+        icon: Icons.visibility_outlined,
+        iconColor: primary,
+      ),
+      _LocationOption(
+        name: 'Peace Memorial',
+        subtitle: 'Hall F — Floor 2',
+        icon: Icons.location_on,
+        iconColor: primary,
+      ),
+      _LocationOption(
+        name: 'Diplomatic Room',
+        subtitle: 'Hall G — Floor 2',
+        icon: Icons.location_on,
+        iconColor: primary,
+      ),
+      _LocationOption(
+        name: 'Media Room',
+        subtitle: 'Hall H — Floor 2',
+        icon: Icons.visibility_outlined,
+        iconColor: primary,
+      ),
+      _LocationOption(
+        name: 'Rooftop Cafe',
+        subtitle: 'Rooftop — Floor 2',
+        icon: Icons.coffee_outlined,
+        iconColor: Color(0xFFF59E0B),
+      ),
+    ];
 
 const _recommendedRoutes = <_RouteOption>[
   _RouteOption(
@@ -642,9 +645,9 @@ class _DetectingScreenState extends State<_DetectingScreen>
               ),
             ),
             const SizedBox(height: 24),
-            const Text(
-              'Detecting your position...',
-              style: TextStyle(
+            Text(
+              'Detecting your position...'.tr,
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -652,7 +655,7 @@ class _DetectingScreenState extends State<_DetectingScreen>
             ),
             const SizedBox(height: 8),
             Text(
-              'Using indoor positioning',
+              'Using indoor positioning'.tr,
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.7),
                 fontSize: 14,
@@ -696,10 +699,10 @@ class _LocationPickerSheet extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 8, 8, 4),
               child: Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Where are you now?',
-                      style: TextStyle(
+                      'Where are you now?'.tr,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF111827),
@@ -713,18 +716,20 @@ class _LocationPickerSheet extends StatelessWidget {
                 ],
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
               child: Text(
-                'Indoor positioning unavailable. Select your nearest location.',
-                style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+                'Indoor positioning unavailable. Select your nearest location.'.tr,
+                style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
               ),
             ),
             const Divider(height: 1),
             Expanded(
               child: Builder(
                 builder: (context) {
-                  final options = _getAllLocationOptions(Theme.of(context).colorScheme.primary);
+                  final options = _getAllLocationOptions(
+                    Theme.of(context).colorScheme.primary,
+                  );
                   return ListView.separated(
                     controller: scrollController,
                     itemCount: options.length,
@@ -747,7 +752,7 @@ class _LocationPickerSheet extends StatelessWidget {
                           child: Icon(loc.icon, color: loc.iconColor, size: 18),
                         ),
                         title: Text(
-                          loc.name,
+                          loc.name.tr,
                           style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
@@ -755,7 +760,7 @@ class _LocationPickerSheet extends StatelessWidget {
                           ),
                         ),
                         subtitle: Text(
-                          loc.subtitle,
+                          loc.subtitle.tr,
                           style: const TextStyle(
                             fontSize: 12,
                             color: Color(0xFF6B7280),
@@ -806,10 +811,10 @@ class _RoutePickerSheet extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 8, 8, 4),
               child: Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      '✨ Recommended Routes',
-                      style: TextStyle(
+                      '✨ Recommended Routes'.tr,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF111827),
@@ -823,11 +828,11 @@ class _RoutePickerSheet extends StatelessWidget {
                 ],
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
               child: Text(
-                'Choose a guided path to explore the museum',
-                style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+                'Choose a guided path to explore the museum'.tr,
+                style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
               ),
             ),
             Expanded(
@@ -840,7 +845,7 @@ class _RoutePickerSheet extends StatelessWidget {
                   final route = _recommendedRoutes[i];
                   final preview = route.stops
                       .take(3)
-                      .map((s) => s.name)
+                      .map((s) => s.name.tr)
                       .join(' → ');
                   return GestureDetector(
                     onTap: () => Navigator.of(context).pop(route),
@@ -864,7 +869,7 @@ class _RoutePickerSheet extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  route.name,
+                                  route.name.tr,
                                   style: const TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w700,
@@ -873,7 +878,7 @@ class _RoutePickerSheet extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  route.description,
+                                  route.description.tr,
                                   style: const TextStyle(
                                     fontSize: 12,
                                     color: Color(0xFF6B7280),
@@ -889,7 +894,7 @@ class _RoutePickerSheet extends StatelessWidget {
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
-                                      route.duration,
+                                      route.duration.tr,
                                       style: const TextStyle(
                                         fontSize: 12,
                                         color: Color(0xFF6B7280),
@@ -903,7 +908,7 @@ class _RoutePickerSheet extends StatelessWidget {
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
-                                      '${route.stopsCount} stops',
+                                      '${route.stopsCount} stops'.tr,
                                       style: const TextStyle(
                                         fontSize: 12,
                                         color: Color(0xFF6B7280),
@@ -973,10 +978,10 @@ class _RouteReadySheet extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 8, 8, 4),
               child: Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Route Ready',
-                      style: TextStyle(
+                      'Route Ready'.tr,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF111827),
@@ -1000,7 +1005,7 @@ class _RouteReadySheet extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        route.name,
+                        route.name.tr,
                         style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
@@ -1008,7 +1013,7 @@ class _RouteReadySheet extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        '${route.duration} • ${route.stopsCount} stops',
+                        '${route.duration.tr} • ${route.stopsCount} ${'stops'.tr}',
                         style: const TextStyle(
                           fontSize: 12,
                           color: Color(0xFF6B7280),
@@ -1068,7 +1073,7 @@ class _RouteReadySheet extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                stop.name,
+                                stop.name.tr,
                                 style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -1076,7 +1081,7 @@ class _RouteReadySheet extends StatelessWidget {
                                 ),
                               ),
                               Text(
-                                stop.subtitle,
+                                stop.subtitle.tr,
                                 style: const TextStyle(
                                   fontSize: 12,
                                   color: Color(0xFF6B7280),
@@ -1106,9 +1111,9 @@ class _RouteReadySheet extends StatelessWidget {
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      child: const Text(
-                        'Cancel',
-                        style: TextStyle(
+                      child: Text(
+                        'Cancel'.tr,
+                        style: const TextStyle(
                           color: Color(0xFF111827),
                           fontWeight: FontWeight.w600,
                         ),
@@ -1121,9 +1126,9 @@ class _RouteReadySheet extends StatelessWidget {
                     child: ElevatedButton.icon(
                       onPressed: () => Navigator.of(context).pop(true),
                       icon: const Icon(Icons.navigation_outlined, size: 18),
-                      label: const Text(
-                        'Start Navigation',
-                        style: TextStyle(fontWeight: FontWeight.w600),
+                      label: Text(
+                        'Start Navigation'.tr,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Theme.of(context).colorScheme.primary,
@@ -1173,7 +1178,7 @@ class _NavigationPanel extends StatelessWidget {
           Row(
             children: [
               Text(
-                'Navigating - Stop ${currentStopIndex + 1}/${route.stops.length}',
+                '${'Navigating - Stop'.tr} ${currentStopIndex + 1}/${route.stops.length}',
                 style: const TextStyle(color: Colors.white, fontSize: 12),
               ),
               const Spacer(),
@@ -1188,9 +1193,9 @@ class _NavigationPanel extends StatelessWidget {
                     color: Colors.white.withValues(alpha: 0.24),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Text(
-                    'Stop',
-                    style: TextStyle(
+                  child: Text(
+                    'Stop'.tr,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -1201,13 +1206,13 @@ class _NavigationPanel extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          const Text(
-            'To:',
-            style: TextStyle(color: Colors.white, fontSize: 16),
+          Text(
+            'To:'.tr,
+            style: const TextStyle(color: Colors.white, fontSize: 16),
           ),
           const SizedBox(height: 2),
           Text(
-            currentStop.name,
+            currentStop.name.tr,
             style: const TextStyle(
               color: Colors.white,
               fontSize: 30,
@@ -1250,7 +1255,7 @@ class _NavigationPanel extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        currentStop.name,
+                        currentStop.name.tr,
                         style: const TextStyle(
                           color: Color(0xFF111827),
                           fontSize: 18,
@@ -1266,7 +1271,7 @@ class _NavigationPanel extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  description,
+                  description.tr,
                   style: const TextStyle(
                     color: Color(0xFF4B5563),
                     height: 1.4,
@@ -1290,7 +1295,7 @@ class _NavigationPanel extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 12),
               ),
               child: Text(
-                isLast ? 'Finish' : 'Next  →',
+                isLast ? 'Finish'.tr : 'Next  →'.tr,
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
@@ -1448,7 +1453,7 @@ class Museum3DPainter extends CustomPainter {
     // Draw location label
     final textPainter = TextPainter(
       text: TextSpan(
-        text: location.name,
+        text: location.name.tr,
         style: const TextStyle(
           color: Color(0xFFFFFFFF),
           fontSize: 11,

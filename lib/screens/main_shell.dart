@@ -5,6 +5,7 @@ import 'package:museamigo/screens/home_screen.dart';
 import 'package:museamigo/screens/journey_screen.dart';
 import 'package:museamigo/screens/museum_3d_map_screen.dart';
 import 'package:museamigo/widgets/app_bottom_nav.dart';
+import 'package:museamigo/l10n/translations.dart';
 
 /// Shell widget that hosts all bottom-nav tab screens in an [IndexedStack].
 /// Switching tabs never destroys a screen — state is fully preserved.
@@ -69,9 +70,9 @@ class _MainShellState extends State<MainShell> {
                 ),
               ),
               const SizedBox(height: 10),
-              const Text(
-                'Congratulations!',
-                style: TextStyle(
+              Text(
+                'Congratulations!'.tr,
+                style: const TextStyle(
                   fontSize: 34,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF171A21),
@@ -88,15 +89,15 @@ class _MainShellState extends State<MainShell> {
                     height: 1.35,
                   ),
                   children: [
-                    const TextSpan(text: 'You\'ve unlocked '),
+                    TextSpan(text: 'You\'ve unlocked '.tr),
                     TextSpan(
-                      text: 'T-54 Tank No. 843',
+                      text: 'T-54 Tank No. 843'.tr,
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.primary,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const TextSpan(text: ' in your Virtual 3D Collection!'),
+                    TextSpan(text: ' in your Virtual 3D Collection!'.tr),
                   ],
                 ),
               ),
@@ -111,10 +112,11 @@ class _MainShellState extends State<MainShell> {
                   color: const Color(0xFFF4EFFD),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Text(
-                  '✨ This artifact now has enhanced storytelling and 3D viewing available',
+                child: Text(
+                  '✨ This artifact now has enhanced storytelling and 3D viewing available'
+                      .tr,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Color(0xFF7B42D9),
                     fontWeight: FontWeight.w600,
                     fontSize: 13,
@@ -122,9 +124,9 @@ class _MainShellState extends State<MainShell> {
                 ),
               ),
               const SizedBox(height: 10),
-              const Text(
-                '🎉 Added to your collection',
-                style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+              Text(
+                '🎉 Added to your collection'.tr,
+                style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
               ),
             ],
           ),

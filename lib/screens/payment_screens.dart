@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:museamigo/app_routes.dart';
+import 'package:museamigo/l10n/translations.dart';
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
@@ -74,7 +75,7 @@ class _CardPaymentSheetState extends State<CardPaymentSheet> {
                     TextButton.icon(
                       onPressed: () => Navigator.of(context).pop(),
                       icon: const Icon(Icons.arrow_back, size: 18),
-                      label: const Text('Return'),
+                      label: Text('Return'.tr),
                       style: TextButton.styleFrom(
                         foregroundColor: Theme.of(context).colorScheme.primary,
                       ),
@@ -87,7 +88,7 @@ class _CardPaymentSheetState extends State<CardPaymentSheet> {
                   ],
                 ),
                 Text(
-                  'Card Information',
+                  'Card Information'.tr,
                   style: TextStyle(
                     fontSize: 36,
                     fontWeight: FontWeight.w700,
@@ -95,14 +96,14 @@ class _CardPaymentSheetState extends State<CardPaymentSheet> {
                   ),
                 ),
                 const SizedBox(height: 22),
-                const _FieldLabel('Card number'),
+                _FieldLabel('Card number'.tr),
                 _PaymentTextField(
                   controller: _cardNumberController,
                   hint: '1234 5678 9012 3456',
                   keyboardType: TextInputType.number,
                 ),
                 const SizedBox(height: 16),
-                const _FieldLabel('Cardholder name'),
+                _FieldLabel('Cardholder name'.tr),
                 _PaymentTextField(
                   controller: _cardholderController,
                   hint: 'NGUYEN VAN A',
@@ -115,7 +116,7 @@ class _CardPaymentSheetState extends State<CardPaymentSheet> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const _FieldLabel('Expiry date'),
+                          _FieldLabel('Expiry date'.tr),
                           _PaymentTextField(
                             controller: _expiryController,
                             hint: 'MM/YY',
@@ -155,7 +156,7 @@ class _CardPaymentSheetState extends State<CardPaymentSheet> {
                     ),
                   ),
                   child: Text(
-                    'Pay ${widget.ticket.price}',
+                    'Pay '.tr + widget.ticket.price,
                     style: const TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w700,
@@ -203,7 +204,7 @@ class QrPaymentSheet extends StatelessWidget {
                     TextButton.icon(
                       onPressed: () => Navigator.of(context).pop(),
                       icon: const Icon(Icons.arrow_back, size: 16),
-                      label: const Text('Return'),
+                      label: Text('Return'.tr),
                       style: TextButton.styleFrom(
                         foregroundColor: Theme.of(context).colorScheme.primary,
                         visualDensity: VisualDensity.compact,
@@ -218,7 +219,7 @@ class QrPaymentSheet extends StatelessWidget {
                   ],
                 ),
                 Text(
-                  'Scan QR code',
+                  'Scan QR code'.tr,
                   style: TextStyle(
                     fontSize: 30,
                     fontWeight: FontWeight.w700,
@@ -226,9 +227,13 @@ class QrPaymentSheet extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                const Text(
-                  'Use digital banking app or e-wallet app to scan the QR below',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF6D7785)),
+                Text(
+                  'Use digital banking app or e-wallet app to scan the QR below'
+                      .tr,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF6D7785),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 // ── QR card ─────────────────────────────────────────────
@@ -247,9 +252,9 @@ class QrPaymentSheet extends StatelessWidget {
                         color: Color(0xFFAAAAAA),
                       ),
                       const SizedBox(height: 12),
-                      const Text(
-                        'Money to pay',
-                        style: TextStyle(
+                      Text(
+                        'Money to pay'.tr,
+                        style: const TextStyle(
                           fontSize: 13,
                           color: Color(0xFF6D7785),
                         ),
@@ -289,21 +294,24 @@ class QrPaymentSheet extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 // ── Pay via ─────────────────────────────────────────────
-                const Text(
-                  'Pay via:',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF6D7785)),
+                Text(
+                  'Pay via:'.tr,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF6D7785),
+                  ),
                 ),
                 const SizedBox(height: 8),
-                const Row(
+                Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _QrPayApp(
+                    const _QrPayApp(
                       label: 'VNPay',
                       icon: Icons.account_balance_wallet,
                     ),
-                    _QrPayApp(label: 'MoMo', icon: Icons.wallet),
-                    _QrPayApp(label: 'ZaloPay', icon: Icons.payment),
-                    _QrPayApp(label: 'Banking', icon: Icons.account_balance),
+                    const _QrPayApp(label: 'MoMo', icon: Icons.wallet),
+                    const _QrPayApp(label: 'ZaloPay', icon: Icons.payment),
+                    _QrPayApp(label: 'Banking'.tr, icon: Icons.account_balance),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -315,20 +323,20 @@ class QrPaymentSheet extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: const Color(0xFFFFCC02)),
                   ),
-                  child: const Column(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.info_outline,
                             color: Color(0xFFE65100),
                             size: 16,
                           ),
-                          SizedBox(width: 6),
+                          const SizedBox(width: 6),
                           Text(
-                            'Guide:',
-                            style: TextStyle(
+                            'Guide:'.tr,
+                            style: const TextStyle(
                               fontWeight: FontWeight.w700,
                               color: Color(0xFFE65100),
                               fontSize: 13,
@@ -336,24 +344,24 @@ class QrPaymentSheet extends StatelessWidget {
                           ),
                         ],
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
-                        'Open banking or e-wallet app',
-                        style: TextStyle(
+                        'Open banking or e-wallet app'.tr,
+                        style: const TextStyle(
                           color: Color(0xFFE65100),
                           fontSize: 13,
                         ),
                       ),
                       Text(
-                        'Choose QR code payment (scanner)',
-                        style: TextStyle(
+                        'Choose QR code payment (scanner)'.tr,
+                        style: const TextStyle(
                           color: Color(0xFFE65100),
                           fontSize: 13,
                         ),
                       ),
                       Text(
-                        'Scan the QR code to complete',
-                        style: TextStyle(
+                        'Scan the QR code to complete'.tr,
+                        style: const TextStyle(
                           color: Color(0xFFE65100),
                           fontSize: 13,
                         ),
@@ -374,9 +382,12 @@ class QrPaymentSheet extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    'Done',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  child: Text(
+                    'Done'.tr,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ],
@@ -405,7 +416,11 @@ class _QrPayApp extends StatelessWidget {
             color: const Color(0xFFF0F0F2),
             borderRadius: BorderRadius.circular(14),
           ),
-          child: Icon(icon, color: Theme.of(context).colorScheme.primary, size: 26),
+          child: Icon(
+            icon,
+            color: Theme.of(context).colorScheme.primary,
+            size: 26,
+          ),
         ),
         const SizedBox(height: 6),
         Text(
@@ -456,14 +471,14 @@ class _CheckingPaymentDialog extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
-              'Checking payment',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+            Text(
+              'Checking payment'.tr,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 6),
-            const Text(
-              'Please wait...',
-              style: TextStyle(color: Color(0xFF6D7785)),
+            Text(
+              'Please wait...'.tr,
+              style: const TextStyle(color: Color(0xFF6D7785)),
             ),
           ],
         ),
@@ -512,14 +527,14 @@ class _PaymentSuccessDialog extends StatelessWidget {
               child: const Icon(Icons.check, color: Colors.green, size: 44),
             ),
             const SizedBox(height: 20),
-            const Text(
-              'Payment successful!',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+            Text(
+              'Payment successful!'.tr,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 6),
-            const Text(
-              'Creating QR code for your ticket...',
-              style: TextStyle(color: Color(0xFF6D7785)),
+            Text(
+              'Creating QR code for your ticket...'.tr,
+              style: const TextStyle(color: Color(0xFF6D7785)),
             ),
           ],
         ),
@@ -567,9 +582,9 @@ class _TicketResultSheet extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Text(
-                      'Your ticket',
-                      style: TextStyle(
+                    Text(
+                      'Your ticket'.tr,
+                      style: const TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.w700,
                       ),
@@ -581,9 +596,12 @@ class _TicketResultSheet extends StatelessWidget {
                     ),
                   ],
                 ),
-                const Text(
-                  'Please provide this QR code at the entrance',
-                  style: TextStyle(fontSize: 14, color: Color(0xFF6D7785)),
+                Text(
+                  'Please provide this QR code at the entrance'.tr,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF6D7785),
+                  ),
                 ),
                 const SizedBox(height: 20),
                 Center(
@@ -612,9 +630,9 @@ class _TicketResultSheet extends StatelessWidget {
                           letterSpacing: 1.2,
                         ),
                       ),
-                      const Text(
-                        'SCAN ME',
-                        style: TextStyle(
+                      Text(
+                        'SCAN ME'.tr,
+                        style: const TextStyle(
                           fontSize: 12,
                           color: Color(0xFF6D7785),
                           letterSpacing: 1.5,
@@ -628,12 +646,12 @@ class _TicketResultSheet extends StatelessWidget {
                 const SizedBox(height: 8),
                 _TicketDetailRow(label: 'Museum', value: ticket.museumName),
                 _TicketDetailRow(
-                  label: 'Ticket type',
+                  label: 'Ticket type'.tr,
                   value: ticket.ticketLabel,
                 ),
-                _TicketDetailRow(label: 'Purchase date', value: dateStr),
+                _TicketDetailRow(label: 'Purchase date'.tr, value: dateStr),
                 _TicketDetailRow(
-                  label: 'Total amount',
+                  label: 'Total amount'.tr,
                   value: ticket.price,
                   bold: true,
                 ),
@@ -645,30 +663,31 @@ class _TicketResultSheet extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: const Color(0xFFFFCC02)),
                   ),
-                  child: const Row(
+                  child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.info_outline,
                         color: Color(0xFFE65100),
                         size: 18,
                       ),
-                      SizedBox(width: 8),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Warning:',
-                              style: TextStyle(
+                              'Warning:'.tr,
+                              style: const TextStyle(
                                 fontWeight: FontWeight.w700,
                                 color: Color(0xFFE65100),
                               ),
                             ),
-                            SizedBox(height: 4),
+                            const SizedBox(height: 4),
                             Text(
-                              "You might have to provide this to the museum's ticket inspectors to print you a paper ticket.",
-                              style: TextStyle(
+                              "You might have to provide this to the museum's ticket inspectors to print you a paper ticket."
+                                  .tr,
+                              style: const TextStyle(
                                 color: Color(0xFFE65100),
                                 fontSize: 13,
                               ),
@@ -693,9 +712,9 @@ class _TicketResultSheet extends StatelessWidget {
                           ),
                           minimumSize: const Size.fromHeight(50),
                         ),
-                        child: const Text(
-                          'Save for later use',
-                          style: TextStyle(
+                        child: Text(
+                          'Save for later use'.tr,
+                          style: const TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 13,
                           ),
@@ -711,15 +730,17 @@ class _TicketResultSheet extends StatelessWidget {
                               (route) => false,
                             ),
                         style: FilledButton.styleFrom(
-                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.primary,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                           minimumSize: const Size.fromHeight(50),
                         ),
-                        child: const Text(
-                          "I'm in",
-                          style: TextStyle(fontWeight: FontWeight.w700),
+                        child: Text(
+                          "I'm in".tr,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
                       ),
                     ),
@@ -829,7 +850,10 @@ class _PaymentTextField extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 1.5),
+          borderSide: BorderSide(
+            color: Theme.of(context).colorScheme.primary,
+            width: 1.5,
+          ),
         ),
       ),
     );

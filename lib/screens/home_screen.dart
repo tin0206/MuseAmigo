@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:museamigo/app_routes.dart';
+import 'package:museamigo/l10n/translations.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -9,7 +10,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-
   static const _areas = <_AreaItem>[
     _AreaItem(label: 'Exhibition of paintings', sublabel: 'Hall C'),
     _AreaItem(label: 'Exhibition of weapons', sublabel: 'Ground Floor'),
@@ -76,18 +76,18 @@ class _HomeScreenState extends State<HomeScreen> {
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(22),
                         ),
-                        child: const Row(
+                        child: Row(
                           children: [
-                            SizedBox(width: 12),
-                            Icon(
+                            const SizedBox(width: 12),
+                            const Icon(
                               Icons.search,
                               color: Color(0xFF9CA3AF),
                               size: 20,
                             ),
-                            SizedBox(width: 8),
+                            const SizedBox(width: 8),
                             Text(
-                              'Search artifacts, places...',
-                              style: TextStyle(
+                              'Search artifacts, places...'.tr,
+                              style: const TextStyle(
                                 color: Color(0xFF9CA3AF),
                                 fontSize: 14,
                               ),
@@ -135,10 +135,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     SizedBox(
                       width: double.infinity,
-                      child: const Text(
-                        'Welcome Justin',
+                      child: Text(
+                        'Welcome Justin'.tr,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 26,
                           fontWeight: FontWeight.w700,
                           color: Color(0xFF171A21),
@@ -148,10 +148,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 4),
                     SizedBox(
                       width: double.infinity,
-                      child: const Text(
-                        'You are exploring the Independence Palace',
+                      child: Text(
+                        'You are exploring the Independence Palace'.tr,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 14,
                           color: Color(0xFF6D7785),
                         ),
@@ -159,9 +159,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 24),
                     // ── Areas ─────────────────────────────────────────
-                    const Text(
-                      'Areas',
-                      style: TextStyle(
+                    Text(
+                      'Areas'.tr,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF171A21),
@@ -194,7 +194,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 24),
                     // ── First Floor ───────────────────────────────────
                     _SectionHeader(
-                      title: 'Floor 1',
+                      title: 'Floor 1'.tr,
                       onSeeAll: () => Navigator.of(context).pushNamed(
                         AppRoutes.search,
                         arguments: <String, dynamic>{
@@ -226,7 +226,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 24),
                     // ── Second Floor ──────────────────────────────────
                     _SectionHeader(
-                      title: 'Floor 2',
+                      title: 'Floor 2'.tr,
                       onSeeAll: () => Navigator.of(context).pushNamed(
                         AppRoutes.search,
                         arguments: <String, dynamic>{
@@ -293,9 +293,9 @@ class _SectionHeader extends StatelessWidget {
             visualDensity: VisualDensity.compact,
             padding: EdgeInsets.zero,
           ),
-          child: const Text(
-            'See all',
-            style: TextStyle(fontWeight: FontWeight.w600),
+          child: Text(
+            'See all'.tr,
+            style: const TextStyle(fontWeight: FontWeight.w600),
           ),
         ),
       ],
@@ -360,7 +360,7 @@ class _AreaCard extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      area.label,
+                      area.label.tr,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -379,7 +379,7 @@ class _AreaCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 2),
                         Text(
-                          area.sublabel,
+                          area.sublabel.tr,
                           style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 11,
@@ -451,7 +451,7 @@ class _ArtifactRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    item.name,
+                    item.name.tr,
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 15,
@@ -460,7 +460,7 @@ class _ArtifactRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    item.period,
+                    item.period.tr,
                     style: const TextStyle(
                       fontSize: 13,
                       color: Color(0xFF6D7785),

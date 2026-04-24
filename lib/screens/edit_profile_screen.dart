@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:museamigo/profile_notifier.dart';
+import 'package:museamigo/l10n/translations.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -44,10 +45,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               padding: const EdgeInsets.fromLTRB(16, 12, 4, 0),
               child: Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Edit Profile',
-                      style: TextStyle(
+                      'Edit Profile'.tr,
+                      style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF171A21),
@@ -97,7 +98,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   width: 24,
                                   height: 24,
                                   decoration: BoxDecoration(
-                                    color: Theme.of(context).colorScheme.primary,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
                                     shape: BoxShape.circle,
                                   ),
                                   child: const Icon(
@@ -110,9 +113,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             ],
                           ),
                           const SizedBox(height: 4),
-                          const Text(
-                            'Click camera icon to change avatar',
-                            style: TextStyle(
+                          Text(
+                            'Click camera icon to change avatar'.tr,
+                            style: const TextStyle(
                               fontSize: 10,
                               color: Color(0xFF9CA3AF),
                             ),
@@ -121,42 +124,51 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _fieldLabel('Full Name'),
+                    _fieldLabel('Full Name'.tr),
                     _textField(_nameCtrl),
                     const SizedBox(height: 8),
-                    _fieldLabel('Email (Read-only)'),
+                    _fieldLabel('Email (Read-only)'.tr),
                     _textField(
                       null,
                       hint: profileNotifier.email,
                       enabled: false,
                     ),
                     const SizedBox(height: 2),
-                    const Text(
-                      'Email cannot be changed',
-                      style: TextStyle(fontSize: 10, color: Color(0xFF9CA3AF)),
+                    Text(
+                      'Email cannot be changed'.tr,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: Color(0xFF9CA3AF),
+                      ),
                     ),
                     const SizedBox(height: 8),
-                    _fieldLabel('Date of Birth'),
+                    _fieldLabel('Date of Birth'.tr),
                     _textField(_dobCtrl),
                     const SizedBox(height: 8),
-                    _fieldLabel('Bio'),
+                    _fieldLabel('Bio'.tr),
                     _textField(
                       _bioCtrl,
-                      hint: 'Tell us about yourself',
+                      hint: 'Tell us about yourself'.tr,
                       maxLines: 2,
                     ),
                     const SizedBox(height: 2),
-                    const Text(
-                      'Help AI personalize your experience',
-                      style: TextStyle(fontSize: 10, color: Color(0xFF9CA3AF)),
+                    Text(
+                      'Help AI personalize your experience'.tr,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: Color(0xFF9CA3AF),
+                      ),
                     ),
                     const SizedBox(height: 8),
-                    _fieldLabel('Interests'),
+                    _fieldLabel('Interests'.tr),
                     _textField(_interestsCtrl),
                     const SizedBox(height: 2),
-                    const Text(
-                      'Separate interests with commas',
-                      style: TextStyle(fontSize: 10, color: Color(0xFF9CA3AF)),
+                    Text(
+                      'Separate interests with commas'.tr,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: Color(0xFF9CA3AF),
+                      ),
                     ),
                     const Spacer(),
                     SizedBox(
@@ -172,19 +184,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           Navigator.of(context).pop();
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.primary,
                           foregroundColor: Colors.white,
                           elevation: 3,
-                          shadowColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.27),
+                          shadowColor: Theme.of(
+                            context,
+                          ).colorScheme.primary.withValues(alpha: 0.27),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),
                           padding: const EdgeInsets.symmetric(vertical: 13),
                         ),
                         icon: const Icon(Icons.save_rounded, size: 18),
-                        label: const Text(
-                          'Save Changes',
-                          style: TextStyle(
+                        label: Text(
+                          'Save Changes'.tr,
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                           ),

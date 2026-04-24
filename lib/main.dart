@@ -16,6 +16,8 @@ import 'package:museamigo/screens/achievements_screen.dart';
 import 'package:museamigo/screens/onboarding_flow_screen.dart';
 import 'package:museamigo/screens/sign_up_screen.dart';
 
+import 'package:museamigo/language_notifier.dart';
+
 void main() {
   runApp(
     DevicePreview(
@@ -31,7 +33,7 @@ class MuseAmigoApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: themeNotifier,
+      listenable: Listenable.merge([themeNotifier, languageNotifier]),
       builder: (context, _) {
         final primary = themeNotifier.primaryColor;
         return MaterialApp(
@@ -78,11 +80,13 @@ class MuseAmigoApp extends StatelessWidget {
                   location: args?['location'] as String? ?? 'Unknown location',
                   year: args?['year'] as String? ?? 'N/A',
                   currentLocation:
-                      args?['currentLocation'] as String? ?? 'Independence Palace',
+                      args?['currentLocation'] as String? ??
+                      'Independence Palace',
                   height: args?['height'] as String? ?? '~2.4 meters',
                   weight: args?['weight'] as String? ?? '~39.7 tons',
                   imageAsset:
-                      args?['imageAsset'] as String? ?? 'assets/images/museum.jpg',
+                      args?['imageAsset'] as String? ??
+                      'assets/images/museum.jpg',
                 ),
               );
             }

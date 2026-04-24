@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:museamigo/app_routes.dart';
+import 'package:museamigo/l10n/translations.dart';
 
 class JourneyScreen extends StatelessWidget {
   const JourneyScreen({super.key});
-
 
   @override
   Widget build(BuildContext context) {
@@ -16,10 +16,10 @@ class JourneyScreen extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'My Journey',
-                      style: TextStyle(
+                      'My Journey'.tr,
+                      style: const TextStyle(
                         fontSize: 30,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF171A21),
@@ -41,20 +41,20 @@ class JourneyScreen extends StatelessWidget {
                       ),
                     ),
                     icon: const Icon(Icons.logout_rounded, size: 16),
-                    label: const Text(
-                      'Finish journey',
-                      style: TextStyle(fontWeight: FontWeight.w700),
+                    label: Text(
+                      'Finish journey'.tr,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
               Row(
-                children: const [
+                children: [
                   Expanded(
                     child: _StatCard(
                       value: '12',
-                      label: 'Artifacts Discovered',
+                      label: 'Artifacts Discovered'.tr,
                       active: true,
                     ),
                   ),
@@ -62,28 +62,28 @@ class JourneyScreen extends StatelessWidget {
                   Expanded(
                     child: _StatCard(
                       value: '1250',
-                      label: 'Points Earned',
+                      label: 'Points Earned'.tr,
                       active: false,
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
-              const _ProgressCard(),
+              _ProgressCard(),
               const SizedBox(height: 12),
               Row(
-                children: const [
+                children: [
                   Expanded(
                     child: Text(
-                      'Achievements',
-                      style: TextStyle(
+                      'Achievements'.tr,
+                      style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF171A21),
                       ),
                     ),
                   ),
-                  Text(
+                  const Text(
                     '5/15',
                     style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
                   ),
@@ -92,58 +92,58 @@ class JourneyScreen extends StatelessWidget {
               const SizedBox(height: 10),
               Expanded(
                 child: ListView(
-                  children: const [
+                  children: [
                     _AchievementTile(
-                      title: 'First Steps',
-                      subtitle: 'Visit your first artifact',
+                      title: 'First Steps'.tr,
+                      subtitle: 'Visit your first artifact'.tr,
                       points: '+50 points',
                       icon: Icons.star_border_rounded,
                       unlocked: true,
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     _AchievementTile(
-                      title: 'Explorer',
-                      subtitle: 'Discover 10 artifacts',
+                      title: 'Explorer'.tr,
+                      subtitle: 'Discover 10 artifacts'.tr,
                       points: '+150 points',
                       icon: Icons.emoji_events_outlined,
                       unlocked: true,
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     _AchievementTile(
-                      title: 'AR Pioneer',
-                      subtitle: 'View 5 artifacts in AR',
+                      title: 'AR Pioneer'.tr,
+                      subtitle: 'View 5 artifacts in AR'.tr,
                       points: '+200 points',
                       icon: Icons.bolt_outlined,
                       unlocked: true,
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     _AchievementTile(
-                      title: 'Curious Mind',
-                      subtitle: 'Ask 20 questions to AI',
+                      title: 'Curious Mind'.tr,
+                      subtitle: 'Ask 20 questions to AI'.tr,
                       points: '+100 points',
                       icon: Icons.workspace_premium_outlined,
                       unlocked: true,
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     _AchievementTile(
-                      title: 'Journey Mapper',
-                      subtitle: 'Complete a full floor tour.',
+                      title: 'Journey Mapper'.tr,
+                      subtitle: 'Complete a full floor tour.'.tr,
                       points: '+250 points',
                       icon: Icons.map_outlined,
                       unlocked: true,
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     _AchievementTile(
-                      title: 'Dynasty Master',
-                      subtitle: 'Discover all artifacts from one dynasty',
+                      title: 'Dynasty Master'.tr,
+                      subtitle: 'Discover all artifacts from one dynasty'.tr,
                       points: '',
                       icon: Icons.auto_awesome_outlined,
                       unlocked: false,
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     _AchievementTile(
-                      title: 'Museum Expert',
-                      subtitle: 'Discover 25 artifacts',
+                      title: 'Museum Expert'.tr,
+                      subtitle: 'Discover 25 artifacts'.tr,
                       points: '',
                       icon: Icons.military_tech_outlined,
                       unlocked: false,
@@ -196,20 +196,21 @@ class JourneyScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 14),
-                  const Text(
-                    'Are you sure?',
+                  Text(
+                    'Are you sure?'.tr,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w700,
                       color: Color(0xFF171A21),
                     ),
                   ),
                   const SizedBox(height: 10),
-                  const Text(
-                    'If you leave, you will not able to re-enter without a new ticket or you will have to contact the museum\'s manager for further assistance.',
+                  Text(
+                    'If you leave, you will not able to re-enter without a new ticket or you will have to contact the museum\'s manager for further assistance.'
+                        .tr,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 15,
                       color: Color(0xFF2F343C),
                       height: 1.45,
@@ -230,9 +231,9 @@ class JourneyScreen extends StatelessWidget {
                             ),
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
-                          child: const Text(
-                            'Cancel',
-                            style: TextStyle(fontWeight: FontWeight.w700),
+                          child: Text(
+                            'Cancel'.tr,
+                            style: const TextStyle(fontWeight: FontWeight.w700),
                           ),
                         ),
                       ),
@@ -250,9 +251,9 @@ class JourneyScreen extends StatelessWidget {
                             ),
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
-                          child: const Text(
-                            'Leave',
-                            style: TextStyle(fontWeight: FontWeight.w700),
+                          child: Text(
+                            'Leave'.tr,
+                            style: const TextStyle(fontWeight: FontWeight.w700),
                           ),
                         ),
                       ),
@@ -288,7 +289,9 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: active ? Theme.of(context).colorScheme.primary : const Color(0xFFE5E5E7),
+        color: active
+            ? Theme.of(context).colorScheme.primary
+            : const Color(0xFFE5E5E7),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
@@ -299,7 +302,9 @@ class _StatCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 30,
               fontWeight: FontWeight.w700,
-              color: active ? Colors.white : Theme.of(context).colorScheme.primary,
+              color: active
+                  ? Colors.white
+                  : Theme.of(context).colorScheme.primary,
               height: 1,
             ),
           ),
@@ -332,12 +337,12 @@ class _ProgressCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
               Expanded(
                 child: Text(
-                  'Collection Progress',
-                  style: TextStyle(
+                  'Collection Progress'.tr,
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF171A21),
@@ -357,7 +362,9 @@ class _ProgressCard extends StatelessWidget {
               minHeight: 6,
               value: 0.24,
               backgroundColor: Color(0xFFD6D8DD),
-              valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                Theme.of(context).colorScheme.primary,
+              ),
             ),
           ),
           const SizedBox(height: 8),

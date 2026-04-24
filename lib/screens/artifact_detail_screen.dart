@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:museamigo/l10n/translations.dart';
 
 class ArtifactDetailScreen extends StatelessWidget {
   const ArtifactDetailScreen({
@@ -19,7 +20,6 @@ class ArtifactDetailScreen extends StatelessWidget {
   final String height;
   final String weight;
   final String imageAsset;
-
 
   @override
   Widget build(BuildContext context) {
@@ -77,9 +77,9 @@ class ArtifactDetailScreen extends StatelessWidget {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: const Text(
-                        'Navigate',
-                        style: TextStyle(
+                      child: Text(
+                        'Navigate'.tr,
+                        style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           color: Color(0xFF171A21),
                         ),
@@ -106,7 +106,7 @@ class ArtifactDetailScreen extends StatelessWidget {
                         children: [
                           Expanded(
                             child: Text(
-                              title,
+                              title.tr,
                               style: const TextStyle(
                                 fontSize: 30,
                                 fontWeight: FontWeight.w700,
@@ -138,7 +138,9 @@ class ArtifactDetailScreen extends StatelessWidget {
                               thumbShape: const RoundSliderThumbShape(
                                 enabledThumbRadius: 5,
                               ),
-                              activeTrackColor: Theme.of(context).colorScheme.primary,
+                              activeTrackColor: Theme.of(
+                                context,
+                              ).colorScheme.primary,
                               inactiveTrackColor: const Color(0xFFB5B5B5),
                               thumbColor: Theme.of(context).colorScheme.primary,
                             ),
@@ -169,51 +171,53 @@ class ArtifactDetailScreen extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      _infoRow('Title:', title),
-                      _infoRow('Year:', year),
-                      _infoRow('Current Location:', currentLocation),
-                      _infoRow('Height:', height),
-                      _infoRow('Weight:', weight),
+                      _infoRow('Title:'.tr, title.tr),
+                      _infoRow('Year:'.tr, year.tr),
+                      _infoRow('Current Location:'.tr, currentLocation.tr),
+                      _infoRow('Height:'.tr, height.tr),
+                      _infoRow('Weight:'.tr, weight.tr),
                       const SizedBox(height: 18),
-                      const Text(
-                        'Detailed Description',
-                        style: TextStyle(
+                      Text(
+                        'Detailed Description'.tr,
+                        style: const TextStyle(
                           fontSize: 30,
                           fontWeight: FontWeight.w700,
                           color: Color(0xFF171A21),
                         ),
                       ),
                       const SizedBox(height: 10),
-                      const Text(
-                        "T-54B tank No. 843 is a legendary Vietnam People's Army tank that famously breached the Independence Palace gate in Saigon on April 30, 1975, marking the end of the Vietnam War. Led by Captain Bui Quang Than, this Soviet-made tank is celebrated as a National Treasure and symbolizes Vietnam's liberation and reunification.",
-                        style: TextStyle(
+                      Text(
+                        "T-54B tank No. 843 is a legendary Vietnam People's Army tank that famously breached the Independence Palace gate in Saigon on April 30, 1975, marking the end of the Vietnam War. Led by Captain Bui Quang Than, this Soviet-made tank is celebrated as a National Treasure and symbolizes Vietnam's liberation and reunification."
+                            .tr,
+                        style: const TextStyle(
                           fontSize: 14,
                           color: Color(0xFF2E2E2E),
                           height: 1.45,
                         ),
                       ),
                       const SizedBox(height: 14),
-                      const Text(
-                        'Enhanced Part',
-                        style: TextStyle(
+                      Text(
+                        'Enhanced Part'.tr,
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           color: Color(0xFF171A21),
                         ),
                       ),
                       const SizedBox(height: 6),
-                      const Text(
-                        'The First That Was not First',
-                        style: TextStyle(
+                      Text(
+                        'The First That Was not First'.tr,
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                           color: Color(0xFF171A21),
                         ),
                       ),
                       const SizedBox(height: 4),
-                      const Text(
-                        'While tank 843 is often pictured alongside tank 390, there is a lingering historical race. Tank 843, commanded by Bui Quang Than, reached the Palace gates first. However, after becoming momentarily wedged in the smaller side gate, tank 390 crashed through the main central gate.',
-                        style: TextStyle(
+                      Text(
+                        'While tank 843 is often pictured alongside tank 390, there is a lingering historical race. Tank 843, commanded by Bui Quang Than, reached the Palace gates first. However, after becoming momentarily wedged in the smaller side gate, tank 390 crashed through the main central gate.'
+                            .tr,
+                        style: const TextStyle(
                           fontSize: 14,
                           color: Color(0xFF2E2E2E),
                           height: 1.45,
