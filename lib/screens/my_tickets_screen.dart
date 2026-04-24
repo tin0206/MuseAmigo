@@ -1,45 +1,46 @@
 import 'package:flutter/material.dart';
+import 'package:museamigo/l10n/translations.dart';
 
 class MyTicketsScreen extends StatelessWidget {
   const MyTicketsScreen({super.key});
 
-  static const _tickets = <_TicketData>[
+  static final _tickets = <_TicketData>[
     _TicketData(
-      title: 'National Museum of Ancient Art',
-      subtitle: 'Adult - General Admission',
+      title: 'National Museum of Ancient Art'.tr,
+      subtitle: 'Adult - General Admission'.tr,
       date: 'March 15, 2026',
       time: '10:00 AM',
-      location: 'Gallery Hall A',
+      location: 'Gallery Hall A'.tr,
       id: 'TKT001',
       price: '\$25.00',
       active: false,
     ),
     _TicketData(
-      title: 'Contemporary Art Gallery',
-      subtitle: 'Adult - Special Exhibition',
+      title: 'Contemporary Art Gallery'.tr,
+      subtitle: 'Adult - Special Exhibition'.tr,
       date: 'March 28, 2026',
       time: '2:00 PM',
-      location: 'Exhibition Floor 3',
+      location: 'Exhibition Floor 3'.tr,
       id: 'TKT002',
       price: '\$35.00',
       active: false,
     ),
     _TicketData(
-      title: 'Museum of Natural History',
-      subtitle: 'Adult - General Admission',
+      title: 'Museum of Natural History'.tr,
+      subtitle: 'Adult - General Admission'.tr,
       date: 'April 10, 2026',
       time: '11:30 AM',
-      location: 'Main Entrance',
+      location: 'Main Entrance'.tr,
       id: 'TKT003',
       price: '\$30.00',
       active: true,
     ),
     _TicketData(
-      title: 'Science & Technology Center',
-      subtitle: 'Adult - One Day Pass',
+      title: 'Science & Technology Center'.tr,
+      subtitle: 'Adult - One Day Pass'.tr,
       date: 'April 20, 2026',
       time: '9:00 AM',
-      location: 'Innovation Wing',
+      location: 'Innovation Wing'.tr,
       id: 'TKT004',
       price: '\$40.00',
       active: true,
@@ -56,9 +57,9 @@ class MyTicketsScreen extends StatelessWidget {
           backgroundColor: Colors.white,
           foregroundColor: const Color(0xFF171A21),
           elevation: 0,
-          title: const Text(
-            'My Tickets',
-            style: TextStyle(fontWeight: FontWeight.w700),
+          title: Text(
+            'My Tickets'.tr,
+            style: const TextStyle(fontWeight: FontWeight.w700),
           ),
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(48),
@@ -77,19 +78,23 @@ class MyTicketsScreen extends StatelessWidget {
                 splashBorderRadius: const BorderRadius.all(Radius.circular(18)),
                 overlayColor: WidgetStateProperty.resolveWith((states) {
                   if (states.contains(WidgetState.hovered)) {
-                    return Theme.of(context).colorScheme.primary.withValues(alpha: 0.1);
+                    return Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.1);
                   }
                   if (states.contains(WidgetState.pressed)) {
-                    return Theme.of(context).colorScheme.primary.withValues(alpha: 0.2);
+                    return Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.2);
                   }
                   return null;
                 }),
                 labelColor: Colors.white,
                 unselectedLabelColor: const Color(0xFF6B7280),
-                tabs: const [
-                  Tab(text: 'All'),
-                  Tab(text: 'Upcoming'),
-                  Tab(text: 'Past'),
+                tabs: [
+                  Tab(text: 'All'.tr),
+                  Tab(text: 'Upcoming'.tr),
+                  Tab(text: 'Past'.tr),
                 ],
               ),
             ),
@@ -183,7 +188,7 @@ class _TicketCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      ticket.active ? 'Valid' : 'Used',
+                      (ticket.active ? 'Valid' : 'Used').tr,
                       style: const TextStyle(
                         fontSize: 10,
                         color: Colors.white,
@@ -212,18 +217,18 @@ class _TicketCard extends StatelessWidget {
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          const Expanded(
+                          Expanded(
                             child: Text(
-                              'Ticket ID',
-                              style: TextStyle(
+                              'Ticket ID'.tr,
+                              style: const TextStyle(
                                 fontSize: 11,
                                 color: Color(0xFF9CA3AF),
                               ),
                             ),
                           ),
-                          const Text(
-                            'Price',
-                            style: TextStyle(
+                          Text(
+                            'Price'.tr,
+                            style: const TextStyle(
                               fontSize: 11,
                               color: Color(0xFF9CA3AF),
                             ),
@@ -260,19 +265,25 @@ class _TicketCard extends StatelessWidget {
                           child: ElevatedButton.icon(
                             onPressed: () => _showQrDialog(context),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Theme.of(context).colorScheme.primary,
+                              backgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.primary,
                               foregroundColor: Colors.white,
                               elevation: 3,
-                              shadowColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
+                              shadowColor: Theme.of(
+                                context,
+                              ).colorScheme.primary.withValues(alpha: 0.2),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               padding: const EdgeInsets.symmetric(vertical: 11),
                             ),
                             icon: const Icon(Icons.qr_code_2, size: 18),
-                            label: const Text(
-                              'Show QR Code',
-                              style: TextStyle(fontWeight: FontWeight.w700),
+                            label: Text(
+                              'Show QR Code'.tr,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
                         ),
@@ -342,7 +353,7 @@ class _TicketCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      'Your ticket',
+                      'Your ticket'.tr,
                       style: TextStyle(
                         fontSize: 40,
                         color: Theme.of(context).colorScheme.primary,
@@ -356,9 +367,9 @@ class _TicketCard extends StatelessWidget {
                   ),
                 ],
               ),
-              const Text(
-                'Please provide this QR code at the entrance',
-                style: TextStyle(fontSize: 14, color: Color(0xFF374151)),
+              Text(
+                'Please provide this QR code at the entrance'.tr,
+                style: const TextStyle(fontSize: 14, color: Color(0xFF374151)),
               ),
               const SizedBox(height: 12),
               Container(
@@ -379,7 +390,7 @@ class _TicketCard extends StatelessWidget {
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
+                        children: [
                           Icon(
                             Icons.qr_code_2_rounded,
                             size: 102,
@@ -395,8 +406,8 @@ class _TicketCard extends StatelessWidget {
                           ),
                           SizedBox(height: 4),
                           Text(
-                            'SCAN ME',
-                            style: TextStyle(
+                            'SCAN ME'.tr,
+                            style: const TextStyle(
                               fontSize: 12,
                               color: Color(0xFF9CA3AF),
                             ),
@@ -405,14 +416,14 @@ class _TicketCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    const _InfoRow(
-                      label: 'Museum:',
-                      value: 'Independence Palace',
+                    _InfoRow(
+                      label: 'Museum:'.tr,
+                      value: 'Independence Palace'.tr,
                     ),
-                    const _InfoRow(label: 'Ticket type:', value: 'Adult'),
-                    const _InfoRow(label: 'Purchase date:', value: '6/4/2026'),
-                    const _InfoRow(
-                      label: 'Total amount:',
+                    _InfoRow(label: 'Ticket type:'.tr, value: 'Adult'.tr),
+                    _InfoRow(label: 'Purchase date:'.tr, value: '6/4/2026'),
+                    _InfoRow(
+                      label: 'Total amount:'.tr,
                       value: 'VND 30000',
                       bold: true,
                     ),
@@ -428,19 +439,19 @@ class _TicketCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: const Color(0xFFE9C672)),
                 ),
-                child: const Row(
+                child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.warning_amber_rounded,
                       color: Color(0xFFB45309),
                       size: 18,
                     ),
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Warning:\nYou might have to provide this to the museum\'s ticket inspectors to print you a paper ticket.',
-                        style: TextStyle(
+                        '${'Warning:'.tr}\n${'You might have to provide this to the museum\'s ticket inspectors to print you a paper ticket.'.tr}',
+                        style: const TextStyle(
                           fontSize: 12,
                           color: Color(0xFFB45309),
                           height: 1.5,

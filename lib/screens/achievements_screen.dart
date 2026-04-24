@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:museamigo/l10n/translations.dart';
 
 // Data model
 class _Achievement {
@@ -37,111 +38,111 @@ class _Museum {
 
 final _museums = [
   _Museum(
-    name: 'National Museum of Ancient Art',
-    location: 'Gallery Hall A',
+    name: 'National Museum of Ancient Art'.tr,
+    location: 'Gallery Hall A'.tr,
     totalPoints: 600,
     unlocked: 4,
     total: 5,
     achievements: [
       _Achievement(
-        title: 'First Steps',
+        title: 'First Steps'.tr,
         points: 100,
-        description: 'Visit your first artifact',
+        description: 'Visit your first artifact'.tr,
         unlocked: true,
         icon: Icons.star_outline,
       ),
       _Achievement(
-        title: 'Explorer',
+        title: 'Explorer'.tr,
         points: 150,
-        description: 'Discover 10 artifacts',
+        description: 'Discover 10 artifacts'.tr,
         unlocked: true,
         icon: Icons.explore_outlined,
       ),
       _Achievement(
-        title: 'AR Pioneer',
+        title: 'AR Pioneer'.tr,
         points: 200,
-        description: 'View 5 artifacts in AR',
+        description: 'View 5 artifacts in AR'.tr,
         unlocked: true,
         icon: Icons.view_in_ar_outlined,
       ),
       _Achievement(
-        title: 'Journey Mapper',
+        title: 'Journey Mapper'.tr,
         points: 150,
-        description: 'Complete a full floor tour',
+        description: 'Complete a full floor tour'.tr,
         unlocked: true,
         icon: Icons.map_outlined,
       ),
       _Achievement(
-        title: 'Dynasty Master',
+        title: 'Dynasty Master'.tr,
         points: 400,
-        description: 'Discover all artifacts. New discovery',
+        description: 'Discover all artifacts. New discovery'.tr,
         unlocked: false,
         icon: Icons.emoji_events_outlined,
       ),
     ],
   ),
   _Museum(
-    name: 'Contemporary Art Gallery',
-    location: 'Exhibition Floor 3',
+    name: 'Contemporary Art Gallery'.tr,
+    location: 'Exhibition Floor 3'.tr,
     totalPoints: 0,
     unlocked: 2,
     total: 4,
     achievements: [
       _Achievement(
-        title: 'Modern Eye',
+        title: 'Modern Eye'.tr,
         points: 100,
-        description: 'View 5 contemporary artworks',
+        description: 'View 5 contemporary artworks'.tr,
         unlocked: true,
         icon: Icons.remove_red_eye_outlined,
       ),
       _Achievement(
-        title: 'Art Critic',
+        title: 'Art Critic'.tr,
         points: 150,
-        description: 'Rate 10 artworks',
+        description: 'Rate 10 artworks'.tr,
         unlocked: true,
         icon: Icons.rate_review_outlined,
       ),
       _Achievement(
-        title: 'Curator',
+        title: 'Curator'.tr,
         points: 200,
-        description: 'Save 20 artworks to favorites',
+        description: 'Save 20 artworks to favorites'.tr,
         unlocked: false,
         icon: Icons.bookmark_border,
       ),
       _Achievement(
-        title: 'Gallery Master',
+        title: 'Gallery Master'.tr,
         points: 350,
-        description: 'Complete the full gallery tour',
+        description: 'Complete the full gallery tour'.tr,
         unlocked: false,
         icon: Icons.emoji_events_outlined,
       ),
     ],
   ),
   _Museum(
-    name: 'Museum of Natural History',
-    location: 'Mars Entrance',
+    name: 'Museum of Natural History'.tr,
+    location: 'Mars Entrance'.tr,
     totalPoints: 0,
     unlocked: 0,
     total: 3,
     achievements: [
       _Achievement(
-        title: 'Fossil Hunter',
+        title: 'Fossil Hunter'.tr,
         points: 120,
-        description: 'Find 5 fossil specimens',
+        description: 'Find 5 fossil specimens'.tr,
         unlocked: false,
         icon: Icons.search,
       ),
       _Achievement(
-        title: 'Evolution Expert',
+        title: 'Evolution Expert'.tr,
         points: 180,
-        description: 'Complete the evolution trail',
+        description: 'Complete the evolution trail'.tr,
         unlocked: false,
         icon: Icons.timeline,
       ),
       _Achievement(
-        title: 'Nature\'s Champion',
+        title: 'Nature\'s Champion'.tr,
         points: 300,
-        description: 'Unlock all natural history badges',
+        description: 'Unlock all natural history badges'.tr,
         unlocked: false,
         icon: Icons.emoji_events_outlined,
       ),
@@ -183,9 +184,9 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
           icon: const Icon(Icons.chevron_left, size: 28),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
-          'Achievements',
-          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+        title: Text(
+          'Achievements'.tr,
+          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
         ),
       ),
       body: ListView(
@@ -207,9 +208,9 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Total Points',
-                        style: TextStyle(
+                      Text(
+                        'Total Points'.tr,
+                        style: const TextStyle(
                           fontSize: 12,
                           color: Color(0xFFFFCDD2),
                         ),
@@ -241,9 +242,9 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Unlocked',
-                        style: TextStyle(
+                      Text(
+                        'Unlocked'.tr,
+                        style: const TextStyle(
                           fontSize: 12,
                           color: Color(0xFF9CA3AF),
                         ),
@@ -313,7 +314,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    '${museum.totalPoints} points · ${museum.unlocked}/${museum.total} unlocked',
+                                    '${museum.totalPoints} ${'points'.tr} · ${museum.unlocked}/${museum.total} ${'unlocked'.tr}',
                                     style: const TextStyle(
                                       fontSize: 11,
                                       color: Color(0xFF6B7280),

@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:museamigo/app_routes.dart';
+import 'package:museamigo/l10n/translations.dart';
 import 'payment_screens.dart';
 
 class ExploreMapScreen extends StatelessWidget {
   const ExploreMapScreen({super.key});
-
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +57,7 @@ class ExploreMapScreen extends StatelessWidget {
                           const Icon(Icons.search, color: Colors.black87),
                           const SizedBox(width: 10),
                           Text(
-                            'Where do you want to go?',
+                            'Where do you want to go?'.tr,
                             style: TextStyle(
                               color: Colors.black.withValues(alpha: 0.85),
                               fontSize: 18,
@@ -142,19 +142,27 @@ class ExploreMapScreen extends StatelessWidget {
   }
 
   Future<void> _showTicketSheet(BuildContext context, _Museum museum) {
-    const options = <_TicketOption>[
-      _TicketOption(label: 'Adult', countText: '1 ticket', price: 'VND 30000'),
+    final options = <_TicketOption>[
       _TicketOption(
-        label: 'Student',
-        countText: '1 ticket',
+        label: 'Adult'.tr,
+        countText: '1 ticket'.tr,
+        price: 'VND 30000',
+      ),
+      _TicketOption(
+        label: 'Student'.tr,
+        countText: '1 ticket'.tr,
         price: 'VND 21000',
       ),
       _TicketOption(
-        label: 'Children',
-        countText: '1 ticket',
+        label: 'Children'.tr,
+        countText: '1 ticket'.tr,
         price: 'VND 15000',
       ),
-      _TicketOption(label: 'Preview', countText: '1 ticket', price: 'VND 5000'),
+      _TicketOption(
+        label: 'Preview'.tr,
+        countText: '1 ticket'.tr,
+        price: 'VND 5000',
+      ),
     ];
 
     return showModalBottomSheet<void>(
@@ -183,15 +191,15 @@ class ExploreMapScreen extends StatelessWidget {
       price: ticket.price,
     );
 
-    const methods = <_PaymentMethodOption>[
+    final methods = <_PaymentMethodOption>[
       _PaymentMethodOption(
-        title: 'QR Scan',
-        subtitle: 'VNPay, MoMo, ZaloPay, Banking App',
+        title: 'QR Scan'.tr,
+        subtitle: 'VNPay, MoMo, ZaloPay, Banking App'.tr,
         icon: Icons.qr_code_2,
       ),
       _PaymentMethodOption(
-        title: 'ATM/Visa/Mastercard',
-        subtitle: 'Debit and Credit',
+        title: 'ATM/Visa/Mastercard'.tr,
+        subtitle: 'Debit and Credit'.tr,
         icon: Icons.credit_card,
       ),
     ];
@@ -205,7 +213,7 @@ class ExploreMapScreen extends StatelessWidget {
         methods: methods,
         onSelect: (method) {
           Navigator.of(context).pop();
-          if (method.title == 'QR Scan') {
+          if (method.title == 'QR Scan'.tr) {
             _showQrPaymentSheet(context, info);
           } else {
             _showCardPaymentSheet(context, info);
@@ -371,9 +379,20 @@ class _MuseumDetailSheetState extends State<_MuseumDetailSheet> {
                   ],
                 ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 14),
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
                   child: Text(
-                    widget.museum.description,
+                    widget.museum.name.tr,
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 14),
+                  child: Text(
+                    widget.museum.description.tr,
                     style: const TextStyle(
                       fontSize: 17,
                       height: 1.45,
@@ -388,15 +407,15 @@ class _MuseumDetailSheetState extends State<_MuseumDetailSheet> {
                       Expanded(
                         child: _MuseumMetaItem(
                           icon: Icons.access_time,
-                          label: 'Hours',
-                          value: widget.museum.hours,
+                          label: 'Hours'.tr,
+                          value: widget.museum.hours.tr,
                         ),
                       ),
                       const SizedBox(width: 10),
-                      const Expanded(
+                      Expanded(
                         child: _MuseumMetaItem(
                           icon: Icons.attach_money,
-                          label: 'Price',
+                          label: 'Price'.tr,
                           value: 'VND 30000',
                         ),
                       ),
@@ -421,17 +440,21 @@ class _MuseumDetailSheetState extends State<_MuseumDetailSheet> {
                           color: Theme.of(context).colorScheme.primary,
                         ),
                         const SizedBox(width: 12),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Download Offline Data',
-                                style: TextStyle(fontWeight: FontWeight.w600),
+                                'Download Offline Data'.tr,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                               Text(
-                                'Map & Audio Guides',
-                                style: TextStyle(color: Color(0xFF6F7886)),
+                                'Map & Audio Guides'.tr,
+                                style: const TextStyle(
+                                  color: Color(0xFF6F7886),
+                                ),
                               ),
                             ],
                           ),
@@ -443,7 +466,9 @@ class _MuseumDetailSheetState extends State<_MuseumDetailSheet> {
                               _downloadOffline = value;
                             });
                           },
-                          activeColor: Theme.of(context).colorScheme.primary,
+                          activeTrackColor: Theme.of(
+                            context,
+                          ).colorScheme.primary,
                         ),
                       ],
                     ),
@@ -469,9 +494,9 @@ class _MuseumDetailSheetState extends State<_MuseumDetailSheet> {
                             minimumSize: const Size.fromHeight(50),
                           ),
                           icon: const Icon(Icons.near_me_outlined),
-                          label: const Text(
-                            'Start Route',
-                            style: TextStyle(fontWeight: FontWeight.w700),
+                          label: Text(
+                            'Start Route'.tr,
+                            style: const TextStyle(fontWeight: FontWeight.w700),
                           ),
                         ),
                       ),
@@ -480,16 +505,18 @@ class _MuseumDetailSheetState extends State<_MuseumDetailSheet> {
                         child: FilledButton.icon(
                           onPressed: widget.onBuyTicket,
                           style: FilledButton.styleFrom(
-                            backgroundColor: Theme.of(context).colorScheme.primary,
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.primary,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                             minimumSize: const Size.fromHeight(50),
                           ),
                           icon: const Icon(Icons.confirmation_number_outlined),
-                          label: const Text(
-                            'Buy Ticket',
-                            style: TextStyle(fontWeight: FontWeight.w700),
+                          label: Text(
+                            'Buy Ticket'.tr,
+                            style: const TextStyle(fontWeight: FontWeight.w700),
                           ),
                         ),
                       ),
@@ -535,7 +562,7 @@ class _TicketSheet extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      'Tickets',
+                      'Tickets'.tr,
                       style: TextStyle(
                         fontSize: 42,
                         color: Theme.of(context).colorScheme.primary,
@@ -550,7 +577,7 @@ class _TicketSheet extends StatelessWidget {
                   ],
                 ),
                 Text(
-                  museumName,
+                  museumName.tr,
                   style: const TextStyle(
                     fontSize: 22,
                     color: Color(0xFF6D7785),
@@ -668,7 +695,7 @@ class _PaymentMethodSheet extends StatelessWidget {
                   ],
                 ),
                 Text(
-                  'Payment methods',
+                  'Payment methods'.tr,
                   style: TextStyle(
                     fontSize: 42,
                     color: Theme.of(context).colorScheme.primary,

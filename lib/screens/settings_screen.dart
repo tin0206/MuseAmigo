@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:museamigo/app_routes.dart';
 import 'package:museamigo/theme_notifier.dart';
 import 'package:museamigo/profile_notifier.dart';
+import 'package:museamigo/language_notifier.dart';
+import 'package:museamigo/l10n/translations.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -16,7 +18,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _autoPlay = false;
   bool _indoorNavigation = true;
   String _fontSize = 'Medium';
-  String _language = 'English';
 
   void _showColorSchemeDialog(BuildContext context) {
     const quickPicks = [
@@ -50,7 +51,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Custom Color',
+                            'Custom Color'.tr,
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
@@ -58,7 +59,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                           ),
                           Text(
-                            'Enter a hex color code',
+                            'Enter a hex color code'.tr,
                             style: TextStyle(
                               fontSize: 13,
                               color: Color(0xFF6B7280),
@@ -76,8 +77,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ],
                 ),
                 const SizedBox(height: 14),
-                const Text(
-                  'Hex Color Code',
+                Text(
+                  'Hex Color Code'.tr,
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -105,15 +106,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ),
                             ),
                             const SizedBox(height: 6),
-                            const Text(
-                              'Primary Color',
+                            Text(
+                              'Primary Color'.tr,
                               style: TextStyle(
                                 fontSize: 11,
                                 color: Color(0xFF6B7280),
                               ),
                             ),
                             Text(
-                              '#${selected.value.toRadixString(16).substring(2).toUpperCase()}',
+                              '#${selected.toARGB32().toRadixString(16).substring(2).toUpperCase()}',
                               style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
@@ -146,8 +147,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ),
                             ),
                             const SizedBox(height: 6),
-                            const Text(
-                              'Secondary Color',
+                            Text(
+                              'Secondary Color'.tr,
                               style: TextStyle(
                                 fontSize: 11,
                                 color: Color(0xFF6B7280),
@@ -168,8 +169,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ],
                 ),
                 const SizedBox(height: 14),
-                const Text(
-                  'Quick picks',
+                Text(
+                  'Quick picks'.tr,
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -181,7 +182,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   spacing: 8,
                   runSpacing: 8,
                   children: quickPicks.map((c) {
-                    final isSel = selected.value == c.value;
+                    final isSel = selected.toARGB32() == c.toARGB32();
                     return GestureDetector(
                       onTap: () => ss(() => selected = c),
                       child: Container(
@@ -214,8 +215,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
-                        child: const Text(
-                          'Cancel',
+                        child: Text(
+                          'Cancel'.tr,
                           style: TextStyle(color: Color(0xFF374151)),
                         ),
                       ),
@@ -228,7 +229,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           Navigator.of(ctx).pop();
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.primary,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
@@ -236,7 +239,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
                         icon: const Icon(Icons.check, size: 16),
-                        label: const Text('Apply'),
+                        label: Text('Apply'.tr),
                       ),
                     ),
                   ],
@@ -267,9 +270,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Font Size',
+                        'Font Size'.tr,
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
@@ -286,8 +289,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ],
                 ),
                 const SizedBox(height: 4),
-                const Text(
-                  'Choose your preferred reading size',
+                Text(
+                  'Choose your preferred reading size'.tr,
                   style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
                 ),
                 const SizedBox(height: 12),
@@ -303,18 +306,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       decoration: BoxDecoration(
                         color: sel
-                            ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.08)
+                            ? Theme.of(
+                                context,
+                              ).colorScheme.primary.withValues(alpha: 0.08)
                             : const Color(0xFFF3F4F6),
                         borderRadius: BorderRadius.circular(10),
                         border: sel
-                            ? Border.all(color: Theme.of(context).colorScheme.primary)
+                            ? Border.all(
+                                color: Theme.of(context).colorScheme.primary,
+                              )
                             : null,
                       ),
                       child: Row(
                         children: [
                           Expanded(
                             child: Text(
-                              s,
+                              s.tr,
                               style: TextStyle(
                                 fontSize: s == 'Small'
                                     ? 13
@@ -357,8 +364,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    child: const Text(
-                      'Apply',
+                    child: Text(
+                      'Apply'.tr,
                       style: TextStyle(fontWeight: FontWeight.w700),
                     ),
                   ),
@@ -372,7 +379,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showLanguageDialog(BuildContext context) {
-    String temp = _language;
+    String temp = languageNotifier.currentLanguage;
     showDialog<void>(
       context: context,
       builder: (ctx) => StatefulBuilder(
@@ -389,10 +396,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Language',
-                        style: TextStyle(
+                        'Language'.tr,
+                        style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
                           color: Color(0xFF171A21),
@@ -420,11 +427,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       decoration: BoxDecoration(
                         color: sel
-                            ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.08)
+                            ? Theme.of(
+                                context,
+                              ).colorScheme.primary.withValues(alpha: 0.08)
                             : const Color(0xFFF3F4F6),
                         borderRadius: BorderRadius.circular(10),
                         border: sel
-                            ? Border.all(color: Theme.of(context).colorScheme.primary)
+                            ? Border.all(
+                                color: Theme.of(context).colorScheme.primary,
+                              )
                             : null,
                       ),
                       child: Row(
@@ -433,7 +444,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              e.$1,
+                              e.$1.tr,
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: sel
@@ -461,7 +472,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      setState(() => _language = temp);
+                      languageNotifier.setLanguage(temp);
                       Navigator.of(ctx).pop();
                     },
                     style: ElevatedButton.styleFrom(
@@ -472,9 +483,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    child: const Text(
-                      'Apply',
-                      style: TextStyle(fontWeight: FontWeight.w700),
+                    child: Text(
+                      'Apply'.tr,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
                   ),
                 ),
@@ -500,9 +511,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Privacy & Security',
+                      'Privacy & Security'.tr,
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
@@ -519,12 +530,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
               const SizedBox(height: 12),
-              _privacyRow('Change Password', () {
+              _privacyRow('Change Password'.tr, () {
                 Navigator.of(ctx).pop();
                 _showChangePasswordDialog(context);
               }),
               const SizedBox(height: 8),
-              _privacyRow('Data & Permissions', () {
+              _privacyRow('Data & Permissions'.tr, () {
                 Navigator.of(ctx).pop();
                 _showDataPermissionsDialog(context);
               }),
@@ -582,9 +593,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Change Password',
+                        'Change Password'.tr,
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
@@ -602,19 +613,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 14),
                 _pwField(
-                  'Current Password',
+                  'Current Password'.tr,
                   !showCurrent,
                   () => ss(() => showCurrent = !showCurrent),
                 ),
                 const SizedBox(height: 10),
                 _pwField(
-                  'New Password',
+                  'New Password'.tr,
                   !showNew,
                   () => ss(() => showNew = !showNew),
                 ),
                 const SizedBox(height: 10),
                 _pwField(
-                  'Confirm New Password',
+                  'Confirm New Password'.tr,
                   !showConfirm,
                   () => ss(() => showConfirm = !showConfirm),
                 ),
@@ -632,8 +643,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 13),
                     ),
                     icon: const Icon(Icons.key_rounded, size: 18),
-                    label: const Text(
-                      'Change Password',
+                    label: Text(
+                      'Change Password'.tr,
                       style: TextStyle(fontWeight: FontWeight.w700),
                     ),
                   ),
@@ -703,9 +714,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Data & Permissions',
+                        'Data & Permissions'.tr,
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
@@ -729,21 +740,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: const Color(0xFFBFDBFE)),
                   ),
-                  child: const Row(
+                  child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.storage_rounded,
                         color: Color(0xFF3B82F6),
                         size: 20,
                       ),
-                      SizedBox(width: 8),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Local Data Storage',
+                              'Local Data Storage'.tr,
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
@@ -768,9 +779,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const SizedBox(height: 14),
                 Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Save Museum Data Locally',
+                        'Save Museum Data Locally'.tr,
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
@@ -781,12 +792,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Switch.adaptive(
                       value: saveLocally,
                       onChanged: (v) => ss(() => saveLocally = v),
-                      activeColor: Theme.of(context).colorScheme.primary,
+                      activeTrackColor: Theme.of(context).colorScheme.primary,
                     ),
                   ],
                 ),
-                const Text(
-                  'Allow the app to store your achievements, progress, and discovered artifacts on your device',
+                Text(
+                  'Allow the app to store your achievements, progress, and discovered artifacts on your device'
+                      .tr,
                   style: TextStyle(
                     fontSize: 12,
                     color: Color(0xFF6B7280),
@@ -804,8 +816,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Data that will be saved:',
+                      Text(
+                        'Data that will be saved:'.tr,
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
@@ -833,7 +845,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ),
                               Expanded(
                                 child: Text(
-                                  s,
+                                  s.tr,
                                   style: const TextStyle(
                                     fontSize: 13,
                                     color: Color(0xFF374151),
@@ -861,8 +873,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 13),
                     ),
                     icon: const Icon(Icons.save_outlined, size: 18),
-                    label: const Text(
-                      'Save Preferences',
+                    label: Text(
+                      'Save Preferences'.tr,
                       style: TextStyle(fontWeight: FontWeight.w700),
                     ),
                   ),
@@ -887,8 +899,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Confirm Logout',
+              Text(
+                'Confirm Logout'.tr,
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
@@ -896,8 +908,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Are you sure you want to log out?',
+              Text(
+                'Are you sure you want to log out?'.tr,
                 style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
               ),
               const SizedBox(height: 16),
@@ -913,8 +925,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                      child: const Text(
-                        'No',
+                      child: Text(
+                        'No'.tr,
                         style: TextStyle(color: Color(0xFF374151)),
                       ),
                     ),
@@ -937,8 +949,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                      child: const Text(
-                        'Yes',
+                      child: Text(
+                        'Yes'.tr,
                         style: TextStyle(fontWeight: FontWeight.w700),
                       ),
                     ),
@@ -962,210 +974,213 @@ class _SettingsScreenState extends State<SettingsScreen> {
           body: SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(14, 6, 14, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Settings',
-                style: TextStyle(
-                  fontSize: 38,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF171A21),
-                ),
-              ),
-              const SizedBox(height: 2),
-              const Text(
-                'Customize your museum experience',
-                style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-              ),
-              const SizedBox(height: 12),
-              Material(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(14),
-                  onTap: () =>
-                      Navigator.of(context).pushNamed(AppRoutes.editProfile),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 50,
-                          height: 50,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Theme.of(context).colorScheme.primary),
-                          ),
-                          child: ClipOval(
-                            child: Image.asset(
-                              'assets/images/model.png',
-                              fit: BoxFit.cover,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Settings'.tr,
+                    style: const TextStyle(
+                      fontSize: 38,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF171A21),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Customize your museum experience'.tr,
+                    style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                  ),
+                  const SizedBox(height: 12),
+                  Material(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(14),
+                      onTap: () => Navigator.of(
+                        context,
+                      ).pushNamed(AppRoutes.editProfile),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 50,
+                              height: 50,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                              child: ClipOval(
+                                child: Image.asset(
+                                  'assets/images/model.png',
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                profileNotifier.name,
-                                style: const TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w700,
-                                ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    profileNotifier.name,
+                                    style: const TextStyle(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    profileNotifier.email,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Color(0xFF6B7280),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 2),
-                              Text(
-                                profileNotifier.email,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF6B7280),
-                                ),
-                              ),
-                            ],
-                          ),
+                            ),
+                            const Icon(
+                              Icons.chevron_right,
+                              color: Color(0xFF9CA3AF),
+                            ),
+                          ],
                         ),
-                        const Icon(
-                          Icons.chevron_right,
-                          color: Color(0xFF9CA3AF),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const _SectionLabel(text: 'APPEARANCE'),
-              const SizedBox(height: 8),
-              _ToggleTile(
-                icon: Icons.wb_sunny_outlined,
-                title: 'Theme',
-                subtitle: _themeLight ? 'Light' : 'Dark',
-                value: _themeLight,
-                onChanged: (v) => setState(() => _themeLight = v),
-              ),
-              const SizedBox(height: 8),
-              _ArrowTile(
-                icon: Icons.palette_outlined,
-                title: 'Color Scheme',
-                subtitle: 'Custom',
-                trailingDot: true,
-                onTap: () => _showColorSchemeDialog(context),
-              ),
-              const SizedBox(height: 8),
-              _ArrowTile(
-                icon: Icons.text_fields_rounded,
-                title: 'Font Size',
-                subtitle: _fontSize,
-                onTap: () => _showFontSizeDialog(context),
-              ),
-              const SizedBox(height: 16),
-              const _SectionLabel(text: 'MUSEUM EXPERIENCE'),
-              const SizedBox(height: 8),
-              _ArrowTile(
-                icon: Icons.language_outlined,
-                title: 'Language',
-                subtitle: _language,
-                onTap: () => _showLanguageDialog(context),
-              ),
-              const SizedBox(height: 8),
-              _ToggleTile(
-                icon: Icons.record_voice_over_outlined,
-                title: 'Audio Guide',
-                subtitle: 'Narrated tours',
-                value: _audioGuide,
-                onChanged: (v) => setState(() => _audioGuide = v),
-              ),
-              const SizedBox(height: 8),
-              _ToggleTile(
-                icon: Icons.play_circle_outline,
-                title: 'Auto-Play Tours',
-                subtitle: 'Automatic playback',
-                value: _autoPlay,
-                onChanged: (v) => setState(() => _autoPlay = v),
-              ),
-              const SizedBox(height: 8),
-              _ToggleTile(
-                icon: Icons.location_on_outlined,
-                title: 'Indoor Navigation',
-                subtitle: 'Track your location',
-                value: _indoorNavigation,
-                onChanged: (v) => setState(() => _indoorNavigation = v),
-              ),
-              const SizedBox(height: 16),
-              const _SectionLabel(text: 'ACCOUNT & PRIVACY'),
-              const SizedBox(height: 8),
-              _ArrowTile(
-                icon: Icons.shield_outlined,
-                title: 'Privacy & Security',
-                subtitle: 'Data preferences',
-                onTap: () => _showPrivacySecurityDialog(context),
-              ),
-              const SizedBox(height: 8),
-              _ArrowTile(
-                icon: Icons.confirmation_number_outlined,
-                title: 'My Tickets',
-                subtitle: 'View bookings',
-                onTap: () =>
-                    Navigator.of(context).pushNamed(AppRoutes.myTickets),
-              ),
-              const SizedBox(height: 8),
-              _ArrowTile(
-                icon: Icons.emoji_events_outlined,
-                title: 'Achievements',
-                subtitle: 'View badges',
-                onTap: () =>
-                    Navigator.of(context).pushNamed(AppRoutes.achievements),
-              ),
-              const SizedBox(height: 16),
-              const _SectionLabel(text: 'SUPPORT'),
-              const SizedBox(height: 8),
-              const _ArrowTile(
-                icon: Icons.help_outline,
-                title: 'Help Center',
-                subtitle: 'FAQs & guides',
-              ),
-              const SizedBox(height: 8),
-              const _ArrowTile(
-                icon: Icons.info_outline,
-                title: 'About',
-                subtitle: 'Version 2.4.3',
-              ),
-              const SizedBox(height: 14),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () => _showLogoutConfirmDialog(context),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Theme.of(context).colorScheme.primary,
-                    side: const BorderSide(color: Color(0xFFEFCDD0)),
-                    backgroundColor: const Color(0xFFFFF5F5),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                  const SizedBox(height: 16),
+                  _SectionLabel(text: 'APPEARANCE'.tr),
+                  const SizedBox(height: 8),
+                  _ToggleTile(
+                    icon: Icons.wb_sunny_outlined,
+                    title: 'Theme',
+                    subtitle: _themeLight ? 'Light' : 'Dark',
+                    value: _themeLight,
+                    onChanged: (v) => setState(() => _themeLight = v),
+                  ),
+                  const SizedBox(height: 8),
+                  _ArrowTile(
+                    icon: Icons.palette_outlined,
+                    title: 'Color Scheme',
+                    subtitle: 'Custom',
+                    trailingDot: true,
+                    onTap: () => _showColorSchemeDialog(context),
+                  ),
+                  const SizedBox(height: 8),
+                  _ArrowTile(
+                    icon: Icons.text_fields_rounded,
+                    title: 'Font Size',
+                    subtitle: _fontSize,
+                    onTap: () => _showFontSizeDialog(context),
+                  ),
+                  const SizedBox(height: 16),
+                  _SectionLabel(text: 'MUSEUM EXPERIENCE'.tr),
+                  const SizedBox(height: 8),
+                  _ArrowTile(
+                    icon: Icons.language_outlined,
+                    title: 'Language',
+                    subtitle: languageNotifier.currentLanguage,
+                    onTap: () => _showLanguageDialog(context),
+                  ),
+                  const SizedBox(height: 8),
+                  _ToggleTile(
+                    icon: Icons.record_voice_over_outlined,
+                    title: 'Audio Guide',
+                    subtitle: 'Narrated tours',
+                    value: _audioGuide,
+                    onChanged: (v) => setState(() => _audioGuide = v),
+                  ),
+                  const SizedBox(height: 8),
+                  _ToggleTile(
+                    icon: Icons.play_circle_outline,
+                    title: 'Auto-Play Tours',
+                    subtitle: 'Automatic playback',
+                    value: _autoPlay,
+                    onChanged: (v) => setState(() => _autoPlay = v),
+                  ),
+                  const SizedBox(height: 8),
+                  _ToggleTile(
+                    icon: Icons.location_on_outlined,
+                    title: 'Indoor Navigation',
+                    subtitle: 'Track your location',
+                    value: _indoorNavigation,
+                    onChanged: (v) => setState(() => _indoorNavigation = v),
+                  ),
+                  const SizedBox(height: 16),
+                  _SectionLabel(text: 'ACCOUNT & PRIVACY'.tr),
+                  const SizedBox(height: 8),
+                  _ArrowTile(
+                    icon: Icons.shield_outlined,
+                    title: 'Privacy & Security',
+                    subtitle: 'Data preferences',
+                    onTap: () => _showPrivacySecurityDialog(context),
+                  ),
+                  const SizedBox(height: 8),
+                  _ArrowTile(
+                    icon: Icons.confirmation_number_outlined,
+                    title: 'My Tickets',
+                    subtitle: 'View bookings',
+                    onTap: () =>
+                        Navigator.of(context).pushNamed(AppRoutes.myTickets),
+                  ),
+                  const SizedBox(height: 8),
+                  _ArrowTile(
+                    icon: Icons.emoji_events_outlined,
+                    title: 'Achievements',
+                    subtitle: 'View badges',
+                    onTap: () =>
+                        Navigator.of(context).pushNamed(AppRoutes.achievements),
+                  ),
+                  const SizedBox(height: 16),
+                  _SectionLabel(text: 'SUPPORT'.tr),
+                  const SizedBox(height: 8),
+                  const _ArrowTile(
+                    icon: Icons.help_outline,
+                    title: 'Help Center',
+                    subtitle: 'FAQs & guides',
+                  ),
+                  const SizedBox(height: 8),
+                  const _ArrowTile(
+                    icon: Icons.info_outline,
+                    title: 'About',
+                    subtitle: 'Version 2.4.3',
+                  ),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _showLogoutConfirmDialog(context),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Theme.of(context).colorScheme.primary,
+                        side: const BorderSide(color: Color(0xFFEFCDD0)),
+                        backgroundColor: const Color(0xFFFFF5F5),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      icon: const Icon(Icons.logout_rounded),
+                      label: Text(
+                        'Log Out'.tr,
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
                     ),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-                  icon: const Icon(Icons.logout_rounded),
-                  label: const Text(
-                    'Log Out',
-                    style: TextStyle(fontWeight: FontWeight.w700),
+                  const SizedBox(height: 10),
+                  const Center(
+                    child: Text(
+                      'MuseAmigo · MobileDev252HCMUT',
+                      style: TextStyle(fontSize: 10, color: Color(0xFFB4BAC5)),
+                    ),
                   ),
-                ),
+                ],
               ),
-              const SizedBox(height: 10),
-              const Center(
-                child: Text(
-                  'MuseAmigo · MobileDev252HCMUT',
-                  style: TextStyle(fontSize: 10, color: Color(0xFFB4BAC5)),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
-    );
+        );
       },
     );
   }
@@ -1218,7 +1233,11 @@ class _ArrowTile extends StatelessWidget {
                   color: Color(0xFFF3F4F6),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, size: 16, color: Theme.of(context).colorScheme.primary),
+                child: Icon(
+                  icon,
+                  size: 16,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -1226,7 +1245,7 @@ class _ArrowTile extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      title,
+                      title.tr,
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
@@ -1234,7 +1253,7 @@ class _ArrowTile extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      subtitle,
+                      subtitle.tr,
                       style: const TextStyle(
                         fontSize: 11,
                         color: Color(0xFF6B7280),
@@ -1289,7 +1308,11 @@ class _ToggleTile extends StatelessWidget {
               color: Color(0xFFF3F4F6),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, size: 16, color: Theme.of(context).colorScheme.primary),
+            child: Icon(
+              icon,
+              size: 16,
+              color: Theme.of(context).colorScheme.primary,
+            ),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -1297,7 +1320,7 @@ class _ToggleTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  title,
+                  title.tr,
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
@@ -1305,7 +1328,7 @@ class _ToggleTile extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  subtitle,
+                  subtitle.tr,
                   style: const TextStyle(
                     fontSize: 11,
                     color: Color(0xFF6B7280),
@@ -1317,7 +1340,7 @@ class _ToggleTile extends StatelessWidget {
           Switch.adaptive(
             value: value,
             onChanged: onChanged,
-            activeColor: Theme.of(context).colorScheme.primary,
+            activeTrackColor: Theme.of(context).colorScheme.primary,
           ),
         ],
       ),

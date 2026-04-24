@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:museamigo/app_routes.dart';
+import 'package:museamigo/l10n/translations.dart';
 
 class AIAssistantScreen extends StatefulWidget {
   const AIAssistantScreen({super.key});
@@ -196,7 +197,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            'online',
+                            'online'.tr,
                             style: TextStyle(
                               fontSize: 11,
                               color: Theme.of(context).colorScheme.primary,
@@ -206,9 +207,9 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                         ],
                       ),
                       const SizedBox(height: 2),
-                      const Text(
-                        'Your AI companion',
-                        style: TextStyle(
+                      Text(
+                        'Your AI companion'.tr,
+                        style: const TextStyle(
                           fontSize: 14,
                           color: Color(0xFF4B5563),
                         ),
@@ -254,14 +255,14 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                             children: [
                               _StarterActionChip(
                                 icon: Icons.location_on_outlined,
-                                text: 'Show Nearby',
+                                text: 'Show Nearby'.tr,
                                 onTap: () => _submitMessage(
                                   'Show nearby artifacts and highlights.',
                                 ),
                               ),
                               _StarterActionChip(
                                 icon: Icons.near_me_outlined,
-                                text: 'View Map',
+                                text: 'View Map'.tr,
                                 onTap: () => _submitMessage(
                                   'Open map and guide me from my current location.',
                                 ),
@@ -278,9 +279,9 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
             Container(
               width: double.infinity,
               margin: const EdgeInsets.fromLTRB(14, 0, 14, 8),
-              child: const Text(
-                'Quick access buttons:',
-                style: TextStyle(fontSize: 13, color: Color(0xFF374151)),
+              child: Text(
+                'Quick access buttons:'.tr,
+                style: const TextStyle(fontSize: 13, color: Color(0xFF374151)),
               ),
             ),
             SizedBox(
@@ -293,7 +294,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                 itemBuilder: (_, index) {
                   final q = _quickAccessQuestions[index];
                   return _QuickQuestionChip(
-                    text: q,
+                    text: q.tr,
                     onTap: () => _submitMessage(q),
                   );
                 },
@@ -322,14 +323,16 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                         controller: _messageController,
                         onSubmitted: (_) => _submitMessage(),
                         textAlignVertical: TextAlignVertical.center,
-                        decoration: const InputDecoration(
-                          hintText: 'Ask me anything...',
-                          hintStyle: TextStyle(
+                        decoration: InputDecoration(
+                          hintText: 'Ask me anything...'.tr,
+                          hintStyle: const TextStyle(
                             fontSize: 14,
                             color: Color(0xFF9CA3AF),
                           ),
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                          ),
                         ),
                         textInputAction: TextInputAction.send,
                       ),
@@ -391,7 +394,7 @@ class _MessageBubble extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            message.text,
+            message.text.tr,
             style: TextStyle(
               fontSize: 14,
               color: isUser ? Colors.white : const Color(0xFF111827),
@@ -426,9 +429,9 @@ class _TypingBubble extends StatelessWidget {
         color: const Color(0xFFE5E7EB),
         borderRadius: BorderRadius.circular(16),
       ),
-      child: const Text(
-        'Ogima is typing...',
-        style: TextStyle(
+      child: Text(
+        'Ogima is typing...'.tr,
+        style: const TextStyle(
           fontSize: 12,
           color: Color(0xFF6B7280),
           fontStyle: FontStyle.italic,
