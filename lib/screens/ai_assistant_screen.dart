@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:museamigo/app_routes.dart';
 import 'package:museamigo/l10n/translations.dart';
+import 'package:museamigo/language_notifier.dart';
 
 class AIAssistantScreen extends StatefulWidget {
   const AIAssistantScreen({super.key});
@@ -109,9 +110,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   }
 
   static String _formatTime(DateTime now) {
-    final hour = now.hour > 12
-        ? now.hour - 12
-        : (now.hour == 0 ? 12 : now.hour);
+    final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
     final minute = now.minute.toString().padLeft(2, '0');
     final period = now.hour >= 12 ? 'PM' : 'AM';
     return '$hour:$minute $period';
@@ -119,236 +118,239 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F6),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              color: Theme.of(context).colorScheme.primary,
-              padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.of(
-                        context,
-                      ).pushReplacementNamed(AppRoutes.home);
-                    },
-                    child: const Icon(
-                      Icons.arrow_back_ios_new,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                  ),
-                  const Spacer(),
-                  Container(
-                    width: 42,
-                    height: 42,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.volume_up_outlined,
-                      color: Colors.black,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              width: double.infinity,
-              margin: const EdgeInsets.fromLTRB(14, 12, 14, 8),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE5E7EB),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                    child: ClipOval(
-                      child: Image.asset(
-                        'assets/images/model.png',
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+    return ListenableBuilder(
+      listenable: languageNotifier,
+      builder: (context, _) {
+        return Scaffold(
+          backgroundColor: const Color(0xFFF3F4F6),
+          body: SafeArea(
+            child: Column(
+              children: [
+                Container(
+                  color: Theme.of(context).colorScheme.primary,
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+                  child: Row(
                     children: [
-                      Row(
-                        children: [
-                          const Text(
-                            'Ogima',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF111827),
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'online'.tr,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Theme.of(context).colorScheme.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.of(context).pushReplacementNamed(AppRoutes.home);
+                        },
+                        child: const Icon(
+                          Icons.arrow_back_ios_new,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Your AI companion'.tr,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF4B5563),
+                      const Spacer(),
+                      Container(
+                        width: 42,
+                        height: 42,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.volume_up_outlined,
+                          color: Colors.black,
                         ),
                       ),
                     ],
                   ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: ListView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.fromLTRB(14, 4, 14, 8),
-                itemCount: _messages.length + (_isAiTyping ? 1 : 0),
-                itemBuilder: (context, index) {
-                  if (_isAiTyping && index == _messages.length) {
-                    return const Padding(
-                      padding: EdgeInsets.only(bottom: 8),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: _TypingBubble(),
-                      ),
-                    );
-                  }
-                  final msg = _messages[index];
-                  final isOpeningMessage = index == 0 && !(msg.isUser ?? true);
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Align(
-                          alignment: (msg.isUser ?? true)
-                              ? Alignment.centerRight
-                              : Alignment.centerLeft,
-                          child: _MessageBubble(message: msg),
+                ),
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.fromLTRB(14, 12, 14, 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE5E7EB),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
                         ),
-                        if (isOpeningMessage) ...[
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
+                        child: ClipOval(
+                          child: Image.asset(
+                            'assets/images/model.png',
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
                             children: [
-                              _StarterActionChip(
-                                icon: Icons.location_on_outlined,
-                                text: 'Show Nearby'.tr,
-                                onTap: () => _submitMessage(
-                                  'Show nearby artifacts and highlights.',
+                              const Text(
+                                'Ogima',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF111827),
                                 ),
                               ),
-                              _StarterActionChip(
-                                icon: Icons.near_me_outlined,
-                                text: 'View Map'.tr,
-                                onTap: () => _submitMessage(
-                                  'Open map and guide me from my current location.',
+                              const SizedBox(width: 6),
+                              Text(
+                                'online'.tr,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ],
                           ),
-                        ],
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-            Container(
-              width: double.infinity,
-              margin: const EdgeInsets.fromLTRB(14, 0, 14, 8),
-              child: Text(
-                'Quick access buttons:'.tr,
-                style: const TextStyle(fontSize: 13, color: Color(0xFF374151)),
-              ),
-            ),
-            SizedBox(
-              height: 36,
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                scrollDirection: Axis.horizontal,
-                itemCount: _quickAccessQuestions.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 8),
-                itemBuilder: (_, index) {
-                  final q = _quickAccessQuestions[index];
-                  return _QuickQuestionChip(
-                    text: q.tr,
-                    onTap: () => _submitMessage(q),
-                  );
-                },
-              ),
-            ),
-            Container(
-              decoration: const BoxDecoration(
-                color: Color(0xFFF3F4F6),
-                border: Border(top: BorderSide(color: Color(0xFFE5E7EB))),
-              ),
-              padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
-              child: Row(
-                children: [
-                  _roundIcon(Icons.mic_none),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Container(
-                      height: 48,
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEFF1F4),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: const Color(0xFFD1D5DB)),
-                      ),
-                      child: TextField(
-                        controller: _messageController,
-                        onSubmitted: (_) => _submitMessage(),
-                        textAlignVertical: TextAlignVertical.center,
-                        decoration: InputDecoration(
-                          hintText: 'Ask me anything...'.tr,
-                          hintStyle: const TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF9CA3AF),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Your AI companion'.tr,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF4B5563),
+                            ),
                           ),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(
-                            vertical: 12,
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.fromLTRB(14, 4, 14, 8),
+                    itemCount: _messages.length + (_isAiTyping ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (_isAiTyping && index == _messages.length) {
+                        return const Padding(
+                          padding: EdgeInsets.only(bottom: 8),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: _TypingBubble(),
+                          ),
+                        );
+                      }
+                      final msg = _messages[index];
+                      final isOpeningMessage = index == 0 && !(msg.isUser ?? true);
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Align(
+                              alignment: (msg.isUser ?? true)
+                                  ? Alignment.centerRight
+                                  : Alignment.centerLeft,
+                              child: _MessageBubble(message: msg),
+                            ),
+                            if (isOpeningMessage) ...[
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  _StarterActionChip(
+                                    icon: Icons.location_on_outlined,
+                                    text: 'Show Nearby'.tr,
+                                    onTap: () => _submitMessage(
+                                      'Show nearby artifacts and highlights.',
+                                    ),
+                                  ),
+                                  _StarterActionChip(
+                                    icon: Icons.near_me_outlined,
+                                    text: 'View Map'.tr,
+                                    onTap: () => _submitMessage(
+                                      'Open map and guide me from my current location.',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.fromLTRB(14, 0, 14, 8),
+                  child: Text(
+                    'Quick access buttons:'.tr,
+                    style: const TextStyle(fontSize: 13, color: Color(0xFF374151)),
+                  ),
+                ),
+                SizedBox(
+                  height: 36,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _quickAccessQuestions.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 8),
+                    itemBuilder: (_, index) {
+                      final q = _quickAccessQuestions[index];
+                      return _QuickQuestionChip(
+                        text: q.tr,
+                        onTap: () => _submitMessage(q),
+                      );
+                    },
+                  ),
+                ),
+                Container(
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF3F4F6),
+                    border: Border(top: BorderSide(color: Color(0xFFE5E7EB))),
+                  ),
+                  padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+                  child: Row(
+                    children: [
+                      _roundIcon(Icons.mic_none),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Container(
+                          height: 48,
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEFF1F4),
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: const Color(0xFFD1D5DB)),
+                          ),
+                          child: TextField(
+                            controller: _messageController,
+                            onSubmitted: (_) => _submitMessage(),
+                            textAlignVertical: TextAlignVertical.center,
+                            decoration: InputDecoration(
+                              hintText: 'Ask me anything...'.tr,
+                              hintStyle: const TextStyle(
+                                fontSize: 14,
+                                color: Color(0xFF9CA3AF),
+                              ),
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 12,
+                              ),
+                            ),
+                            textInputAction: TextInputAction.send,
                           ),
                         ),
-                        textInputAction: TextInputAction.send,
                       ),
-                    ),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: _submitMessage,
+                        child: _roundIcon(Icons.near_me_outlined),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: _submitMessage,
-                    child: _roundIcon(Icons.near_me_outlined),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -360,7 +362,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         color: Color(0xFFE5E7EB),
         shape: BoxShape.circle,
       ),
-      child: Icon(icon, color: Color(0xFF4B5563)),
+      child: Icon(icon, color: const Color(0xFF4B5563)),
     );
   }
 }
@@ -385,9 +387,7 @@ class _MessageBubble extends StatelessWidget {
       constraints: const BoxConstraints(maxWidth: 250),
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
       decoration: BoxDecoration(
-        color: isUser
-            ? Theme.of(context).colorScheme.primary
-            : const Color(0xFFE5E7EB),
+        color: isUser ? Theme.of(context).colorScheme.primary : const Color(0xFFE5E7EB),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -406,9 +406,7 @@ class _MessageBubble extends StatelessWidget {
             message.time,
             style: TextStyle(
               fontSize: 11,
-              color: isUser
-                  ? Colors.white.withValues(alpha: 0.85)
-                  : const Color(0xFF6B7280),
+              color: isUser ? Colors.white.withValues(alpha: 0.85) : const Color(0xFF6B7280),
             ),
           ),
         ],
@@ -459,7 +457,7 @@ class _QuickQuestionChip extends StatelessWidget {
           border: Border.all(color: const Color(0xFFD1D5DB)),
         ),
         child: Text(
-          text,
+          text.tr,
           style: const TextStyle(
             fontSize: 13,
             color: Color(0xFF111827),
@@ -498,7 +496,7 @@ class _StarterActionChip extends StatelessWidget {
             Icon(icon, size: 16, color: const Color(0xFF111827)),
             const SizedBox(width: 6),
             Text(
-              text,
+              text.tr,
               style: const TextStyle(
                 fontSize: 14,
                 color: Color(0xFF111827),

@@ -3,6 +3,7 @@ import 'package:museamigo/app_routes.dart';
 import 'package:museamigo/theme_notifier.dart';
 import 'package:museamigo/profile_notifier.dart';
 import 'package:museamigo/language_notifier.dart';
+import 'package:museamigo/font_size_notifier.dart';
 import 'package:museamigo/l10n/translations.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -252,131 +253,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showFontSizeDialog(BuildContext context) {
-    String temp = _fontSize;
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, ss) => Dialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Font Size'.tr,
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF171A21),
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.of(ctx).pop(),
-                      icon: const Icon(Icons.close, size: 20),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Choose your preferred reading size'.tr,
-                  style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
-                ),
-                const SizedBox(height: 12),
-                ...['Small', 'Medium', 'Large'].map((s) {
-                  final sel = temp == s;
-                  return GestureDetector(
-                    onTap: () => ss(() => temp = s),
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: sel
-                            ? Theme.of(
-                                context,
-                              ).colorScheme.primary.withValues(alpha: 0.08)
-                            : const Color(0xFFF3F4F6),
-                        borderRadius: BorderRadius.circular(10),
-                        border: sel
-                            ? Border.all(
-                                color: Theme.of(context).colorScheme.primary,
-                              )
-                            : null,
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              s.tr,
-                              style: TextStyle(
-                                fontSize: s == 'Small'
-                                    ? 13
-                                    : s == 'Medium'
-                                    ? 15
-                                    : 18,
-                                fontWeight: sel
-                                    ? FontWeight.w700
-                                    : FontWeight.w500,
-                                color: sel
-                                    ? Theme.of(context).colorScheme.primary
-                                    : const Color(0xFF374151),
-                              ),
-                            ),
-                          ),
-                          if (sel)
-                            Icon(
-                              Icons.check_circle,
-                              color: Theme.of(context).colorScheme.primary,
-                              size: 18,
-                            ),
-                        ],
-                      ),
-                    ),
-                  );
-                }),
-                const SizedBox(height: 4),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      setState(() => _fontSize = temp);
-                      Navigator.of(ctx).pop();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    child: Text(
-                      'Apply'.tr,
-                      style: TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   void _showLanguageDialog(BuildContext context) {
     String temp = languageNotifier.currentLanguage;
@@ -473,6 +349,126 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: ElevatedButton(
                     onPressed: () {
                       languageNotifier.setLanguage(temp);
+                      Navigator.of(ctx).pop();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: Text(
+                      'Apply'.tr,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showFontSizeDialog(BuildContext context) {
+    FontSizeLevel temp = fontSizeNotifier.level;
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, ss) => Dialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Font Size'.tr,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF171A21),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      icon: const Icon(Icons.close, size: 20),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Choose your preferred reading size'.tr,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF6B7280),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ...FontSizeLevel.values.map((level) {
+                  final sel = temp == level;
+                  String label = level.name[0].toUpperCase() + level.name.substring(1);
+                  return GestureDetector(
+                    onTap: () => ss(() => temp = level),
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 14,
+                      ),
+                      decoration: BoxDecoration(
+                        color: sel
+                            ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.08)
+                            : const Color(0xFFF3F4F6),
+                        borderRadius: BorderRadius.circular(10),
+                        border: sel
+                            ? Border.all(
+                                color: Theme.of(context).colorScheme.primary,
+                              )
+                            : null,
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              label.tr,
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
+                                color: sel
+                                    ? Theme.of(context).colorScheme.primary
+                                    : const Color(0xFF374151),
+                              ),
+                            ),
+                          ),
+                          if (sel)
+                            Icon(
+                              Icons.check_circle,
+                              color: Theme.of(context).colorScheme.primary,
+                              size: 18,
+                            ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+                const SizedBox(height: 4),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      fontSizeNotifier.setLevel(temp);
                       Navigator.of(ctx).pop();
                     },
                     style: ElevatedButton.styleFrom(
@@ -967,7 +963,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([profileNotifier, languageNotifier]),
+      listenable: Listenable.merge(
+          [profileNotifier, languageNotifier, themeNotifier, fontSizeNotifier]),
       builder: (context, _) {
         return Scaffold(
           backgroundColor: const Color(0xFFF3F4F6),
@@ -1073,7 +1070,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _ArrowTile(
                     icon: Icons.text_fields_rounded,
                     title: 'Font Size',
-                    subtitle: _fontSize,
+                    subtitle: fontSizeNotifier.levelName,
                     onTap: () => _showFontSizeDialog(context),
                   ),
                   const SizedBox(height: 16),
