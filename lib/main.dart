@@ -18,6 +18,7 @@ import 'package:museamigo/screens/sign_up_screen.dart';
 
 import 'package:museamigo/language_notifier.dart';
 import 'package:museamigo/profile_notifier.dart';
+import 'package:museamigo/font_size_notifier.dart';
 
 void main() {
   runApp(
@@ -34,17 +35,30 @@ class MuseAmigoApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([themeNotifier, languageNotifier, profileNotifier]),
+      listenable: Listenable.merge([
+        themeNotifier,
+        languageNotifier,
+        profileNotifier,
+        fontSizeNotifier,
+      ]),
       builder: (context, _) {
         final primary = themeNotifier.primaryColor;
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           locale: DevicePreview.locale(context),
           builder: (context, child) {
+            final appChild = DevicePreview.appBuilder(context, child);
             return ListenableBuilder(
-              listenable: Listenable.merge([languageNotifier, profileNotifier, themeNotifier]),
-              builder: (context, child) => DevicePreview.appBuilder(context, child),
-              child: child,
+              listenable: Listenable.merge(
+                  [languageNotifier, profileNotifier, themeNotifier, fontSizeNotifier]),
+              builder: (context, child) {
+                return MediaQuery(
+                  data: MediaQuery.of(context).copyWith(
+                    textScaler: TextScaler.linear(fontSizeNotifier.scale),
+                  ),
+                  child: appChild!,
+                );
+              },
             );
           },
           title: 'MuseAmigo',

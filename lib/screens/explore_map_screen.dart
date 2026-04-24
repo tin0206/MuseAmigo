@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:museamigo/app_routes.dart';
 import 'package:museamigo/l10n/translations.dart';
+import 'package:museamigo/language_notifier.dart';
 import 'payment_screens.dart';
 
 class ExploreMapScreen extends StatelessWidget {
@@ -34,95 +35,100 @@ class ExploreMapScreen extends StatelessWidget {
       ),
     ];
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              color: Theme.of(context).colorScheme.primary,
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      height: 52,
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.search, color: Colors.black87),
-                          const SizedBox(width: 10),
-                          Text(
-                            'Where do you want to go?'.tr,
-                            style: TextStyle(
-                              color: Colors.black.withValues(alpha: 0.85),
-                              fontSize: 18,
-                            ),
+    return ListenableBuilder(
+      listenable: languageNotifier,
+      builder: (context, _) {
+        return Scaffold(
+          backgroundColor: Colors.white,
+          body: SafeArea(
+            child: Column(
+              children: [
+                Container(
+                  color: Theme.of(context).colorScheme.primary,
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          height: 52,
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(30),
                           ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  GestureDetector(
-                    onTap: () =>
-                        Navigator.of(context).pushNamed(AppRoutes.settings),
-                    child: Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                      child: const ClipOval(
-                        child: Image(
-                          image: AssetImage('assets/images/model.png'),
-                          fit: BoxFit.cover,
+                          child: Row(
+                            children: [
+                              const Icon(Icons.search, color: Colors.black87),
+                              const SizedBox(width: 10),
+                              Text(
+                                'Where do you want to go?'.tr,
+                                style: TextStyle(
+                                  color: Colors.black.withValues(alpha: 0.85),
+                                  fontSize: 18,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: FlutterMap(
-                options: const MapOptions(
-                  initialCenter: LatLng(10.7769, 106.6980),
-                  initialZoom: 14.0,
-                ),
-                children: [
-                  TileLayer(
-                    urlTemplate:
-                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    userAgentPackageName: 'com.example.museamigo',
-                  ),
-                  MarkerLayer(
-                    markers: museums
-                        .map(
-                          (museum) => Marker(
-                            point: museum.position,
-                            width: 84,
-                            height: 84,
-                            child: GestureDetector(
-                              onTap: () =>
-                                  _showMuseumDetailSheet(context, museum),
-                              child: const _MuseumMarker(),
+                      const SizedBox(width: 10),
+                      GestureDetector(
+                        onTap: () =>
+                            Navigator.of(context).pushNamed(AppRoutes.settings),
+                        child: Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          child: const ClipOval(
+                            child: Image(
+                              image: AssetImage('assets/images/model.png'),
+                              fit: BoxFit.cover,
                             ),
                           ),
-                        )
-                        .toList(),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                Expanded(
+                  child: FlutterMap(
+                    options: const MapOptions(
+                      initialCenter: LatLng(10.7769, 106.6980),
+                      initialZoom: 14.0,
+                    ),
+                    children: [
+                      TileLayer(
+                        urlTemplate:
+                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        userAgentPackageName: 'com.example.museamigo',
+                      ),
+                      MarkerLayer(
+                        markers: museums
+                            .map(
+                              (museum) => Marker(
+                                point: museum.position,
+                                width: 84,
+                                height: 84,
+                                child: GestureDetector(
+                                  onTap: () =>
+                                      _showMuseumDetailSheet(context, museum),
+                                  child: const _MuseumMarker(),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -682,7 +688,7 @@ class _PaymentMethodSheet extends StatelessWidget {
                     TextButton.icon(
                       onPressed: () => Navigator.of(context).pop(),
                       icon: const Icon(Icons.arrow_back, size: 18),
-                      label: const Text('Return'),
+                      label: Text('Return'.tr),
                       style: TextButton.styleFrom(
                         foregroundColor: Theme.of(context).colorScheme.primary,
                       ),
