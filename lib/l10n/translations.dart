@@ -58,7 +58,7 @@ const Map<String, Map<String, String>> _localizedStrings = {
     'ACCOUNT & PRIVACY': 'ACCOUNT & PRIVACY',
     'SUPPORT': 'SUPPORT',
     'Search artifacts, places...': 'Search artifacts, places...',
-    'Welcome Justin': 'Welcome Justin',
+    'Welcome': 'Welcome',
     'You are exploring the Independence Palace':
         'You are exploring the Independence Palace',
     'Areas': 'Areas',
@@ -435,7 +435,7 @@ const Map<String, Map<String, String>> _localizedStrings = {
     'Customize your museum experience':
         'Tùy chỉnh trải nghiệm bảo tàng của bạn',
     'Search artifacts, places...': 'Tìm kiếm hiện vật, địa điểm...',
-    'Welcome Justin': 'Chào mừng Justin',
+    'Welcome': 'Chào mừng',
     'You are exploring the Independence Palace':
         'Bạn đang khám phá Dinh Độc Lập',
     'Areas': 'Khu vực',

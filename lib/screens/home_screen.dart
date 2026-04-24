@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:museamigo/app_routes.dart';
 import 'package:museamigo/l10n/translations.dart';
+import 'package:museamigo/profile_notifier.dart';
+import 'package:museamigo/language_notifier.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -55,213 +57,201 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // ── Top bar ────────────────────────────────────────────────
-            Container(
-              color: Theme.of(context).colorScheme.primary,
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () =>
-                          Navigator.of(context).pushNamed(AppRoutes.search),
-                      child: Container(
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(22),
-                        ),
-                        child: Row(
-                          children: [
-                            const SizedBox(width: 12),
-                            const Icon(
-                              Icons.search,
-                              color: Color(0xFF9CA3AF),
-                              size: 20,
+    return ListenableBuilder(
+      listenable: Listenable.merge([profileNotifier, languageNotifier]),
+      builder: (context, _) {
+        return Scaffold(
+          backgroundColor: Colors.white,
+          body: SafeArea(
+            child: Column(
+              children: [
+                // ── Top bar ────────────────────────────────────────────────
+                Container(
+                  color: Theme.of(context).colorScheme.primary,
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () =>
+                              Navigator.of(context).pushNamed(AppRoutes.search),
+                          child: Container(
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(22),
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Search artifacts, places...'.tr,
-                              style: const TextStyle(
-                                color: Color(0xFF9CA3AF),
-                                fontSize: 14,
-                              ),
+                            child: Row(
+                              children: [
+                                const SizedBox(width: 12),
+                                const Icon(
+                                  Icons.search,
+                                  color: Color(0xFF9CA3AF),
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Search artifacts, places...'.tr,
+                                  style: const TextStyle(
+                                    color: Color(0xFF9CA3AF),
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  GestureDetector(
-                    onTap: () =>
-                        Navigator.of(context).pushNamed(AppRoutes.settings),
-                    child: ClipOval(
-                      child: Image.asset(
-                        'assets/images/model.png',
-                        width: 44,
-                        height: 44,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => Container(
+                      const SizedBox(width: 12),
+                      GestureDetector(
+                        onTap: () =>
+                            Navigator.of(context).pushNamed(AppRoutes.settings),
+                        child: Container(
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.25),
                             shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.3),
+                              width: 2,
+                            ),
                           ),
-                          child: const Icon(
-                            Icons.person,
-                            color: Colors.white,
-                            size: 28,
+                          child: ClipOval(
+                            child: Image.asset(
+                              'assets/images/model.png',
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) => Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.25),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.person,
+                                  color: Colors.white,
+                                  size: 28,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-            // ── Body ───────────────────────────────────────────────────
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      width: double.infinity,
-                      child: Text(
-                        'Welcome Justin'.tr,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF171A21),
+                ),
+                // ── Body ───────────────────────────────────────────────────
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          width: double.infinity,
+                          child: Text(
+                            '${'Welcome'.tr} ${profileNotifier.name}',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 26,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF171A21),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    SizedBox(
-                      width: double.infinity,
-                      child: Text(
-                        'You are exploring the Independence Palace'.tr,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF6D7785),
+                        const SizedBox(height: 4),
+                        SizedBox(
+                          width: double.infinity,
+                          child: Text(
+                            'You are exploring the Independence Palace'.tr,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF6D7785),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    // ── Areas ─────────────────────────────────────────
-                    Text(
-                      'Areas'.tr,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF171A21),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      height: 160,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        physics: const BouncingScrollPhysics(),
-                        clipBehavior: Clip.none,
-                        itemCount: _areas.length,
-                        separatorBuilder: (_, _) => const SizedBox(width: 12),
-                        itemBuilder: (context, index) {
-                          return _AreaCard(
-                            area: _areas[index],
+                        const SizedBox(height: 24),
+                        // ── Areas ─────────────────────────────────────────
+                        _SectionHeader(
+                          title: 'Areas'.tr,
+                          onSeeAll: () {},
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          height: 180,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: _areas.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(width: 14),
+                            itemBuilder: (context, i) {
+                              return _AreaCard(
+                                area: _areas[i],
+                                onTap: () {},
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+                        // ── Trending ──────────────────────────────────────
+                        _SectionHeader(
+                          title: 'Trending Artifacts'.tr,
+                          onSeeAll: () {},
+                        ),
+                        const SizedBox(height: 12),
+                        ...List.generate(
+                          _artifacts.length,
+                          (i) => _ArtifactRow(
+                            item: _artifacts[i],
                             onTap: () => Navigator.of(context).pushNamed(
-                              AppRoutes.search,
+                              AppRoutes.artifactDetail,
                               arguments: <String, dynamic>{
-                                'query': _areas[index].label,
-                                'exhibition': _areas[index].label,
-                                'showResults': true,
+                                'title': _artifacts[i].name,
+                                'year': _artifacts[i].period,
+                                'location': 'Ground Floor',
+                                'currentLocation': 'Independence Palace',
+                                'height': '~2.4 meters',
+                                'weight': '~39.7 tons',
+                                'imageAsset': 'assets/images/museum.jpg',
                               },
                             ),
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    // ── First Floor ───────────────────────────────────
-                    _SectionHeader(
-                      title: 'Floor 1'.tr,
-                      onSeeAll: () => Navigator.of(context).pushNamed(
-                        AppRoutes.search,
-                        arguments: <String, dynamic>{
-                          'query': 'Floor 1',
-                          'filter': 'Floor 1',
-                          'showResults': true,
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    ...List.generate(
-                      _artifacts.length,
-                      (i) => _ArtifactRow(
-                        item: _artifacts[i],
-                        onTap: () => Navigator.of(context).pushNamed(
-                          AppRoutes.artifactDetail,
-                          arguments: <String, dynamic>{
-                            'title': _artifacts[i].name,
-                            'year': _artifacts[i].period,
-                            'location': 'Floor 1',
-                            'currentLocation': 'Independence Palace',
-                            'height': '~2.4 meters',
-                            'weight': '~39.7 tons',
-                            'imageAsset': 'assets/images/museum.jpg',
-                          },
+                          ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    // ── Second Floor ──────────────────────────────────
-                    _SectionHeader(
-                      title: 'Floor 2'.tr,
-                      onSeeAll: () => Navigator.of(context).pushNamed(
-                        AppRoutes.search,
-                        arguments: <String, dynamic>{
-                          'query': 'Floor 2',
-                          'filter': 'Floor 2',
-                          'showResults': true,
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    ...List.generate(
-                      _secondFloorArtifacts.length,
-                      (i) => _ArtifactRow(
-                        item: _secondFloorArtifacts[i],
-                        onTap: () => Navigator.of(context).pushNamed(
-                          AppRoutes.artifactDetail,
-                          arguments: <String, dynamic>{
-                            'title': _secondFloorArtifacts[i].name,
-                            'year': _secondFloorArtifacts[i].period,
-                            'location': 'Floor 2',
-                            'currentLocation': 'Independence Palace',
-                            'height': '~2.4 meters',
-                            'weight': '~39.7 tons',
-                            'imageAsset': 'assets/images/museum.jpg',
-                          },
+                        const SizedBox(height: 20),
+                        // ── Floor 2 Highlights ────────────────────────────
+                        _SectionHeader(
+                          title: 'Floor 2 Highlights'.tr,
+                          onSeeAll: () {},
                         ),
-                      ),
+                        const SizedBox(height: 12),
+                        ...List.generate(
+                          _secondFloorArtifacts.length,
+                          (i) => _ArtifactRow(
+                            item: _secondFloorArtifacts[i],
+                            onTap: () => Navigator.of(context).pushNamed(
+                              AppRoutes.artifactDetail,
+                              arguments: <String, dynamic>{
+                                'title': _secondFloorArtifacts[i].name,
+                                'year': _secondFloorArtifacts[i].period,
+                                'location': 'Floor 2',
+                                'currentLocation': 'Independence Palace',
+                                'height': '~2.4 meters',
+                                'weight': '~39.7 tons',
+                                'imageAsset': 'assets/images/museum.jpg',
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

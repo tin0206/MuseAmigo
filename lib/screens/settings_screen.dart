@@ -967,7 +967,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: profileNotifier,
+      listenable: Listenable.merge([profileNotifier, languageNotifier]),
       builder: (context, _) {
         return Scaffold(
           backgroundColor: const Color(0xFFF3F4F6),
