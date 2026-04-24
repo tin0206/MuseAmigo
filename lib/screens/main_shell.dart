@@ -58,8 +58,8 @@ class _MainShellState extends State<MainShell> {
               Container(
                 width: 70,
                 height: 70,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFCC353A),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -81,22 +81,22 @@ class _MainShellState extends State<MainShell> {
               const SizedBox(height: 6),
               RichText(
                 textAlign: TextAlign.center,
-                text: const TextSpan(
-                  style: TextStyle(
+                text: TextSpan(
+                  style: const TextStyle(
                     fontSize: 16,
                     color: Color(0xFF6B7280),
                     height: 1.35,
                   ),
                   children: [
-                    TextSpan(text: 'You\'ve unlocked '),
+                    const TextSpan(text: 'You\'ve unlocked '),
                     TextSpan(
                       text: 'T-54 Tank No. 843',
                       style: TextStyle(
-                        color: Color(0xFFCC353A),
+                        color: Theme.of(context).colorScheme.primary,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    TextSpan(text: ' in your Virtual 3D Collection!'),
+                    const TextSpan(text: ' in your Virtual 3D Collection!'),
                   ],
                 ),
               ),

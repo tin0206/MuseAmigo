@@ -201,7 +201,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                     vertical: 14,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFCC353A),
+                    color: Theme.of(context).colorScheme.primary,
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Column(
@@ -367,7 +367,7 @@ class _AchievementRow extends StatelessWidget {
             height: 42,
             decoration: BoxDecoration(
               color: unlocked
-                  ? const Color(0xFFCC353A)
+                  ? Theme.of(context).colorScheme.primary
                   : const Color(0xFFF3F4F6),
               shape: BoxShape.circle,
             ),
@@ -406,7 +406,7 @@ class _AchievementRow extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
               color: unlocked
-                  ? const Color(0xFFCC353A)
+                  ? Theme.of(context).colorScheme.primary
                   : const Color(0xFFE5E7EB),
               borderRadius: BorderRadius.circular(10),
             ),

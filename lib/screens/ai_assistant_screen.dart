@@ -124,7 +124,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         child: Column(
           children: [
             Container(
-              color: const Color(0xFFCC353A),
+              color: Theme.of(context).colorScheme.primary,
               padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
               child: Row(
                 children: [
@@ -181,41 +181,39 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              'Ogima',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF111827),
-                              ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Text(
+                            'Ogima',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF111827),
                             ),
-                            SizedBox(width: 6),
-                            Text(
-                              'online',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Color(0xFFCC353A),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 2),
-                        Text(
-                          'Your AI companion',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF4B5563),
                           ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'online',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      const Text(
+                        'Your AI companion',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF4B5563),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -291,7 +289,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 14),
                 scrollDirection: Axis.horizontal,
                 itemCount: _quickAccessQuestions.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
                 itemBuilder: (_, index) {
                   final q = _quickAccessQuestions[index];
                   return _QuickQuestionChip(
@@ -384,7 +382,9 @@ class _MessageBubble extends StatelessWidget {
       constraints: const BoxConstraints(maxWidth: 250),
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
       decoration: BoxDecoration(
-        color: isUser ? const Color(0xFFCC353A) : const Color(0xFFE5E7EB),
+        color: isUser
+            ? Theme.of(context).colorScheme.primary
+            : const Color(0xFFE5E7EB),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(

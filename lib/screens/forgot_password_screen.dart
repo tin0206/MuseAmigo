@@ -86,7 +86,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     child: FilledButton(
                       onPressed: _submitForgotPassword,
                       style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFFCC353A),
+                        backgroundColor: Theme.of(context).colorScheme.primary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),

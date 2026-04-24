@@ -174,27 +174,27 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             });
                           },
                           visualDensity: VisualDensity.compact,
-                          activeColor: const Color(0xFFCC353A),
+                          activeColor: Theme.of(context).colorScheme.primary,
                         ),
                       ),
                       const SizedBox(width: 10),
-                      const Expanded(
+                      Expanded(
                         child: Text.rich(
                           TextSpan(
                             text: 'I Agree to the ',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
                             ),
                             children: [
                               TextSpan(
                                 text: 'Terms',
-                                style: TextStyle(color: Color(0xFFCC353A)),
+                                style: TextStyle(color: Theme.of(context).colorScheme.primary),
                               ),
-                              TextSpan(text: ' and '),
+                              const TextSpan(text: ' and '),
                               TextSpan(
                                 text: 'Conditions',
-                                style: TextStyle(color: Color(0xFFCC353A)),
+                                style: TextStyle(color: Theme.of(context).colorScheme.primary),
                               ),
                             ],
                           ),
@@ -209,7 +209,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     child: FilledButton(
                       onPressed: _submitSignUp,
                       style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFFCC353A),
+                        backgroundColor: Theme.of(context).colorScheme.primary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),

@@ -20,7 +20,6 @@ class ArtifactDetailScreen extends StatelessWidget {
   final String weight;
   final String imageAsset;
 
-  static const Color _brandRed = Color(0xFFCC353A);
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +41,7 @@ class ArtifactDetailScreen extends StatelessWidget {
                       child: Image.asset(
                         imageAsset,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
+                        errorBuilder: (_, _, _) => Container(
                           color: Colors.grey.shade300,
                           child: const Icon(Icons.image, size: 56),
                         ),
@@ -118,8 +117,8 @@ class ArtifactDetailScreen extends StatelessWidget {
                           Container(
                             width: 36,
                             height: 36,
-                            decoration: const BoxDecoration(
-                              color: _brandRed,
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primary,
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(
@@ -139,9 +138,9 @@ class ArtifactDetailScreen extends StatelessWidget {
                               thumbShape: const RoundSliderThumbShape(
                                 enabledThumbRadius: 5,
                               ),
-                              activeTrackColor: _brandRed,
+                              activeTrackColor: Theme.of(context).colorScheme.primary,
                               inactiveTrackColor: const Color(0xFFB5B5B5),
-                              thumbColor: _brandRed,
+                              thumbColor: Theme.of(context).colorScheme.primary,
                             ),
                             child: Slider(value: 0.55, onChanged: (_) {}),
                           ),

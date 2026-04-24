@@ -4,7 +4,6 @@ import 'package:museamigo/app_routes.dart';
 class JourneyScreen extends StatelessWidget {
   const JourneyScreen({super.key});
 
-  static const Color _brandRed = Color(0xFFCC353A);
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +29,7 @@ class JourneyScreen extends StatelessWidget {
                   ElevatedButton.icon(
                     onPressed: () => _showFinishJourneyDialog(context),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _brandRed,
+                      backgroundColor: Theme.of(context).colorScheme.primary,
                       foregroundColor: Colors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
@@ -289,7 +288,7 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: active ? const Color(0xFFCC353A) : const Color(0xFFE5E5E7),
+        color: active ? Theme.of(context).colorScheme.primary : const Color(0xFFE5E5E7),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
@@ -300,7 +299,7 @@ class _StatCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 30,
               fontWeight: FontWeight.w700,
-              color: active ? Colors.white : const Color(0xFFCC353A),
+              color: active ? Colors.white : Theme.of(context).colorScheme.primary,
               height: 1,
             ),
           ),
@@ -358,7 +357,7 @@ class _ProgressCard extends StatelessWidget {
               minHeight: 6,
               value: 0.24,
               backgroundColor: Color(0xFFD6D8DD),
-              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFCC353A)),
+              valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
             ),
           ),
           const SizedBox(height: 8),
@@ -411,7 +410,7 @@ class _ProgressStep extends StatelessWidget {
         CircleAvatar(
           radius: 12,
           backgroundColor: active
-              ? const Color(0xFFCC353A)
+              ? Theme.of(context).colorScheme.primary
               : const Color(0xFFD8DADE),
           child: Icon(
             icon,
@@ -447,10 +446,10 @@ class _AchievementTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final borderColor = unlocked
-        ? const Color(0xFFCC353A)
+        ? Theme.of(context).colorScheme.primary
         : const Color(0xFFE5E5E7);
     final titleColor = unlocked
-        ? const Color(0xFFCC353A)
+        ? Theme.of(context).colorScheme.primary
         : const Color(0xFF9CA3AF);
 
     return Container(
@@ -465,7 +464,7 @@ class _AchievementTile extends StatelessWidget {
           CircleAvatar(
             radius: 18,
             backgroundColor: unlocked
-                ? const Color(0xFFCC353A)
+                ? Theme.of(context).colorScheme.primary
                 : const Color(0xFFD9DCE2),
             child: Icon(
               icon,
@@ -500,9 +499,9 @@ class _AchievementTile extends StatelessWidget {
           if (unlocked)
             Text(
               points,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: Color(0xFFCC353A),
+                color: Theme.of(context).colorScheme.primary,
                 fontWeight: FontWeight.w700,
               ),
             )

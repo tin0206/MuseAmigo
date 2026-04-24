@@ -28,7 +28,6 @@ class _SearchScreenState extends State<SearchScreen> {
   String _activeFilterMode = 'floor'; // 'floor' or 'exhibition'
   String _sortBy = 'default'; // 'default' or 'a-z'
 
-  static const Color _brandRed = Color(0xFFCC353A);
 
   static const _recentSearches = ['Tank', 'Weapons', 'Room', 'Exhibition'];
   static const _trending = ['Garden', 'Tank', 'Weapons', 'Room', 'Exhibition'];
@@ -149,7 +148,7 @@ class _SearchScreenState extends State<SearchScreen> {
           children: [
             // ── Top bar ────────────────────────────────────────────────
             Container(
-              color: _brandRed,
+              color: Theme.of(context).colorScheme.primary,
               padding: const EdgeInsets.fromLTRB(4, 10, 16, 12),
               child: Row(
                 children: [
@@ -220,7 +219,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       vertical: 8,
                     ),
                     itemCount: _filterTypes.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    separatorBuilder: (_, _) => const SizedBox(width: 8),
                     itemBuilder: (context, index) {
                       final filter = _filterTypes[index];
                       final selected = _selectedFilterType == filter;
@@ -235,11 +234,11 @@ class _SearchScreenState extends State<SearchScreen> {
                             vertical: 5,
                           ),
                           decoration: BoxDecoration(
-                            color: selected ? _brandRed : Colors.white,
+                            color: selected ? Theme.of(context).colorScheme.primary : Colors.white,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: selected
-                                  ? _brandRed
+                                  ? Theme.of(context).colorScheme.primary
                                   : const Color(0xFFDDDDDD),
                             ),
                           ),
@@ -269,7 +268,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       vertical: 8,
                     ),
                     itemCount: _filterExhibitions.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    separatorBuilder: (_, _) => const SizedBox(width: 8),
                     itemBuilder: (context, index) {
                       final filter = _filterExhibitions[index];
                       final selected = _selectedFilterExhibition == filter;
@@ -284,11 +283,11 @@ class _SearchScreenState extends State<SearchScreen> {
                             vertical: 5,
                           ),
                           decoration: BoxDecoration(
-                            color: selected ? _brandRed : Colors.white,
+                            color: selected ? Theme.of(context).colorScheme.primary : Colors.white,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: selected
-                                  ? _brandRed
+                                  ? Theme.of(context).colorScheme.primary
                                   : const Color(0xFFDDDDDD),
                             ),
                           ),
@@ -418,7 +417,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                 vertical: 10,
                               ),
                               decoration: BoxDecoration(
-                                color: _brandRed,
+                                color: Theme.of(context).colorScheme.primary,
                                 borderRadius: BorderRadius.circular(22),
                               ),
                               child: Text(
@@ -540,7 +539,7 @@ class _ResultCard extends StatelessWidget {
                 child: Image.asset(
                   'assets/images/museum.jpg',
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
+                  errorBuilder: (_, _, _) => Container(
                     color: Colors.grey.shade300,
                     child: const Icon(Icons.image, size: 32),
                   ),
@@ -575,8 +574,8 @@ class _ResultCard extends StatelessWidget {
                       Container(
                         width: 8,
                         height: 8,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFCC353A),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary,
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -598,7 +597,7 @@ class _ResultCard extends StatelessWidget {
             FilledButton(
               onPressed: () => _openDetail(context),
               style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFFCC353A),
+                backgroundColor: Theme.of(context).colorScheme.primary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),

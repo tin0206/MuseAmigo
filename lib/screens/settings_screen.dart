@@ -1,5 +1,7 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:museamigo/app_routes.dart';
+import 'package:museamigo/theme_notifier.dart';
+import 'package:museamigo/profile_notifier.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -15,7 +17,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _indoorNavigation = true;
   String _fontSize = 'Medium';
   String _language = 'English';
-  Color _primaryColor = const Color(0xFFCC353A);
 
   void _showColorSchemeDialog(BuildContext context) {
     const quickPicks = [
@@ -27,7 +28,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       Color(0xFF60A5FA),
       Color(0xFFCC353A),
     ];
-    Color selected = _primaryColor;
+    Color selected = themeNotifier.primaryColor;
     showDialog<void>(
       context: context,
       builder: (ctx) => StatefulBuilder(
@@ -44,7 +45,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -53,7 +54,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFFCC353A),
+                              color: Theme.of(context).colorScheme.primary,
                             ),
                           ),
                           Text(
@@ -223,11 +224,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Expanded(
                       child: ElevatedButton.icon(
                         onPressed: () {
-                          setState(() => _primaryColor = selected);
+                          themeNotifier.setPrimaryColor(selected);
                           Navigator.of(ctx).pop();
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFCC353A),
+                          backgroundColor: Theme.of(context).colorScheme.primary,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
@@ -302,11 +303,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       decoration: BoxDecoration(
                         color: sel
-                            ? const Color(0xFFFBECEE)
+                            ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.08)
                             : const Color(0xFFF3F4F6),
                         borderRadius: BorderRadius.circular(10),
                         border: sel
-                            ? Border.all(color: const Color(0xFFCC353A))
+                            ? Border.all(color: Theme.of(context).colorScheme.primary)
                             : null,
                       ),
                       child: Row(
@@ -324,15 +325,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     ? FontWeight.w700
                                     : FontWeight.w500,
                                 color: sel
-                                    ? const Color(0xFFCC353A)
+                                    ? Theme.of(context).colorScheme.primary
                                     : const Color(0xFF374151),
                               ),
                             ),
                           ),
                           if (sel)
-                            const Icon(
+                            Icon(
                               Icons.check_circle,
-                              color: Color(0xFFCC353A),
+                              color: Theme.of(context).colorScheme.primary,
                               size: 18,
                             ),
                         ],
@@ -349,7 +350,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Navigator.of(ctx).pop();
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFCC353A),
+                      backgroundColor: Theme.of(context).colorScheme.primary,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -419,11 +420,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       decoration: BoxDecoration(
                         color: sel
-                            ? const Color(0xFFFBECEE)
+                            ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.08)
                             : const Color(0xFFF3F4F6),
                         borderRadius: BorderRadius.circular(10),
                         border: sel
-                            ? Border.all(color: const Color(0xFFCC353A))
+                            ? Border.all(color: Theme.of(context).colorScheme.primary)
                             : null,
                       ),
                       child: Row(
@@ -439,15 +440,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     ? FontWeight.w700
                                     : FontWeight.w500,
                                 color: sel
-                                    ? const Color(0xFFCC353A)
+                                    ? Theme.of(context).colorScheme.primary
                                     : const Color(0xFF374151),
                               ),
                             ),
                           ),
                           if (sel)
-                            const Icon(
+                            Icon(
                               Icons.check_circle,
-                              color: Color(0xFFCC353A),
+                              color: Theme.of(context).colorScheme.primary,
                               size: 18,
                             ),
                         ],
@@ -464,7 +465,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Navigator.of(ctx).pop();
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFCC353A),
+                      backgroundColor: Theme.of(context).colorScheme.primary,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -623,7 +624,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: ElevatedButton.icon(
                     onPressed: () => Navigator.of(ctx).pop(),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFCC353A),
+                      backgroundColor: Theme.of(context).colorScheme.primary,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -780,7 +781,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Switch.adaptive(
                       value: saveLocally,
                       onChanged: (v) => ss(() => saveLocally = v),
-                      activeColor: const Color(0xFFCC353A),
+                      activeColor: Theme.of(context).colorScheme.primary,
                     ),
                   ],
                 ),
@@ -823,11 +824,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
+                              Text(
                                 '• ',
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: Color(0xFFCC353A),
+                                  color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
                               Expanded(
@@ -852,7 +853,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: ElevatedButton.icon(
                     onPressed: () => Navigator.of(ctx).pop(),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFCC353A),
+                      backgroundColor: Theme.of(context).colorScheme.primary,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -929,7 +930,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         );
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFCC353A),
+                        backgroundColor: Theme.of(context).colorScheme.primary,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -953,11 +954,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F6),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(14, 6, 14, 16),
+    return ListenableBuilder(
+      listenable: profileNotifier,
+      builder: (context, _) {
+        return Scaffold(
+          backgroundColor: const Color(0xFFF3F4F6),
+          body: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(14, 6, 14, 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -991,7 +995,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           height: 50,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            border: Border.all(color: const Color(0xFFCC353A)),
+                            border: Border.all(color: Theme.of(context).colorScheme.primary),
                           ),
                           child: ClipOval(
                             child: Image.asset(
@@ -1001,21 +1005,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ),
                         const SizedBox(width: 10),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Justin Nguyen',
-                                style: TextStyle(
+                                profileNotifier.name,
+                                style: const TextStyle(
                                   fontSize: 17,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
-                              SizedBox(height: 2),
+                              const SizedBox(height: 2),
                               Text(
-                                'justin@museum.com',
-                                style: TextStyle(
+                                profileNotifier.email,
+                                style: const TextStyle(
                                   fontSize: 12,
                                   color: Color(0xFF6B7280),
                                 ),
@@ -1135,7 +1139,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: OutlinedButton.icon(
                   onPressed: () => _showLogoutConfirmDialog(context),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFFCC353A),
+                    foregroundColor: Theme.of(context).colorScheme.primary,
                     side: const BorderSide(color: Color(0xFFEFCDD0)),
                     backgroundColor: const Color(0xFFFFF5F5),
                     shape: RoundedRectangleBorder(
@@ -1161,6 +1165,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
       ),
+    );
+      },
     );
   }
 }
@@ -1212,7 +1218,7 @@ class _ArrowTile extends StatelessWidget {
                   color: Color(0xFFF3F4F6),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, size: 16, color: const Color(0xFFCC353A)),
+                child: Icon(icon, size: 16, color: Theme.of(context).colorScheme.primary),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -1238,9 +1244,9 @@ class _ArrowTile extends StatelessWidget {
                 ),
               ),
               if (trailingDot)
-                const CircleAvatar(
+                CircleAvatar(
                   radius: 9,
-                  backgroundColor: Color(0xFFCC353A),
+                  backgroundColor: Theme.of(context).colorScheme.primary,
                 )
               else
                 const Icon(Icons.chevron_right, color: Color(0xFF9CA3AF)),
@@ -1283,7 +1289,7 @@ class _ToggleTile extends StatelessWidget {
               color: Color(0xFFF3F4F6),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, size: 16, color: const Color(0xFFCC353A)),
+            child: Icon(icon, size: 16, color: Theme.of(context).colorScheme.primary),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -1311,7 +1317,7 @@ class _ToggleTile extends StatelessWidget {
           Switch.adaptive(
             value: value,
             onChanged: onChanged,
-            activeColor: const Color(0xFFCC353A),
+            activeColor: Theme.of(context).colorScheme.primary,
           ),
         ],
       ),
