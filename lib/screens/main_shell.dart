@@ -6,6 +6,7 @@ import 'package:museamigo/screens/journey_screen.dart';
 import 'package:museamigo/screens/museum_3d_map_screen.dart';
 import 'package:museamigo/widgets/app_bottom_nav.dart';
 import 'package:museamigo/l10n/translations.dart';
+import 'package:museamigo/language_notifier.dart';
 
 /// Shell widget that hosts all bottom-nav tab screens in an [IndexedStack].
 /// Switching tabs never destroys a screen — state is fully preserved.
@@ -137,23 +138,28 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      // Keep all tab bodies alive via IndexedStack — no rebuilds on switch.
-      body: IndexedStack(
-        index: _currentIndex,
-        children: const [
-          HomeScreen(),
-          Museum3DMapScreen(),
-          Museum3DMapScreen(),
-          AIAssistantScreen(),
-          JourneyScreen(),
-        ],
-      ),
-      bottomNavigationBar: AppBottomNav(
-        selectedIndex: _currentIndex,
-        onTap: _onTabTap,
-        onCenterTap: _openScanFlow,
-      ),
+    return ListenableBuilder(
+      listenable: languageNotifier,
+      builder: (context, _) {
+        return Scaffold(
+          // Keep all tab bodies alive via IndexedStack — no rebuilds on switch.
+          body: IndexedStack(
+            index: _currentIndex,
+            children: const [
+              HomeScreen(),
+              Museum3DMapScreen(),
+              Museum3DMapScreen(),
+              AIAssistantScreen(),
+              JourneyScreen(),
+            ],
+          ),
+          bottomNavigationBar: AppBottomNav(
+            selectedIndex: _currentIndex,
+            onTap: _onTabTap,
+            onCenterTap: _openScanFlow,
+          ),
+        );
+      },
     );
   }
 }

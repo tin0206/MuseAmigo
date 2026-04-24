@@ -17,6 +17,7 @@ import 'package:museamigo/screens/onboarding_flow_screen.dart';
 import 'package:museamigo/screens/sign_up_screen.dart';
 
 import 'package:museamigo/language_notifier.dart';
+import 'package:museamigo/profile_notifier.dart';
 
 void main() {
   runApp(
@@ -33,13 +34,19 @@ class MuseAmigoApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([themeNotifier, languageNotifier]),
+      listenable: Listenable.merge([themeNotifier, languageNotifier, profileNotifier]),
       builder: (context, _) {
         final primary = themeNotifier.primaryColor;
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           locale: DevicePreview.locale(context),
-          builder: DevicePreview.appBuilder,
+          builder: (context, child) {
+            return ListenableBuilder(
+              listenable: Listenable.merge([languageNotifier, profileNotifier, themeNotifier]),
+              builder: (context, child) => DevicePreview.appBuilder(context, child),
+              child: child,
+            );
+          },
           title: 'MuseAmigo',
           theme: ThemeData(
             scaffoldBackgroundColor: const Color(0xFFF3F4F6),
