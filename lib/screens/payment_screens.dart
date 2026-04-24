@@ -76,7 +76,7 @@ class _CardPaymentSheetState extends State<CardPaymentSheet> {
                       icon: const Icon(Icons.arrow_back, size: 18),
                       label: const Text('Return'),
                       style: TextButton.styleFrom(
-                        foregroundColor: const Color(0xFFCC353A),
+                        foregroundColor: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                     const Spacer(),
@@ -86,12 +86,12 @@ class _CardPaymentSheetState extends State<CardPaymentSheet> {
                     ),
                   ],
                 ),
-                const Text(
+                Text(
                   'Card Information',
                   style: TextStyle(
                     fontSize: 36,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFFCC353A),
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
                 const SizedBox(height: 22),
@@ -148,7 +148,7 @@ class _CardPaymentSheetState extends State<CardPaymentSheet> {
                     widget.onPay();
                   },
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFFCC353A),
+                    backgroundColor: Theme.of(context).colorScheme.primary,
                     minimumSize: const Size.fromHeight(52),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -205,7 +205,7 @@ class QrPaymentSheet extends StatelessWidget {
                       icon: const Icon(Icons.arrow_back, size: 16),
                       label: const Text('Return'),
                       style: TextButton.styleFrom(
-                        foregroundColor: const Color(0xFFCC353A),
+                        foregroundColor: Theme.of(context).colorScheme.primary,
                         visualDensity: VisualDensity.compact,
                       ),
                     ),
@@ -217,12 +217,12 @@ class QrPaymentSheet extends StatelessWidget {
                     ),
                   ],
                 ),
-                const Text(
+                Text(
                   'Scan QR code',
                   style: TextStyle(
                     fontSize: 30,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFFCC353A),
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -258,10 +258,10 @@ class QrPaymentSheet extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         ticket.price,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFFCC353A),
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -368,7 +368,7 @@ class QrPaymentSheet extends StatelessWidget {
                     onPay();
                   },
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFFCC353A),
+                    backgroundColor: Theme.of(context).colorScheme.primary,
                     minimumSize: const Size.fromHeight(50),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -405,7 +405,7 @@ class _QrPayApp extends StatelessWidget {
             color: const Color(0xFFF0F0F2),
             borderRadius: BorderRadius.circular(14),
           ),
-          child: Icon(icon, color: const Color(0xFFCC353A), size: 26),
+          child: Icon(icon, color: Theme.of(context).colorScheme.primary, size: 26),
         ),
         const SizedBox(height: 6),
         Text(
@@ -447,11 +447,11 @@ class _CheckingPaymentDialog extends StatelessWidget {
                 icon: const Icon(Icons.close),
               ),
             ),
-            const SizedBox(
+            SizedBox(
               width: 56,
               height: 56,
               child: CircularProgressIndicator(
-                color: Color(0xFFCC353A),
+                color: Theme.of(context).colorScheme.primary,
                 strokeWidth: 5,
               ),
             ),
@@ -711,7 +711,7 @@ class _TicketResultSheet extends StatelessWidget {
                               (route) => false,
                             ),
                         style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFFCC353A),
+                          backgroundColor: Theme.of(context).colorScheme.primary,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -829,7 +829,7 @@ class _PaymentTextField extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFCC353A), width: 1.5),
+          borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 1.5),
         ),
       ),
     );

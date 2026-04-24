@@ -70,17 +70,17 @@ class MyTicketsScreen extends StatelessWidget {
               ),
               child: TabBar(
                 indicatorSize: TabBarIndicatorSize.tab,
-                indicator: const BoxDecoration(
-                  color: Color(0xFFCC353A),
-                  borderRadius: BorderRadius.all(Radius.circular(18)),
+                indicator: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  borderRadius: const BorderRadius.all(Radius.circular(18)),
                 ),
                 splashBorderRadius: const BorderRadius.all(Radius.circular(18)),
                 overlayColor: WidgetStateProperty.resolveWith((states) {
                   if (states.contains(WidgetState.hovered)) {
-                    return const Color(0x1ACC353A);
+                    return Theme.of(context).colorScheme.primary.withValues(alpha: 0.1);
                   }
                   if (states.contains(WidgetState.pressed)) {
-                    return const Color(0x33CC353A);
+                    return Theme.of(context).colorScheme.primary.withValues(alpha: 0.2);
                   }
                   return null;
                 }),
@@ -117,7 +117,7 @@ class _TicketList extends StatelessWidget {
     return ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       itemCount: tickets.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 20),
+      separatorBuilder: (_, _) => const SizedBox(height: 20),
       itemBuilder: (context, i) => _TicketCard(ticket: tickets[i]),
     );
   }
@@ -130,8 +130,9 @@ class _TicketCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
     final headerGradient = ticket.active
-        ? const LinearGradient(colors: [Color(0xFFCC353A), Color(0xFFCC353A)])
+        ? LinearGradient(colors: [primary, primary])
         : const LinearGradient(colors: [Color(0xFF687283), Color(0xFF9AA3B2)]);
 
     return ClipRRect(
@@ -259,10 +260,10 @@ class _TicketCard extends StatelessWidget {
                           child: ElevatedButton.icon(
                             onPressed: () => _showQrDialog(context),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFCC353A),
+                              backgroundColor: Theme.of(context).colorScheme.primary,
                               foregroundColor: Colors.white,
                               elevation: 3,
-                              shadowColor: const Color(0x33CC353A),
+                              shadowColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -339,12 +340,12 @@ class _TicketCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       'Your ticket',
                       style: TextStyle(
                         fontSize: 40,
-                        color: Color(0xFFCC353A),
+                        color: Theme.of(context).colorScheme.primary,
                         fontWeight: FontWeight.w700,
                       ),
                     ),

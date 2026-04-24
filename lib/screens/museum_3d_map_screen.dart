@@ -13,8 +13,6 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
   _RouteOption? _activeRoute;
   int _currentStopIndex = 0;
 
-  static const Color _brandRed = Color(0xFFCC353A);
-  static const Color _artifactColor = Color(0xFFCC353A);
   static const Color _restroomColor = Color(0xFFF59E0B);
   static const Color _cafeColor = Color(0xFF8B5E3C);
 
@@ -158,10 +156,10 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                         vertical: 5,
                       ),
                       decoration: BoxDecoration(
-                        color: selected ? _brandRed : Colors.white,
+                        color: selected ? Theme.of(context).colorScheme.primary : Colors.white,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: selected ? _brandRed : const Color(0xFFDDDDDD),
+                          color: selected ? Theme.of(context).colorScheme.primary : const Color(0xFFDDDDDD),
                         ),
                       ),
                       child: Text(
@@ -194,7 +192,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                         visitedStopNames: _visitedStopNamesForCurrentFloor(),
                         currentStopName: _currentStopNameForCurrentFloor(),
                         show3D: _show3D,
-                        markerColor: _artifactColor,
+                        markerColor: Theme.of(context).colorScheme.primary,
                       ),
                       size: Size.infinite,
                     ),
@@ -245,8 +243,8 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
                 child: Row(
                   children: [
-                    const _LegendItem(
-                      color: _artifactColor,
+                    _LegendItem(
+                      color: Theme.of(context).colorScheme.primary,
                       label: 'Artifacts',
                     ),
                     const SizedBox(width: 16),
@@ -462,30 +460,30 @@ class _RouteOption {
   });
 }
 
-const _allLocationOptions = <_LocationOption>[
+List<_LocationOption> _getAllLocationOptions(Color primary) => <_LocationOption>[
   _LocationOption(
     name: 'Room of War',
     subtitle: 'Hall A — Floor 1',
     icon: Icons.location_on,
-    iconColor: Color(0xFFCC353A),
+    iconColor: primary,
   ),
   _LocationOption(
     name: 'President Room',
     subtitle: 'Hall B — Floor 1',
     icon: Icons.location_on,
-    iconColor: Color(0xFFCC353A),
+    iconColor: primary,
   ),
   _LocationOption(
     name: 'Tank T-54',
     subtitle: 'Hall C — Floor 1',
     icon: Icons.location_on,
-    iconColor: Color(0xFFCC353A),
+    iconColor: primary,
   ),
   _LocationOption(
     name: 'Classroom',
     subtitle: 'Hall D — Floor 1',
     icon: Icons.visibility_outlined,
-    iconColor: Color(0xFFCC353A),
+    iconColor: primary,
   ),
   _LocationOption(
     name: 'Main Entrance',
@@ -503,25 +501,25 @@ const _allLocationOptions = <_LocationOption>[
     name: 'Photography Gallery',
     subtitle: 'Hall E — Floor 2',
     icon: Icons.visibility_outlined,
-    iconColor: Color(0xFFCC353A),
+    iconColor: primary,
   ),
   _LocationOption(
     name: 'Peace Memorial',
     subtitle: 'Hall F — Floor 2',
     icon: Icons.location_on,
-    iconColor: Color(0xFFCC353A),
+    iconColor: primary,
   ),
   _LocationOption(
     name: 'Diplomatic Room',
     subtitle: 'Hall G — Floor 2',
     icon: Icons.location_on,
-    iconColor: Color(0xFFCC353A),
+    iconColor: primary,
   ),
   _LocationOption(
     name: 'Media Room',
     subtitle: 'Hall H — Floor 2',
     icon: Icons.visibility_outlined,
-    iconColor: Color(0xFFCC353A),
+    iconColor: primary,
   ),
   _LocationOption(
     name: 'Rooftop Cafe',
@@ -724,43 +722,48 @@ class _LocationPickerSheet extends StatelessWidget {
             ),
             const Divider(height: 1),
             Expanded(
-              child: ListView.separated(
-                controller: scrollController,
-                itemCount: _allLocationOptions.length,
-                separatorBuilder: (_, __) =>
-                    const Divider(height: 1, indent: 72),
-                itemBuilder: (context, i) {
-                  final loc = _allLocationOptions[i];
-                  return ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 4,
-                    ),
-                    leading: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: loc.iconColor.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(loc.icon, color: loc.iconColor, size: 18),
-                    ),
-                    title: Text(
-                      loc.name,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF111827),
-                      ),
-                    ),
-                    subtitle: Text(
-                      loc.subtitle,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF6B7280),
-                      ),
-                    ),
-                    onTap: () => Navigator.of(context).pop(loc),
+              child: Builder(
+                builder: (context) {
+                  final options = _getAllLocationOptions(Theme.of(context).colorScheme.primary);
+                  return ListView.separated(
+                    controller: scrollController,
+                    itemCount: options.length,
+                    separatorBuilder: (_, _) =>
+                        const Divider(height: 1, indent: 72),
+                    itemBuilder: (context, i) {
+                      final loc = options[i];
+                      return ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 4,
+                        ),
+                        leading: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: loc.iconColor.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(loc.icon, color: loc.iconColor, size: 18),
+                        ),
+                        title: Text(
+                          loc.name,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF111827),
+                          ),
+                        ),
+                        subtitle: Text(
+                          loc.subtitle,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF6B7280),
+                          ),
+                        ),
+                        onTap: () => Navigator.of(context).pop(loc),
+                      );
+                    },
                   );
                 },
               ),
@@ -832,7 +835,7 @@ class _RoutePickerSheet extends StatelessWidget {
                 controller: scrollController,
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
                 itemCount: _recommendedRoutes.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                separatorBuilder: (_, _) => const SizedBox(height: 12),
                 itemBuilder: (context, i) {
                   final route = _recommendedRoutes[i];
                   final preview = route.stops
@@ -1036,14 +1039,14 @@ class _RouteReadySheet extends StatelessWidget {
                               color: isFirst
                                   ? const Color(0xFF22C55E)
                                   : isLast
-                                  ? const Color(0xFFCC353A)
+                                  ? Theme.of(context).colorScheme.primary
                                   : Colors.white,
                               shape: BoxShape.circle,
                               border: Border.all(
                                 color: isFirst
                                     ? const Color(0xFF22C55E)
                                     : isLast
-                                    ? const Color(0xFFCC353A)
+                                    ? Theme.of(context).colorScheme.primary
                                     : const Color(0xFF9CA3AF),
                                 width: 2,
                               ),
@@ -1123,7 +1126,7 @@ class _RouteReadySheet extends StatelessWidget {
                         style: TextStyle(fontWeight: FontWeight.w600),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFCC353A),
+                        backgroundColor: Theme.of(context).colorScheme.primary,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
@@ -1162,7 +1165,7 @@ class _NavigationPanel extends StatelessWidget {
     final currentStop = route.stops[currentStopIndex];
     final isLast = currentStopIndex == route.stops.length - 1;
     return Container(
-      color: const Color(0xFFCC353A),
+      color: Theme.of(context).colorScheme.primary,
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1255,9 +1258,9 @@ class _NavigationPanel extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const Icon(
+                    Icon(
                       Icons.volume_up_outlined,
-                      color: Color(0xFFCC353A),
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ],
                 ),
@@ -1280,7 +1283,7 @@ class _NavigationPanel extends StatelessWidget {
               onPressed: onNext,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
-                foregroundColor: const Color(0xFFCC353A),
+                foregroundColor: Theme.of(context).colorScheme.primary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24),
                 ),

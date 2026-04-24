@@ -7,7 +7,6 @@ import 'payment_screens.dart';
 class ExploreMapScreen extends StatelessWidget {
   const ExploreMapScreen({super.key});
 
-  static const Color _brandRed = Color(0xFFCC353A);
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +40,7 @@ class ExploreMapScreen extends StatelessWidget {
         child: Column(
           children: [
             Container(
-              color: _brandRed,
+              color: Theme.of(context).colorScheme.primary,
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
               child: Row(
                 children: [
@@ -347,7 +346,7 @@ class _MuseumDetailSheetState extends State<_MuseumDetailSheet> {
                         height: 260,
                         width: double.infinity,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
+                        errorBuilder: (_, _, _) => Container(
                           height: 260,
                           color: Colors.grey.shade300,
                           alignment: Alignment.center,
@@ -417,9 +416,9 @@ class _MuseumDetailSheetState extends State<_MuseumDetailSheet> {
                     ),
                     child: Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.download_rounded,
-                          color: Color(0xFFCC353A),
+                          color: Theme.of(context).colorScheme.primary,
                         ),
                         const SizedBox(width: 12),
                         const Expanded(
@@ -444,7 +443,7 @@ class _MuseumDetailSheetState extends State<_MuseumDetailSheet> {
                               _downloadOffline = value;
                             });
                           },
-                          activeColor: const Color(0xFFCC353A),
+                          activeColor: Theme.of(context).colorScheme.primary,
                         ),
                       ],
                     ),
@@ -481,7 +480,7 @@ class _MuseumDetailSheetState extends State<_MuseumDetailSheet> {
                         child: FilledButton.icon(
                           onPressed: widget.onBuyTicket,
                           style: FilledButton.styleFrom(
-                            backgroundColor: const Color(0xFFCC353A),
+                            backgroundColor: Theme.of(context).colorScheme.primary,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -535,11 +534,11 @@ class _TicketSheet extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Text(
+                    Text(
                       'Tickets',
                       style: TextStyle(
                         fontSize: 42,
-                        color: Color(0xFFCC353A),
+                        color: Theme.of(context).colorScheme.primary,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -658,7 +657,7 @@ class _PaymentMethodSheet extends StatelessWidget {
                       icon: const Icon(Icons.arrow_back, size: 18),
                       label: const Text('Return'),
                       style: TextButton.styleFrom(
-                        foregroundColor: const Color(0xFFCC353A),
+                        foregroundColor: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                     const Spacer(),
@@ -668,11 +667,11 @@ class _PaymentMethodSheet extends StatelessWidget {
                     ),
                   ],
                 ),
-                const Text(
+                Text(
                   'Payment methods',
                   style: TextStyle(
                     fontSize: 42,
-                    color: Color(0xFFCC353A),
+                    color: Theme.of(context).colorScheme.primary,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -683,7 +682,7 @@ class _PaymentMethodSheet extends StatelessWidget {
                     vertical: 12,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFCC353A),
+                    color: Theme.of(context).colorScheme.primary,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -730,7 +729,7 @@ class _PaymentMethodSheet extends StatelessWidget {
                             Icon(
                               method.icon,
                               size: 30,
-                              color: const Color(0xFFCC353A),
+                              color: Theme.of(context).colorScheme.primary,
                             ),
                             const SizedBox(width: 12),
                             Expanded(

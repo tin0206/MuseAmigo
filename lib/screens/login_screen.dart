@@ -113,7 +113,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             });
                           },
                           visualDensity: VisualDensity.compact,
-                          activeColor: const Color(0xFFCC353A),
+                          activeColor: Theme.of(context).colorScheme.primary,
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -127,10 +127,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       const Spacer(),
                       TextButton(
                         onPressed: _openForgotPassword,
-                        child: const Text(
+                        child: Text(
                           'Forgot Password?',
                           style: TextStyle(
-                            color: Color(0xFFCC353A),
+                            color: Theme.of(context).colorScheme.primary,
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
                           ),
@@ -145,7 +145,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: FilledButton(
                       onPressed: _submitLogin,
                       style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFFCC353A),
+                        backgroundColor: Theme.of(context).colorScheme.primary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),

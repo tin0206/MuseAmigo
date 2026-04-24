@@ -2,6 +2,7 @@ import 'package:device_preview/device_preview.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:museamigo/app_routes.dart';
+import 'package:museamigo/theme_notifier.dart';
 import 'package:museamigo/screens/main_shell.dart';
 import 'package:museamigo/screens/explore_map_screen.dart';
 import 'package:museamigo/screens/forgot_password_screen.dart';
@@ -29,61 +30,67 @@ class MuseAmigoApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      locale: DevicePreview.locale(context),
-      builder: DevicePreview.appBuilder,
-      title: 'MuseAmigo',
-      theme: ThemeData(
-        scaffoldBackgroundColor: const Color(0xFFF3F4F6),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFCC353A),
-          primary: const Color(0xFFCC353A),
-        ),
-      ),
-      routes: {
-        AppRoutes.login: (_) => const LoginScreen(),
-        AppRoutes.signUp: (_) => const SignUpScreen(),
-        AppRoutes.forgotPassword: (_) => const ForgotPasswordScreen(),
-        AppRoutes.onboarding: (_) => const OnboardingFlowScreen(),
-        AppRoutes.home: (_) => const MainShell(),
-        AppRoutes.exploreMap: (_) => const ExploreMapScreen(),
-        AppRoutes.myTickets: (_) => const MyTicketsScreen(),
-        AppRoutes.settings: (_) => const SettingsScreen(),
-        AppRoutes.editProfile: (_) => const EditProfileScreen(),
-        AppRoutes.achievements: (_) => const AchievementsScreen(),
-      },
-      onGenerateRoute: (settings) {
-        if (settings.name == AppRoutes.search) {
-          final args = settings.arguments as Map<String, dynamic>?;
-          return MaterialPageRoute(
-            builder: (_) => SearchScreen(
-              initialQuery: args?['query'] as String?,
-              showResults: args?['showResults'] as bool? ?? false,
-              initialFilter: args?['filter'] as String?,
-              initialExhibition: args?['exhibition'] as String?,
+    return ListenableBuilder(
+      listenable: themeNotifier,
+      builder: (context, _) {
+        final primary = themeNotifier.primaryColor;
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          locale: DevicePreview.locale(context),
+          builder: DevicePreview.appBuilder,
+          title: 'MuseAmigo',
+          theme: ThemeData(
+            scaffoldBackgroundColor: const Color(0xFFF3F4F6),
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: primary,
+              primary: primary,
             ),
-          );
-        }
-        if (settings.name == AppRoutes.artifactDetail) {
-          final args = settings.arguments as Map<String, dynamic>?;
-          return MaterialPageRoute(
-            builder: (_) => ArtifactDetailScreen(
-              title: args?['title'] as String? ?? 'Artifact',
-              location: args?['location'] as String? ?? 'Unknown location',
-              year: args?['year'] as String? ?? 'N/A',
-              currentLocation:
-                  args?['currentLocation'] as String? ?? 'Independence Palace',
-              height: args?['height'] as String? ?? '~2.4 meters',
-              weight: args?['weight'] as String? ?? '~39.7 tons',
-              imageAsset:
-                  args?['imageAsset'] as String? ?? 'assets/images/museum.jpg',
-            ),
-          );
-        }
-        return null;
+          ),
+          routes: {
+            AppRoutes.login: (_) => const LoginScreen(),
+            AppRoutes.signUp: (_) => const SignUpScreen(),
+            AppRoutes.forgotPassword: (_) => const ForgotPasswordScreen(),
+            AppRoutes.onboarding: (_) => const OnboardingFlowScreen(),
+            AppRoutes.home: (_) => const MainShell(),
+            AppRoutes.exploreMap: (_) => const ExploreMapScreen(),
+            AppRoutes.myTickets: (_) => const MyTicketsScreen(),
+            AppRoutes.settings: (_) => const SettingsScreen(),
+            AppRoutes.editProfile: (_) => const EditProfileScreen(),
+            AppRoutes.achievements: (_) => const AchievementsScreen(),
+          },
+          onGenerateRoute: (settings) {
+            if (settings.name == AppRoutes.search) {
+              final args = settings.arguments as Map<String, dynamic>?;
+              return MaterialPageRoute(
+                builder: (_) => SearchScreen(
+                  initialQuery: args?['query'] as String?,
+                  showResults: args?['showResults'] as bool? ?? false,
+                  initialFilter: args?['filter'] as String?,
+                  initialExhibition: args?['exhibition'] as String?,
+                ),
+              );
+            }
+            if (settings.name == AppRoutes.artifactDetail) {
+              final args = settings.arguments as Map<String, dynamic>?;
+              return MaterialPageRoute(
+                builder: (_) => ArtifactDetailScreen(
+                  title: args?['title'] as String? ?? 'Artifact',
+                  location: args?['location'] as String? ?? 'Unknown location',
+                  year: args?['year'] as String? ?? 'N/A',
+                  currentLocation:
+                      args?['currentLocation'] as String? ?? 'Independence Palace',
+                  height: args?['height'] as String? ?? '~2.4 meters',
+                  weight: args?['weight'] as String? ?? '~39.7 tons',
+                  imageAsset:
+                      args?['imageAsset'] as String? ?? 'assets/images/museum.jpg',
+                ),
+              );
+            }
+            return null;
+          },
+          home: const SplashScreen(),
+        );
       },
-      home: const SplashScreen(),
     );
   }
 }

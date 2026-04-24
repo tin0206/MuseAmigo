@@ -42,7 +42,7 @@ class AppBottomNav extends StatelessWidget {
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: Color(0xFFCC353A),
+                color: Theme.of(context).colorScheme.primary,
                 borderRadius: BorderRadius.circular(9999),
               ),
               child: const Icon(
@@ -85,7 +85,7 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const activeColor = Color(0xFFCC353A);
+    final activeColor = Theme.of(context).colorScheme.primary;
     const inactiveColor = Color(0xFF9CA3AF);
     final color = selected ? activeColor : inactiveColor;
 

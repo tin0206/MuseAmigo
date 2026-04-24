@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:museamigo/profile_notifier.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -8,12 +9,19 @@ class EditProfileScreen extends StatefulWidget {
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
-  final _nameCtrl = TextEditingController(text: 'Sarah Johnson');
-  final _dobCtrl = TextEditingController();
-  final _bioCtrl = TextEditingController();
-  final _interestsCtrl = TextEditingController(
-    text: 'Ancient Egypt, Mythology, Archaeology',
-  );
+  late final TextEditingController _nameCtrl;
+  late final TextEditingController _dobCtrl;
+  late final TextEditingController _bioCtrl;
+  late final TextEditingController _interestsCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameCtrl = TextEditingController(text: profileNotifier.name);
+    _dobCtrl = TextEditingController(text: profileNotifier.dob);
+    _bioCtrl = TextEditingController(text: profileNotifier.bio);
+    _interestsCtrl = TextEditingController(text: profileNotifier.interests);
+  }
 
   @override
   void dispose() {
@@ -88,8 +96,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 child: Container(
                                   width: 24,
                                   height: 24,
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFFCC353A),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).colorScheme.primary,
                                     shape: BoxShape.circle,
                                   ),
                                   child: const Icon(
@@ -119,7 +127,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     _fieldLabel('Email (Read-only)'),
                     _textField(
                       null,
-                      hint: 'sarah.johnson@email.com',
+                      hint: profileNotifier.email,
                       enabled: false,
                     ),
                     const SizedBox(height: 2),
@@ -154,12 +162,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
-                        onPressed: () => Navigator.of(context).pop(),
+                        onPressed: () {
+                          profileNotifier.updateProfile(
+                            name: _nameCtrl.text,
+                            dob: _dobCtrl.text,
+                            bio: _bioCtrl.text,
+                            interests: _interestsCtrl.text,
+                          );
+                          Navigator.of(context).pop();
+                        },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFCC353A),
+                          backgroundColor: Theme.of(context).colorScheme.primary,
                           foregroundColor: Colors.white,
                           elevation: 3,
-                          shadowColor: const Color(0x44CC353A),
+                          shadowColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.27),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),

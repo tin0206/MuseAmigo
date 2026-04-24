@@ -11,7 +11,6 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _scanController;
 
-  static const _brandRed = Color(0xFFCC353A);
 
   @override
   void initState() {
@@ -101,7 +100,7 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
                         Navigator.of(ctx).pop(code);
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _brandRed,
+                        backgroundColor: Theme.of(context).colorScheme.primary,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -190,7 +189,7 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
                               ),
                               AnimatedBuilder(
                                 animation: _scanController,
-                                builder: (_, __) {
+                                builder: (_, _) {
                                   final top =
                                       28 + (_scanController.value * 155);
                                   return Positioned(
@@ -209,7 +208,7 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
                                         ),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: _brandRed.withValues(
+                                            color: Theme.of(context).colorScheme.primary.withValues(
                                               alpha: 0.75,
                                             ),
                                             blurRadius: 10,
@@ -242,7 +241,7 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
                 child: ElevatedButton(
                   onPressed: () => _showEnterCodeDialog(context),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _brandRed,
+                    backgroundColor: Theme.of(context).colorScheme.primary,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(26),
@@ -277,17 +276,20 @@ class _ScanCorner extends StatelessWidget {
       child: SizedBox(
         width: 42,
         height: 42,
-        child: CustomPaint(painter: _CornerPainter()),
+        child: CustomPaint(painter: _CornerPainter(color: Theme.of(context).colorScheme.primary)),
       ),
     );
   }
 }
 
 class _CornerPainter extends CustomPainter {
+  _CornerPainter({required this.color});
+  final Color color;
+
   @override
   void paint(Canvas canvas, Size size) {
     final p = Paint()
-      ..color = const Color(0xFFCC353A)
+      ..color = color
       ..strokeWidth = 3
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;

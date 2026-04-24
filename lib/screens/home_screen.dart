@@ -9,7 +9,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  static const Color _brandRed = Color(0xFFCC353A);
 
   static const _areas = <_AreaItem>[
     _AreaItem(label: 'Exhibition of paintings', sublabel: 'Hall C'),
@@ -63,7 +62,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             // ── Top bar ────────────────────────────────────────────────
             Container(
-              color: _brandRed,
+              color: Theme.of(context).colorScheme.primary,
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
               child: Row(
                 children: [
@@ -108,7 +107,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         width: 44,
                         height: 44,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
+                        errorBuilder: (_, _, _) => Container(
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
@@ -176,7 +175,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         physics: const BouncingScrollPhysics(),
                         clipBehavior: Clip.none,
                         itemCount: _areas.length,
-                        separatorBuilder: (_, __) => const SizedBox(width: 12),
+                        separatorBuilder: (_, _) => const SizedBox(width: 12),
                         itemBuilder: (context, index) {
                           return _AreaCard(
                             area: _areas[index],
@@ -290,7 +289,7 @@ class _SectionHeader extends StatelessWidget {
         TextButton(
           onPressed: onSeeAll,
           style: TextButton.styleFrom(
-            foregroundColor: const Color(0xFFCC353A),
+            foregroundColor: Theme.of(context).colorScheme.primary,
             visualDensity: VisualDensity.compact,
             padding: EdgeInsets.zero,
           ),
@@ -331,7 +330,7 @@ class _AreaCard extends StatelessWidget {
               Image.asset(
                 'assets/images/museum.jpg',
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
+                errorBuilder: (_, _, _) => Container(
                   color: Colors.grey.shade300,
                   child: const Icon(
                     Icons.image_not_supported_outlined,
@@ -439,7 +438,7 @@ class _ArtifactRow extends StatelessWidget {
                 child: Image.asset(
                   'assets/images/museum.jpg',
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
+                  errorBuilder: (_, _, _) => Container(
                     color: item.color.withValues(alpha: 0.3),
                     child: Icon(Icons.image, color: item.color, size: 28),
                   ),
