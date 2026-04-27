@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:museamigo/app_routes.dart';
 import 'package:museamigo/l10n/translations.dart';
 import 'package:museamigo/language_notifier.dart';
+import 'package:museamigo/services/backend_api.dart';
 
 class AIAssistantScreen extends StatefulWidget {
   const AIAssistantScreen({super.key});
@@ -61,7 +62,13 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     _messageController.clear();
     _scrollToBottom();
 
-    await Future<void>.delayed(const Duration(milliseconds: 700));
+    String reply;
+    try {
+      reply = await BackendApi.instance.askAi(text);
+    } catch (_) {
+      // Keep local fallback so chat still works when backend is unreachable.
+      reply = _buildAiReply(text);
+    }
     if (!mounted) {
       return;
     }
@@ -69,7 +76,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     setState(() {
       _messages.add(
         _ChatMessage(
-          text: _buildAiReply(text),
+          text: reply,
           time: _formatTime(DateTime.now()),
           isUser: false,
         ),

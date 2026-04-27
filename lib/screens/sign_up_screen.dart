@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:museamigo/app_routes.dart';
+import 'package:museamigo/services/backend_api.dart';
 import 'package:museamigo/widgets/auth_form_widgets.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -19,6 +20,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _agreed = false;
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -29,17 +31,47 @@ class _SignUpScreenState extends State<SignUpScreen> {
     super.dispose();
   }
 
-  Future<bool> handleSignUp() async {
-    // TODO: Replace this stub with your sign-up API or registration logic.
-    return true;
-  }
-
   Future<void> _submitSignUp() async {
-    final isSuccess = await handleSignUp();
-    if (!mounted || !isSuccess) {
+    if (_isSubmitting) return;
+    if (_passwordController.text != _confirmPasswordController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password and confirmation must match.')),
+      );
+      return;
+    }
+    if (!_agreed) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please agree to terms and conditions.')),
+      );
       return;
     }
 
+    setState(() => _isSubmitting = true);
+    try {
+      await BackendApi.instance.register(
+        fullName: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
+      return;
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unable to sign up. $e')),
+      );
+      return;
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+
+    if (!mounted) return;
     Navigator.of(context).pushReplacementNamed(AppRoutes.onboarding);
   }
 
@@ -189,12 +221,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             children: [
                               TextSpan(
                                 text: 'Terms',
-                                style: TextStyle(color: Theme.of(context).colorScheme.primary),
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
                               ),
                               const TextSpan(text: ' and '),
                               TextSpan(
                                 text: 'Conditions',
-                                style: TextStyle(color: Theme.of(context).colorScheme.primary),
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
                               ),
                             ],
                           ),
@@ -207,20 +243,29 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     width: double.infinity,
                     height: 58,
                     child: FilledButton(
-                      onPressed: _submitSignUp,
+                      onPressed: _isSubmitting ? null : _submitSignUp,
                       style: FilledButton.styleFrom(
                         backgroundColor: Theme.of(context).colorScheme.primary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                      child: const Text(
-                        'Sign Up',
-                        style: TextStyle(
-                          fontSize: 21,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                      child: _isSubmitting
+                          ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              'Sign Up',
+                              style: TextStyle(
+                                fontSize: 21,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                     ),
                   ),
                   const SizedBox(height: 14),

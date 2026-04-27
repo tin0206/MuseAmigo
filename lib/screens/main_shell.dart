@@ -4,6 +4,8 @@ import 'package:museamigo/screens/artifact_scan_screen.dart';
 import 'package:museamigo/screens/home_screen.dart';
 import 'package:museamigo/screens/journey_screen.dart';
 import 'package:museamigo/screens/museum_3d_map_screen.dart';
+import 'package:museamigo/services/backend_api.dart';
+import 'package:museamigo/session.dart';
 import 'package:museamigo/widgets/app_bottom_nav.dart';
 import 'package:museamigo/l10n/translations.dart';
 import 'package:museamigo/language_notifier.dart';
@@ -44,6 +46,21 @@ class _MainShellState extends State<MainShell> {
     if (!mounted || scannedCode == null || scannedCode.isEmpty) {
       return;
     }
+
+    String unlockedTitle = 'T-54 Tank No. 843';
+    try {
+      final artifact = await BackendApi.instance.fetchArtifact(scannedCode);
+      unlockedTitle = artifact.title;
+      final userId = AppSession.userId.value ?? 1;
+      await BackendApi.instance.addToCollection(
+        userId: userId,
+        artifactId: artifact.id,
+      );
+    } catch (_) {
+      // Keep UI flow alive if backend collection call fails.
+    }
+
+    if (!mounted) return;
 
     await showDialog<void>(
       context: context,
@@ -92,7 +109,7 @@ class _MainShellState extends State<MainShell> {
                   children: [
                     TextSpan(text: 'You\'ve unlocked '.tr),
                     TextSpan(
-                      text: 'T-54 Tank No. 843'.tr,
+                      text: unlockedTitle.tr,
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.primary,
                         fontWeight: FontWeight.w700,

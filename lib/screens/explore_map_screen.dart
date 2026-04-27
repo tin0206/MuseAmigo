@@ -4,45 +4,118 @@ import 'package:latlong2/latlong.dart';
 import 'package:museamigo/app_routes.dart';
 import 'package:museamigo/l10n/translations.dart';
 import 'package:museamigo/language_notifier.dart';
+import 'package:museamigo/services/backend_api.dart';
+import 'package:museamigo/session.dart';
 import 'payment_screens.dart';
 
-class ExploreMapScreen extends StatelessWidget {
+class ExploreMapScreen extends StatefulWidget {
   const ExploreMapScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    const museums = <_Museum>[
-      _Museum(
-        name: 'Independence Palace',
-        position: LatLng(10.7769, 106.6953),
-        description:
-            'The Independence Palace is one of the most significant historical and architectural landmarks of Ho Chi Minh City.',
-        hours: '8:00 AM - 5:00 PM',
-      ),
-      _Museum(
-        name: 'HCMC Museum of Fine Arts',
-        position: LatLng(10.7716, 106.6992),
-        description:
-            'A beautiful blend of architecture and art collections from modern to traditional Vietnam.',
-        hours: '9:00 AM - 5:00 PM',
-      ),
-      _Museum(
-        name: 'War Remnants Museum',
-        position: LatLng(10.7794, 106.6920),
-        description:
-            'A powerful museum featuring important exhibitions documenting modern history.',
-        hours: '7:30 AM - 6:00 PM',
-      ),
-    ];
+  State<ExploreMapScreen> createState() => _ExploreMapScreenState();
+}
 
+class _ExploreMapScreenState extends State<ExploreMapScreen> {
+  late Future<List<_Museum>> _museumsFuture;
+  final TextEditingController _searchController = TextEditingController();
+  final MapController _mapController = MapController();
+
+  static const _fallbackMuseums = <_Museum>[
+    _Museum(
+      id: 1,
+      name: 'Independence Palace',
+      position: LatLng(10.7769, 106.6953),
+      description:
+          'The Independence Palace is one of the most significant historical and architectural landmarks of Ho Chi Minh City.',
+      hours: '8:00 AM - 5:00 PM',
+      baseTicketPrice: 30000,
+    ),
+    _Museum(
+      id: 2,
+      name: 'HCMC Museum of Fine Arts',
+      position: LatLng(10.7716, 106.6992),
+      description:
+          'A beautiful blend of architecture and art collections from modern to traditional Vietnam.',
+      hours: '9:00 AM - 5:00 PM',
+      baseTicketPrice: 30000,
+    ),
+    _Museum(
+      id: 3,
+      name: 'War Remnants Museum',
+      position: LatLng(10.7794, 106.6920),
+      description:
+          'A powerful museum featuring important exhibitions documenting modern history.',
+      hours: '7:30 AM - 6:00 PM',
+      baseTicketPrice: 30000,
+    ),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _museumsFuture = _loadMuseums();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<List<_Museum>> _loadMuseums() async {
+    try {
+      final data = await BackendApi.instance.fetchMuseums();
+      if (data.isEmpty) {
+        return _fallbackMuseums;
+      }
+      final mapped = data
+          .map(
+            (m) => _Museum(
+              id: m.id,
+              name: m.name,
+              position: LatLng(m.latitude, m.longitude),
+              description:
+                  'Museum information is loaded from backend. Tap to view details.',
+              hours: m.operatingHours,
+              baseTicketPrice: m.baseTicketPrice,
+            ),
+          )
+          .where(
+            (m) =>
+                m.position.latitude >= -90 &&
+                m.position.latitude <= 90 &&
+                m.position.longitude >= -180 &&
+                m.position.longitude <= 180 &&
+                // Ignore placeholder coordinates from backend seeds.
+                !(m.position.latitude == 0 && m.position.longitude == 0),
+          )
+          .toList();
+      return mapped.isEmpty ? _fallbackMuseums : mapped;
+    } catch (_) {
+      return _fallbackMuseums;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: languageNotifier,
       builder: (context, _) {
-        return Scaffold(
-          backgroundColor: Colors.white,
-          body: SafeArea(
-            child: Column(
-              children: [
+        return FutureBuilder<List<_Museum>>(
+          future: _museumsFuture,
+          builder: (context, snapshot) {
+            final museums = snapshot.data ?? _fallbackMuseums;
+            final query = _searchController.text.trim().toLowerCase();
+            final filteredMuseums = query.isEmpty
+                ? museums
+                : museums
+                      .where((m) => m.name.toLowerCase().contains(query))
+                      .toList();
+            return Scaffold(
+              backgroundColor: Colors.white,
+              body: SafeArea(
+                child: Column(
+                  children: [
                 Container(
                   color: Theme.of(context).colorScheme.primary,
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
@@ -51,7 +124,7 @@ class ExploreMapScreen extends StatelessWidget {
                       Expanded(
                         child: Container(
                           height: 52,
-                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(30),
@@ -59,12 +132,28 @@ class ExploreMapScreen extends StatelessWidget {
                           child: Row(
                             children: [
                               const Icon(Icons.search, color: Colors.black87),
-                              const SizedBox(width: 10),
-                              Text(
-                                'Where do you want to go?'.tr,
-                                style: TextStyle(
-                                  color: Colors.black.withValues(alpha: 0.85),
-                                  fontSize: 18,
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: TextField(
+                                  controller: _searchController,
+                                  onChanged: (_) {
+                                    setState(() {});
+                                    final q = _searchController.text
+                                        .trim()
+                                        .toLowerCase();
+                                    if (q.isEmpty) return;
+                                    final matches = museums
+                                        .where(
+                                          (m) => m.name.toLowerCase().contains(q),
+                                        )
+                                        .toList();
+                                    if (matches.isEmpty) return;
+                                    _mapController.move(matches.first.position, 14);
+                                  },
+                                  decoration: InputDecoration(
+                                    hintText: 'Where do you want to go?'.tr,
+                                    border: InputBorder.none,
+                                  ),
                                 ),
                               ),
                             ],
@@ -95,8 +184,11 @@ class ExploreMapScreen extends StatelessWidget {
                 ),
                 Expanded(
                   child: FlutterMap(
-                    options: const MapOptions(
-                      initialCenter: LatLng(10.7769, 106.6980),
+                    mapController: _mapController,
+                    options: MapOptions(
+                      initialCenter: filteredMuseums.isNotEmpty
+                          ? filteredMuseums.first.position
+                          : const LatLng(10.7769, 106.6980),
                       initialZoom: 14.0,
                     ),
                     children: [
@@ -106,7 +198,7 @@ class ExploreMapScreen extends StatelessWidget {
                         userAgentPackageName: 'com.example.museamigo',
                       ),
                       MarkerLayer(
-                        markers: museums
+                        markers: filteredMuseums
                             .map(
                               (museum) => Marker(
                                 point: museum.position,
@@ -124,9 +216,24 @@ class ExploreMapScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-              ],
-            ),
-          ),
+                if (query.isNotEmpty && filteredMuseums.isEmpty)
+                  Container(
+                    width: double.infinity,
+                    color: const Color(0xFFFFF4E5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    child: Text(
+                      'No museum found for "$query"',
+                      style: const TextStyle(color: Color(0xFF8A5A00)),
+                    ),
+                  ),
+                  ],
+                ),
+              ),
+            );
+          },
         );
       },
     );
@@ -148,21 +255,22 @@ class ExploreMapScreen extends StatelessWidget {
   }
 
   Future<void> _showTicketSheet(BuildContext context, _Museum museum) {
+    final base = museum.baseTicketPrice;
     final options = <_TicketOption>[
       _TicketOption(
         label: 'Adult'.tr,
         countText: '1 ticket'.tr,
-        price: 'VND 30000',
+        price: 'VND $base',
       ),
       _TicketOption(
         label: 'Student'.tr,
         countText: '1 ticket'.tr,
-        price: 'VND 21000',
+        price: 'VND ${(base * 0.7).round()}',
       ),
       _TicketOption(
         label: 'Children'.tr,
         countText: '1 ticket'.tr,
-        price: 'VND 15000',
+        price: 'VND ${(base * 0.5).round()}',
       ),
       _TicketOption(
         label: 'Preview'.tr,
@@ -220,9 +328,9 @@ class ExploreMapScreen extends StatelessWidget {
         onSelect: (method) {
           Navigator.of(context).pop();
           if (method.title == 'QR Scan'.tr) {
-            _showQrPaymentSheet(context, info);
+            _showQrPaymentSheet(context, info, museum);
           } else {
-            _showCardPaymentSheet(context, info);
+            _showCardPaymentSheet(context, info, museum);
           }
         },
       ),
@@ -232,6 +340,7 @@ class ExploreMapScreen extends StatelessWidget {
   Future<void> _showQrPaymentSheet(
     BuildContext context,
     TicketPaymentInfo info,
+    _Museum museum,
   ) {
     return showModalBottomSheet<void>(
       context: context,
@@ -241,7 +350,7 @@ class ExploreMapScreen extends StatelessWidget {
         ticket: info,
         onPay: () {
           Navigator.of(context).pop();
-          _runPaymentFlow(context, info);
+          _runPaymentFlow(context, info, museum, info.ticketLabel);
         },
       ),
     );
@@ -250,6 +359,7 @@ class ExploreMapScreen extends StatelessWidget {
   Future<void> _showCardPaymentSheet(
     BuildContext context,
     TicketPaymentInfo info,
+    _Museum museum,
   ) {
     return showModalBottomSheet<void>(
       context: context,
@@ -259,7 +369,7 @@ class ExploreMapScreen extends StatelessWidget {
         ticket: info,
         onPay: () {
           Navigator.of(context).pop();
-          _runPaymentFlow(context, info);
+          _runPaymentFlow(context, info, museum, info.ticketLabel);
         },
       ),
     );
@@ -268,8 +378,19 @@ class ExploreMapScreen extends StatelessWidget {
   Future<void> _runPaymentFlow(
     BuildContext context,
     TicketPaymentInfo info,
+    _Museum museum,
+    String ticketType,
   ) async {
     showCheckingPaymentDialog(context);
+    try {
+      await BackendApi.instance.purchaseTicket(
+        userId: AppSession.userId.value ?? 1,
+        museumId: museum.id,
+        ticketType: ticketType,
+      );
+    } catch (_) {
+      // Keep existing success flow for demo mode when backend is unavailable.
+    }
     await Future.delayed(const Duration(seconds: 2));
     if (!context.mounted) return;
     Navigator.of(context).pop();
@@ -808,16 +929,20 @@ class _PaymentMethodSheet extends StatelessWidget {
 
 class _Museum {
   const _Museum({
+    required this.id,
     required this.name,
     required this.position,
     required this.description,
     required this.hours,
+    required this.baseTicketPrice,
   });
 
+  final int id;
   final String name;
   final LatLng position;
   final String description;
   final String hours;
+  final int baseTicketPrice;
 }
 
 class _MuseumMetaItem extends StatelessWidget {

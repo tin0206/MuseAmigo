@@ -1,0 +1,19 @@
+# Sample 3D model file for Presidential Desk
+# This is a placeholder .obj file format
+# In production, replace with actual 3D model data
+
+# Vertex data
+v 0.0 0.0 0.0
+v 1.0 0.0 0.0
+v 1.0 1.0 0.0
+v 0.0 1.0 0.0
+v 0.0 0.0 1.0
+
+# Face data
+f 1 2 3 4
+
+# Simple desk geometry
+v 2.0 0.0 0.0
+v 2.0 2.0 0.0
+v 0.0 2.0 0.0
+v 0.0 0.0 0.5

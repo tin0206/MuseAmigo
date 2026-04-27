@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:museamigo/app_routes.dart';
+import 'package:museamigo/services/backend_api.dart';
+import 'package:museamigo/session.dart';
 import 'package:museamigo/widgets/auth_form_widgets.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -14,6 +16,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
   bool _rememberMe = false;
   bool _obscurePassword = true;
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -22,14 +25,35 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  Future<bool> handleLogin() async {
-    // TODO: Replace this stub with your login API or auth logic.
-    return true;
-  }
-
   Future<void> _submitLogin() async {
-    final isSuccess = await handleLogin();
-    if (!mounted || !isSuccess) {
+    if (_isSubmitting) return;
+    setState(() => _isSubmitting = true);
+    try {
+      final result = await BackendApi.instance.login(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+      AppSession.userId.value = result.userId;
+      AppSession.fullName.value = result.fullName;
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
+      return;
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to login. Please try again.')),
+      );
+      return;
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+
+    if (!mounted) {
       return;
     }
 
@@ -143,21 +167,30 @@ class _LoginScreenState extends State<LoginScreen> {
                     width: double.infinity,
                     height: 70,
                     child: FilledButton(
-                      onPressed: _submitLogin,
+                      onPressed: _isSubmitting ? null : _submitLogin,
                       style: FilledButton.styleFrom(
                         backgroundColor: Theme.of(context).colorScheme.primary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                      child: const Text(
-                        'Log In',
-                        style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.w700,
-                        ),
+                      child: _isSubmitting
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              'Log In',
+                              style: TextStyle(
+                                fontSize: 26,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                       ),
-                    ),
                   ),
                   const SizedBox(height: 20),
                   Center(
