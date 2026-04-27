@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:museamigo/l10n/translations.dart';
+// import 'package:flutter_3d_controller/flutter_3d_controller.dart'; // Temporarily commented
 
 class ArtifactDetailScreen extends StatelessWidget {
   const ArtifactDetailScreen({
@@ -11,6 +12,7 @@ class ArtifactDetailScreen extends StatelessWidget {
     required this.height,
     required this.weight,
     required this.imageAsset,
+    // this.modelAsset = '', // Optional 3D model - Temporarily commented
   });
 
   final String title;
@@ -20,6 +22,7 @@ class ArtifactDetailScreen extends StatelessWidget {
   final String height;
   final String weight;
   final String imageAsset;
+  // final String modelAsset; // Temporarily commented
 
   @override
   Widget build(BuildContext context) {
@@ -89,6 +92,52 @@ class ArtifactDetailScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
+              // 3D Model View Section - Temporarily commented out
+              /*
+              if (modelAsset.isNotEmpty)
+                Container(
+                  height: 300,
+                  margin: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF3F3F3),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          children: [
+                            Text(
+                              '3D Model View'.tr,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF171A21),
+                              ),
+                            ),
+                            const Spacer(),
+                            IconButton(
+                              onPressed: () {
+                                // Toggle 3D view controls
+                              },
+                              icon: const Icon(Icons.view_in_ar),
+                              color: Color(0xFF171A21),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: Flutter3DViewer(
+                          src: modelAsset.isNotEmpty ? 'assets/models/$modelAsset' : null,
+                          controller: Flutter3DController(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              */
+              const SizedBox(height: 14),
               Transform.translate(
                 offset: const Offset(0, -22),
                 child: Container(

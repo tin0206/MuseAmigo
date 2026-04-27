@@ -452,11 +452,16 @@ class _ResultItem {
     required this.location,
     required this.floor,
     required this.exhibition,
+    this.has3dModel = false,
+    this.modelName = '',
   });
+
   final String title;
   final String location;
   final String floor;
   final String exhibition;
+  final bool has3dModel;
+  final String modelName;
 }
 
 // ── Recent row ─────────────────────────────────────────────────────────────────
@@ -511,6 +516,7 @@ class _ResultCard extends StatelessWidget {
         'height': '~2.4 meters',
         'weight': '~39.7 tons',
         'imageAsset': 'assets/images/museum.jpg',
+        // 'modelAsset': item.has3dModel ? 'assets/models/${item.modelName}.obj' : '', // Temporarily commented
       },
     );
   }
