@@ -45,8 +45,17 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
       if (!mounted) return;
       
       // Add to collection
+      final userId = AppSession.userId.value;
+      if (userId == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('User not logged in')),
+        );
+        return;
+      }
+      
       await BackendApi.instance.addToCollection(
-        userId: AppSession.userId.value,
+        userId: userId,
         artifactId: artifact.id,
       );
       
@@ -285,7 +294,7 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
                       ),
                       const SizedBox(height: 24),
                       TextButton(
-                        onPressed: _showEnterCodeDialog,
+                        onPressed: () => _showEnterCodeDialog(context),
                         child: Text(
                           'Enter Code Manually',
                           style: TextStyle(

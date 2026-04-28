@@ -87,7 +87,7 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
                         bottom: Radius.circular(24),
                       ),
                       child: Image.asset(
-                        imageAsset,
+                        widget.imageAsset,
                         fit: BoxFit.cover,
                         errorBuilder: (_, _, _) => Container(
                           color: Colors.grey.shade300,
@@ -310,11 +310,11 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      _infoRow('Title:'.tr, title.tr),
-                      _infoRow('Year:'.tr, year.tr),
-                      _infoRow('Current Location:'.tr, currentLocation.tr),
-                      _infoRow('Height:'.tr, height.tr),
-                      _infoRow('Weight:'.tr, weight.tr),
+                      _infoRow('Title:'.tr, widget.title.tr),
+                      _infoRow('Year:'.tr, widget.year.tr),
+                      _infoRow('Current Location:'.tr, widget.currentLocation.tr),
+                      _infoRow('Height:'.tr, widget.height.tr),
+                      _infoRow('Weight:'.tr, widget.weight.tr),
                       const SizedBox(height: 18),
                       Text(
                         'Detailed Description'.tr,
