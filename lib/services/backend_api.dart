@@ -118,13 +118,13 @@ class BackendApi {
 
   String get baseUrl {
     if (_definedBaseUrl.isNotEmpty) return _definedBaseUrl;
-    /*
+    
     if (kIsWeb) return 'http://localhost:8000';
     if (Platform.isAndroid) return 'http://10.0.2.2:8000';
     if (Platform.isIOS) return 'http://localhost:8000';
     return 'http://localhost:8000';
-    */
-    return 'https://museamigo-backend.onrender.com';
+    
+    // return 'https://museamigo-backend.onrender.com';
   }
 
   Uri _uri(String path) => Uri.parse('$baseUrl$path');
@@ -190,6 +190,8 @@ class BackendApi {
       _uri('/auth/login'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'email': email, 'password': password}),
+    ).timeout(
+      const Duration(seconds: 10), // 10 second timeout
     );
     final json = await _readJson(response);
     if (response.statusCode < 200 || response.statusCode >= 300) {

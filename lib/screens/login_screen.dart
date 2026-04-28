@@ -35,6 +35,18 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       AppSession.userId.value = result.userId;
       AppSession.fullName.value = result.fullName;
+    } on SocketException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Network error: ${e.message}')));
+      return;
+    } on TimeoutException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Login timeout. Please try again.')));
+      return;
     } on ApiException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
