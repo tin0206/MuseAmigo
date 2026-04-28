@@ -144,8 +144,8 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
                 ],
               ),
               const SizedBox(height: 12),
-              // Audio Player Section - only show if audio file is provided and not empty
-              if (widget.audioAsset.isNotEmpty && widget.audioAsset != 'assets/audio/guide.mp3')
+              // Audio Player Section
+              if (widget.audioAsset.isNotEmpty)
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 12),
                   padding: const EdgeInsets.all(16),

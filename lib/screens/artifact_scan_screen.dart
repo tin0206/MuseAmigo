@@ -35,11 +35,6 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
   }
 
   Future<void> _processScannedCode(String code) async {
-    if (!_isScanning) return;
-    
-    setState(() => _isScanning = false);
-    _scannerController?.stop();
-    
     try {
       final artifact = await BackendApi.instance.fetchArtifact(code);
       if (!mounted) return;
@@ -72,6 +67,7 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
           'height': 'Unknown',
           'weight': 'Unknown',
           'imageAsset': 'assets/images/museum.jpg',
+          'audioAsset': '',
         },
       );
     } catch (e) {
