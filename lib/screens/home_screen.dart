@@ -175,7 +175,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         // ── Areas ─────────────────────────────────────────
                         _SectionHeader(
                           title: 'Areas'.tr,
-                          onSeeAll: () {},
+                          onSeeAll: () => Navigator.of(context).pushNamed(
+                            AppRoutes.search,
+                            arguments: {
+                              'initialFilter': 'All',
+                              'showResults': true,
+                            },
+                          ),
                         ),
                         const SizedBox(height: 12),
                         SizedBox(
@@ -188,7 +194,13 @@ class _HomeScreenState extends State<HomeScreen> {
                             itemBuilder: (context, i) {
                               return _AreaCard(
                                 area: _areas[i],
-                                onTap: () {},
+                                onTap: () => Navigator.of(context).pushNamed(
+                                  AppRoutes.search,
+                                  arguments: {
+                                    'initialFilter': _areas[i].label,
+                                    'showResults': true,
+                                  },
+                                ),
                               );
                             },
                           ),
@@ -197,7 +209,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         // ── Trending ──────────────────────────────────────
                         _SectionHeader(
                           title: 'Trending Artifacts'.tr,
-                          onSeeAll: () {},
+                          onSeeAll: () => Navigator.of(context).pushNamed(
+                            AppRoutes.search,
+                            arguments: {
+                              'initialQuery': '',
+                              'showResults': true,
+                            },
+                          ),
                         ),
                         const SizedBox(height: 12),
                         ...List.generate(
@@ -222,7 +240,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         // ── Floor 2 Highlights ────────────────────────────
                         _SectionHeader(
                           title: 'Floor 2 Highlights'.tr,
-                          onSeeAll: () {},
+                          onSeeAll: () => Navigator.of(context).pushNamed(
+                            AppRoutes.search,
+                            arguments: {
+                              'initialFilter': 'Floor 2',
+                              'showResults': true,
+                            },
+                          ),
                         ),
                         const SizedBox(height: 12),
                         ...List.generate(
