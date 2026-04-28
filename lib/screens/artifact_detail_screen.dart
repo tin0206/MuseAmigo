@@ -245,7 +245,7 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              title.tr,
+                              widget.title.tr,
                               style: const TextStyle(
                                 fontSize: 30,
                                 fontWeight: FontWeight.w700,
