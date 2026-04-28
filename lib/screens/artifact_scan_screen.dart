@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:museamigo/services/backend_api.dart';
+import 'package:museamigo/app_routes.dart';
+import 'package:museamigo/session.dart';
 
 class ArtifactScanScreen extends StatefulWidget {
   const ArtifactScanScreen({super.key});
@@ -10,6 +14,8 @@ class ArtifactScanScreen extends StatefulWidget {
 class _ArtifactScanScreenState extends State<ArtifactScanScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _scanController;
+  bool _isScanning = false;
+  MobileScannerController? _scannerController;
 
 
   @override
@@ -24,7 +30,52 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
   @override
   void dispose() {
     _scanController.dispose();
+    _scannerController?.dispose();
     super.dispose();
+  }
+
+  Future<void> _processScannedCode(String code) async {
+    if (!_isScanning) return;
+    
+    setState(() => _isScanning = false);
+    _scannerController?.stop();
+    
+    try {
+      final artifact = await BackendApi.instance.fetchArtifact(code);
+      if (!mounted) return;
+      
+      // Add to collection
+      await BackendApi.instance.addToCollection(
+        userId: AppSession.userId.value,
+        artifactId: artifact.id,
+      );
+      
+      if (!mounted) return;
+      
+      // Navigate to artifact detail
+      Navigator.of(context).pushNamed(
+        AppRoutes.artifactDetail,
+        arguments: <String, dynamic>{
+          'title': artifact.title,
+          'year': artifact.year,
+          'location': 'Unknown location',
+          'currentLocation': 'Museum',
+          'height': 'Unknown',
+          'weight': 'Unknown',
+          'imageAsset': 'assets/images/museum.jpg',
+        },
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to scan artifact: $e')),
+      );
+    }
+  }
+
+  void _startQRScanner() {
+    setState(() => _isScanning = true);
+    _scannerController = MobileScannerController();
   }
 
   Future<void> _showEnterCodeDialog(BuildContext context) async {
@@ -130,6 +181,33 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (_isScanning) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        appBar: AppBar(
+          backgroundColor: Colors.black,
+          leading: IconButton(
+            icon: const Icon(Icons.close, color: Colors.white),
+            onPressed: () {
+              setState(() {
+                _isScanning = false;
+                _scannerController?.stop();
+              });
+            },
+          ),
+        ),
+        body: MobileScanner(
+          controller: _scannerController,
+          onDetect: (capture) {
+            final code = capture.barcodes.first.rawValue;
+            if (code != null) {
+              _processScannedCode(code);
+            }
+          },
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFF030A16),
       body: SafeArea(
@@ -154,7 +232,7 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       GestureDetector(
-                        onTap: () => Navigator.of(context).pop('T54-843'),
+                        onTap: _startQRScanner,
                         child: SizedBox(
                           width: 300,
                           height: 240,
@@ -181,76 +259,43 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
                                 child: _ScanCorner(top: false, left: false),
                               ),
                               Center(
-                                child: Icon(
-                                  Icons.qr_code_scanner_rounded,
-                                  color: Colors.white.withValues(alpha: 0.55),
-                                  size: 52,
-                                ),
-                              ),
-                              AnimatedBuilder(
-                                animation: _scanController,
-                                builder: (_, _) {
-                                  final top =
-                                      28 + (_scanController.value * 155);
-                                  return Positioned(
-                                    left: 16,
-                                    right: 16,
-                                    top: top,
-                                    child: Container(
-                                      height: 2.2,
-                                      decoration: BoxDecoration(
-                                        gradient: const LinearGradient(
-                                          colors: [
-                                            Color(0x00CC353A),
-                                            Color(0xFFFF5E64),
-                                            Color(0x00CC353A),
-                                          ],
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Theme.of(context).colorScheme.primary.withValues(
-                                              alpha: 0.75,
-                                            ),
-                                            blurRadius: 10,
-                                          ),
-                                        ],
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.qr_code_scanner,
+                                      size: 64,
+                                      color: Colors.white.withValues(alpha: 0.8),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      'Tap to Scan QR Code',
+                                      style: TextStyle(
+                                        color: Colors.white.withValues(alpha: 0.8),
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
                                       ),
                                     ),
-                                  );
-                                },
+                                  ],
+                                ),
                               ),
                             ],
                           ),
                         ),
                       ),
-                      const SizedBox(height: 20),
-                      const Text(
-                        'Align the QR code within the frame',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF8B95A7),
+                      const SizedBox(height: 24),
+                      TextButton(
+                        onPressed: _showEnterCodeDialog,
+                        child: Text(
+                          'Enter Code Manually',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.7),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                     ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => _showEnterCodeDialog(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(26),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                  ),
-                  child: const Text(
-                    'Enter the artifact\'s code instead',
-                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
                   ),
                 ),
               ),
@@ -263,7 +308,10 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
 }
 
 class _ScanCorner extends StatelessWidget {
-  const _ScanCorner({required this.top, required this.left});
+  const _ScanCorner({
+    required this.top,
+    required this.left,
+  });
 
   final bool top;
   final bool left;
