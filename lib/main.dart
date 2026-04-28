@@ -108,6 +108,7 @@ class MuseAmigoApp extends StatelessWidget {
                   imageAsset:
                       args?['imageAsset'] as String? ??
                       'assets/images/museum.jpg',
+                  audioAsset: args?['audioAsset'] as String? ?? '',
                   // modelAsset: args?['modelAsset'] as String? ?? '', // Temporarily commented
                 ),
               );

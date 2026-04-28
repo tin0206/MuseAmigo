@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:museamigo/l10n/translations.dart';
+import 'package:audioplayers/audioplayers.dart';
 // import 'package:flutter_3d_controller/flutter_3d_controller.dart'; // Temporarily commented
 
-class ArtifactDetailScreen extends StatelessWidget {
+class ArtifactDetailScreen extends StatefulWidget {
   const ArtifactDetailScreen({
     super.key,
     required this.title,
@@ -13,6 +14,7 @@ class ArtifactDetailScreen extends StatelessWidget {
     required this.weight,
     required this.imageAsset,
     // this.modelAsset = '', // Optional 3D model - Temporarily commented
+    required this.audioAsset,
   });
 
   final String title;
@@ -22,7 +24,50 @@ class ArtifactDetailScreen extends StatelessWidget {
   final String height;
   final String weight;
   final String imageAsset;
+  final String audioAsset;
   // final String modelAsset; // Temporarily commented
+
+  @override
+  State<ArtifactDetailScreen> createState() => _ArtifactDetailScreenState();
+}
+
+class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  bool _isPlaying = false;
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+
+  Future<void> _toggleAudio() async {
+    if (_isLoading) return;
+
+    if (_isPlaying) {
+      await _audioPlayer.pause();
+      setState(() => _isPlaying = false);
+    } else {
+      setState(() => _isLoading = true);
+      try {
+        if (widget.audioAsset.isNotEmpty) {
+          await _audioPlayer.play(AssetSource(widget.audioAsset));
+          setState(() {
+            _isPlaying = true;
+            _isLoading = false;
+          });
+        }
+      } catch (e) {
+        setState(() => _isLoading = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to play audio: $e')),
+          );
+        }
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -92,6 +137,51 @@ class ArtifactDetailScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
+              // Audio Player Section
+              if (widget.audioAsset.isNotEmpty)
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 12),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF3F3F3),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'Audio Guide'.tr,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF171A21),
+                            ),
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            onPressed: _toggleAudio,
+                            icon: Icon(
+                              _isPlaying ? Icons.pause : Icons.play_arrow,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (_isLoading)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 12),
+                          child: CircularProgressIndicator(),
+                        ),
+                      if (!_isLoading && _isPlaying)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 12),
+                          child: LinearProgressIndicator(),
+                        ),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 14),
               // 3D Model View Section - Temporarily commented out
               /*
               if (modelAsset.isNotEmpty)

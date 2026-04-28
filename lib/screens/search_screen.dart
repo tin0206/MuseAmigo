@@ -516,6 +516,7 @@ class _ResultCard extends StatelessWidget {
         'height': '~2.4 meters',
         'weight': '~39.7 tons',
         'imageAsset': 'assets/images/museum.jpg',
+        'audioAsset': 'assets/audio/guide.mp3',
         // 'modelAsset': item.has3dModel ? 'assets/models/${item.modelName}.obj' : '', // Temporarily commented
       },
     );
