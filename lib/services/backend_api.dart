@@ -119,12 +119,14 @@ class BackendApi {
   String get baseUrl {
     if (_definedBaseUrl.isNotEmpty) return _definedBaseUrl;
     
-    if (kIsWeb) return 'http://localhost:8000';
-    if (Platform.isAndroid) return 'http://10.0.2.2:8000';
-    if (Platform.isIOS) return 'http://localhost:8000';
-    return 'http://localhost:8000';
+    // Use production backend URL
+    return 'https://museamigo-backend.onrender.com';
     
-    // return 'https://museamigo-backend.onrender.com';
+    // Development URLs (commented out)
+    // if (kIsWeb) return 'http://localhost:8000';
+    // if (Platform.isAndroid) return 'http://10.0.2.2:8000';
+    // if (Platform.isIOS) return 'http://localhost:8000';
+    // return 'http://localhost:8000';
   }
 
   Uri _uri(String path) => Uri.parse('$baseUrl$path');
