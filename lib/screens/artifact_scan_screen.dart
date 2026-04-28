@@ -185,7 +185,8 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
       return;
     }
 
-    Navigator.of(context).pop(value);
+    // Process the entered code
+    _processScannedCode(value);
   }
 
   @override

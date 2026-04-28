@@ -57,12 +57,19 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
             _isPlaying = true;
             _isLoading = false;
           });
+        } else {
+          setState(() => _isLoading = false);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('No audio file available for this artifact')),
+            );
+          }
         }
       } catch (e) {
         setState(() => _isLoading = false);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to play audio: $e')),
+            SnackBar(content: Text('Audio file not found or cannot be played')),
           );
         }
       }
@@ -137,8 +144,8 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
                 ],
               ),
               const SizedBox(height: 12),
-              // Audio Player Section
-              if (widget.audioAsset.isNotEmpty)
+              // Audio Player Section - only show if audio file is provided and not empty
+              if (widget.audioAsset.isNotEmpty && widget.audioAsset != 'assets/audio/guide.mp3')
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 12),
                   padding: const EdgeInsets.all(16),
