@@ -35,6 +35,19 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool _isPlaying = false;
   bool _isLoading = false;
+  static final _demoAudio = AssetSource('audio/sample.wav');
+
+  @override
+  void initState() {
+    super.initState();
+    // Preload audio so playback starts instantly when user presses play
+    _audioPlayer.setSource(_demoAudio);
+    _audioPlayer.onPlayerStateChanged.listen((state) {
+      if (state == PlayerState.completed) {
+        setState(() => _isPlaying = false);
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -51,20 +64,12 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
     } else {
       setState(() => _isLoading = true);
       try {
-        if (widget.audioAsset.isNotEmpty) {
-          await _audioPlayer.play(AssetSource(widget.audioAsset));
-          setState(() {
-            _isPlaying = true;
-            _isLoading = false;
-          });
-        } else {
-          setState(() => _isLoading = false);
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('No audio file available for this artifact')),
-            );
-          }
-        }
+        // Resume preloaded source for instant playback
+        await _audioPlayer.resume();
+        setState(() {
+          _isPlaying = true;
+          _isLoading = false;
+        });
       } catch (e) {
         setState(() => _isLoading = false);
         if (mounted) {

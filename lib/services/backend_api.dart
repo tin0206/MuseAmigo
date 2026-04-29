@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show Platform;
 
@@ -7,6 +8,9 @@ import 'package:http/http.dart' as http;
 class ApiException implements Exception {
   ApiException(this.message);
   final String message;
+
+  @override
+  String toString() => message;
 }
 
 class MuseumDto {
@@ -243,12 +247,37 @@ class BackendApi {
   }
 
   Future<ArtifactDto> fetchArtifact(String artifactCode) async {
-    final response = await http.get(_uri('/artifacts/$artifactCode'));
-    final json = await _readJson(response);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      _throwForResponse(response, json);
+    const maxRetries = 2;
+    for (var attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        final response = await http
+            .get(_uri('/artifacts/$artifactCode'))
+            .timeout(const Duration(seconds: 20));
+        final json = await _readJson(response);
+        if (response.statusCode < 200 || response.statusCode >= 300) {
+          _throwForResponse(response, json);
+        }
+        return ArtifactDto.fromJson(json);
+      } on TimeoutException {
+        if (attempt == maxRetries) {
+          throw ApiException(
+            'The server is taking too long to respond. '
+            'This often happens when the backend wakes up after being idle. Please try again.',
+          );
+        }
+        // Wait before retrying
+        await Future.delayed(const Duration(seconds: 3));
+      } on http.ClientException catch (e) {
+        if (attempt == maxRetries) {
+          throw ApiException(
+            'Unable to connect to the server (${e.message}). '
+            'Please check your internet connection and try again.',
+          );
+        }
+        await Future.delayed(const Duration(seconds: 2));
+      }
     }
-    return ArtifactDto.fromJson(json);
+    throw ApiException('Failed to fetch artifact after multiple attempts.');
   }
 
   Future<void> addToCollection({
@@ -287,8 +316,10 @@ class BackendApi {
     return TicketDto.fromJson(json);
   }
 
-  Future<Map<String, dynamic>> fetchUserAchievements(int userId) async {
-    final response = await http.get(_uri('/users/$userId/achievements'));
+  Future<Map<String, dynamic>> fetchUserAchievements(int userId, int museumId) async {
+    final response = await http.get(
+      _uri('/users/$userId/achievements?museum_id=$museumId'),
+    );
     final json = await _readJson(response);
     if (response.statusCode < 200 || response.statusCode >= 300) {
       _throwForResponse(response, json);

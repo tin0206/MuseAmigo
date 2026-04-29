@@ -240,6 +240,10 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
   }
 
   Future<void> _showMuseumDetailSheet(BuildContext context, _Museum museum) {
+    // Update current museum context so other screens (Journey, Scan) use the right museum
+    AppSession.currentMuseumId.value = museum.id;
+    AppSession.currentMuseumName.value = museum.name;
+
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,

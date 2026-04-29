@@ -22,6 +22,17 @@ class _JourneyScreenState extends State<JourneyScreen> {
   void initState() {
     super.initState();
     _loadAchievements();
+    AppSession.currentMuseumId.addListener(_onMuseumChanged);
+  }
+
+  @override
+  void dispose() {
+    AppSession.currentMuseumId.removeListener(_onMuseumChanged);
+    super.dispose();
+  }
+
+  void _onMuseumChanged() {
+    _loadAchievements();
   }
 
   Future<void> _loadAchievements() async {
@@ -36,11 +47,12 @@ class _JourneyScreenState extends State<JourneyScreen> {
         return;
       }
 
-      final data = await BackendApi.instance.fetchUserAchievements(userId);
+      final museumId = AppSession.currentMuseumId.value;
+      final data = await BackendApi.instance.fetchUserAchievements(userId, museumId);
       setState(() {
         _achievements = List<Map<String, dynamic>>.from(data['achievements'] ?? []);
         _totalPoints = data['total_points'] ?? 0;
-        _unlockedCount = _achievements.where((a) => a['is_completed'] == true).length;
+        _unlockedCount = data['unlocked_count'] ?? 0;
         _isLoading = false;
       });
     } catch (e) {
@@ -80,13 +92,31 @@ class _JourneyScreenState extends State<JourneyScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: Text(
-                      'My Journey'.tr,
-                      style: const TextStyle(
-                        fontSize: 30,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF171A21),
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'My Journey'.tr,
+                          style: const TextStyle(
+                            fontSize: 30,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF171A21),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        ValueListenableBuilder<String>(
+                          valueListenable: AppSession.currentMuseumName,
+                          builder: (context, name, _) {
+                            return Text(
+                              name,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Color(0xFF6B7280),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
                     ),
                   ),
                   ElevatedButton.icon(
@@ -132,7 +162,7 @@ class _JourneyScreenState extends State<JourneyScreen> {
                 ],
               ),
               const SizedBox(height: 12),
-              _ProgressCard(),
+              _ProgressCard(unlockedCount: _unlockedCount),
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -366,7 +396,10 @@ class _StatCard extends StatelessWidget {
 }
 
 class _ProgressCard extends StatelessWidget {
-  const _ProgressCard();
+  const _ProgressCard({required this.unlockedCount});
+
+  final int unlockedCount;
+  static const int _max = 15;
 
   @override
   Widget build(BuildContext context) {
@@ -393,8 +426,8 @@ class _ProgressCard extends StatelessWidget {
                 ),
               ),
               Text(
-                '12/50',
-                style: TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
+                '$unlockedCount/$_max',
+                style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
               ),
             ],
           ),
@@ -403,36 +436,36 @@ class _ProgressCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(3),
             child: LinearProgressIndicator(
               minHeight: 6,
-              value: 0.24,
-              backgroundColor: Color(0xFFD6D8DD),
+              value: unlockedCount / _max,
+              backgroundColor: const Color(0xFFD6D8DD),
               valueColor: AlwaysStoppedAnimation<Color>(
                 Theme.of(context).colorScheme.primary,
               ),
             ),
           ),
           const SizedBox(height: 8),
-          const Row(
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _ProgressStep(
+                label: '2',
+                icon: unlockedCount >= 2 ? Icons.emoji_events_outlined : Icons.lock_outline,
+                active: unlockedCount >= 2,
+              ),
+              _ProgressStep(
                 label: '5',
-                icon: Icons.emoji_events_outlined,
-                active: true,
+                icon: unlockedCount >= 5 ? Icons.emoji_events_outlined : Icons.lock_outline,
+                active: unlockedCount >= 5,
               ),
               _ProgressStep(
                 label: '10',
-                icon: Icons.emoji_events_outlined,
-                active: true,
+                icon: unlockedCount >= 10 ? Icons.emoji_events_outlined : Icons.lock_outline,
+                active: unlockedCount >= 10,
               ),
               _ProgressStep(
-                label: '25',
-                icon: Icons.lock_outline,
-                active: false,
-              ),
-              _ProgressStep(
-                label: '50',
-                icon: Icons.lock_outline,
-                active: false,
+                label: '15',
+                icon: unlockedCount >= 15 ? Icons.emoji_events_outlined : Icons.lock_outline,
+                active: unlockedCount >= 15,
               ),
             ],
           ),

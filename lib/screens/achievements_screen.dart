@@ -35,7 +35,8 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
         return;
       }
 
-      final data = await BackendApi.instance.fetchUserAchievements(userId);
+      final museumId = AppSession.currentMuseumId.value;
+      final data = await BackendApi.instance.fetchUserAchievements(userId, museumId);
       print('Fetched ${data["achievements"]?.length ?? 0} achievements');
       print('Achievement data: ${data["achievements"]}');
       setState(() {

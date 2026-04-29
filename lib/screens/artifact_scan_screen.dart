@@ -40,6 +40,19 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
       final artifact = await BackendApi.instance.fetchArtifact(code);
       if (!mounted) return;
 
+      // Validate artifact belongs to current museum
+      final currentMuseumId = AppSession.currentMuseumId.value;
+      if (artifact.museumId != currentMuseumId) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('The artifact is not in this museum.'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+        return;
+      }
+
       // Add to collection
       final userId = AppSession.userId.value;
       if (userId == null) {
@@ -80,10 +93,9 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
       );
     } catch (e) {
       if (!mounted) return;
-      String errorMessage = 'Failed to scan artifact';
-      if (e.toString().contains('APIException')) {
-        errorMessage =
-            'API Error: Unable to fetch artifact. Please check your connection.';
+      String errorMessage;
+      if (e is ApiException) {
+        errorMessage = e.message;
       } else {
         errorMessage = 'Error: $e';
       }
