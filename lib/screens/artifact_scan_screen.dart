@@ -75,6 +75,7 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to scan artifact: $e')),
       );
+      print('Error scanning artifact: $e');
     }
   }
 

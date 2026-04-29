@@ -69,7 +69,7 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
         setState(() => _isLoading = false);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Audio file not found or cannot be played')),
+            SnackBar(content: Text('Audio file not found: $e')),
           );
         }
       }
@@ -144,9 +144,8 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
                 ],
               ),
               const SizedBox(height: 12),
-              // Audio Player Section
-              if (widget.audioAsset.isNotEmpty)
-                Container(
+              // Audio Player Section - always show for testing
+              Container(
                   margin: const EdgeInsets.symmetric(horizontal: 12),
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
