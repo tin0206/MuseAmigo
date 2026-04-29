@@ -36,6 +36,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
       }
 
       final data = await BackendApi.instance.fetchUserAchievements(userId);
+      print('Fetched ${data["achievements"]?.length ?? 0} achievements');
       setState(() {
         _achievements = List<Map<String, dynamic>>.from(data['achievements'] ?? []);
         _totalPoints = data['total_points'] ?? 0;
