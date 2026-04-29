@@ -17,7 +17,6 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
   bool _isScanning = false;
   MobileScannerController? _scannerController;
 
-
   @override
   void initState() {
     super.initState();
@@ -36,27 +35,36 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
 
   Future<void> _processScannedCode(String code) async {
     try {
+      print('Fetching artifact with code: $code');
+      print('Base URL: ${BackendApi.instance.baseUrl}');
       final artifact = await BackendApi.instance.fetchArtifact(code);
       if (!mounted) return;
-      
+
       // Add to collection
       final userId = AppSession.userId.value;
       if (userId == null) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('User not logged in')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('User not logged in')));
         return;
       }
-      
+
       await BackendApi.instance.addToCollection(
         userId: userId,
         artifactId: artifact.id,
       );
-      
+
       if (!mounted) return;
-      
+
       // Navigate to artifact detail
+      String audioAsset = '';
+      if (code == 'IP-001') {
+        audioAsset = 'assets/audio/presidential_desk.mp3';
+      } else if (code == 'IP-002') {
+        audioAsset = 'assets/audio/t54_tank.mp3';
+      }
+      
       Navigator.of(context).pushNamed(
         AppRoutes.artifactDetail,
         arguments: <String, dynamic>{
@@ -67,14 +75,21 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
           'height': 'Unknown',
           'weight': 'Unknown',
           'imageAsset': 'assets/images/museum.jpg',
-          'audioAsset': '',
+          'audioAsset': audioAsset,
         },
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to scan artifact: $e')),
-      );
+      String errorMessage = 'Failed to scan artifact';
+      if (e.toString().contains('APIException')) {
+        errorMessage =
+            'API Error: Unable to fetch artifact. Please check your connection.';
+      } else {
+        errorMessage = 'Error: $e';
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(errorMessage)));
       print('Error scanning artifact: $e');
     }
   }
@@ -272,13 +287,17 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
                                     Icon(
                                       Icons.qr_code_scanner,
                                       size: 64,
-                                      color: Colors.white.withValues(alpha: 0.8),
+                                      color: Colors.white.withValues(
+                                        alpha: 0.8,
+                                      ),
                                     ),
                                     const SizedBox(height: 12),
                                     Text(
                                       'Tap to Scan QR Code',
                                       style: TextStyle(
-                                        color: Colors.white.withValues(alpha: 0.8),
+                                        color: Colors.white.withValues(
+                                          alpha: 0.8,
+                                        ),
                                         fontSize: 16,
                                         fontWeight: FontWeight.w600,
                                       ),
@@ -315,10 +334,7 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
 }
 
 class _ScanCorner extends StatelessWidget {
-  const _ScanCorner({
-    required this.top,
-    required this.left,
-  });
+  const _ScanCorner({required this.top, required this.left});
 
   final bool top;
   final bool left;
@@ -331,7 +347,9 @@ class _ScanCorner extends StatelessWidget {
       child: SizedBox(
         width: 42,
         height: 42,
-        child: CustomPaint(painter: _CornerPainter(color: Theme.of(context).colorScheme.primary)),
+        child: CustomPaint(
+          painter: _CornerPainter(color: Theme.of(context).colorScheme.primary),
+        ),
       ),
     );
   }

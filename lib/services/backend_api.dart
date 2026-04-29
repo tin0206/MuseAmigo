@@ -48,7 +48,6 @@ class AuthLoginResult {
   final String message;
 }
 
-
 class ArtifactDto {
   const ArtifactDto({
     required this.id,
@@ -59,6 +58,7 @@ class ArtifactDto {
     required this.is3dAvailable,
     required this.museumId,
     required this.unityPrefabName,
+    this.audioAsset = '',
   });
 
   final int id;
@@ -69,6 +69,7 @@ class ArtifactDto {
   final bool is3dAvailable;
   final int museumId;
   final String unityPrefabName;
+  final String audioAsset;
 
   factory ArtifactDto.fromJson(Map<String, dynamic> json) => ArtifactDto(
     id: json['id'] as int,
@@ -79,6 +80,7 @@ class ArtifactDto {
     is3dAvailable: json['is_3d_available'] as bool,
     museumId: json['museum_id'] as int,
     unityPrefabName: json['unity_prefab_name'] as String,
+    audioAsset: json['audio_asset'] as String? ?? '',
   );
 }
 
@@ -118,10 +120,10 @@ class BackendApi {
 
   String get baseUrl {
     if (_definedBaseUrl.isNotEmpty) return _definedBaseUrl;
-    
+
     // Use production backend URL
     return 'https://museamigo-backend.onrender.com';
-    
+
     // Development URLs (commented out)
     // if (kIsWeb) return 'http://localhost:8000';
     // if (Platform.isAndroid) return 'http://10.0.2.2:8000';
@@ -129,7 +131,11 @@ class BackendApi {
     // return 'http://localhost:8000';
   }
 
-  Uri _uri(String path) => Uri.parse('$baseUrl$path');
+  Uri _uri(String path) {
+    final url = '$baseUrl$path';
+    print('Constructed URL: $url');
+    return Uri.parse(url);
+  }
 
   Future<Map<String, dynamic>> _readJson(http.Response response) async {
     if (response.body.isEmpty) return <String, dynamic>{};
@@ -188,13 +194,15 @@ class BackendApi {
     required String email,
     required String password,
   }) async {
-    final response = await http.post(
-      _uri('/auth/login'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email, 'password': password}),
-    ).timeout(
-      const Duration(seconds: 10), // 10 second timeout
-    );
+    final response = await http
+        .post(
+          _uri('/auth/login'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'email': email, 'password': password}),
+        )
+        .timeout(
+          const Duration(seconds: 10), // 10 second timeout
+        );
     final json = await _readJson(response);
     if (response.statusCode < 200 || response.statusCode >= 300) {
       _throwForResponse(response, json);
@@ -277,5 +285,14 @@ class BackendApi {
       _throwForResponse(response, json);
     }
     return TicketDto.fromJson(json);
+  }
+
+  Future<Map<String, dynamic>> fetchUserAchievements(int userId) async {
+    final response = await http.get(_uri('/users/$userId/achievements'));
+    final json = await _readJson(response);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      _throwForResponse(response, json);
+    }
+    return json;
   }
 }

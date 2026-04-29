@@ -1,154 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:museamigo/l10n/translations.dart';
-
-// Data model
-class _Achievement {
-  const _Achievement({
-    required this.title,
-    required this.points,
-    required this.description,
-    required this.unlocked,
-    required this.icon,
-  });
-
-  final String title;
-  final int points;
-  final String description;
-  final bool unlocked;
-  final IconData icon;
-}
-
-class _Museum {
-  const _Museum({
-    required this.name,
-    required this.location,
-    required this.totalPoints,
-    required this.unlocked,
-    required this.total,
-    required this.achievements,
-  });
-
-  final String name;
-  final String location;
-  final int totalPoints;
-  final int unlocked;
-  final int total;
-  final List<_Achievement> achievements;
-}
-
-final _museums = [
-  _Museum(
-    name: 'National Museum of Ancient Art'.tr,
-    location: 'Gallery Hall A'.tr,
-    totalPoints: 600,
-    unlocked: 4,
-    total: 5,
-    achievements: [
-      _Achievement(
-        title: 'First Steps'.tr,
-        points: 100,
-        description: 'Visit your first artifact'.tr,
-        unlocked: true,
-        icon: Icons.star_outline,
-      ),
-      _Achievement(
-        title: 'Explorer'.tr,
-        points: 150,
-        description: 'Discover 10 artifacts'.tr,
-        unlocked: true,
-        icon: Icons.explore_outlined,
-      ),
-      _Achievement(
-        title: 'AR Pioneer'.tr,
-        points: 200,
-        description: 'View 5 artifacts in AR'.tr,
-        unlocked: true,
-        icon: Icons.view_in_ar_outlined,
-      ),
-      _Achievement(
-        title: 'Journey Mapper'.tr,
-        points: 150,
-        description: 'Complete a full floor tour'.tr,
-        unlocked: true,
-        icon: Icons.map_outlined,
-      ),
-      _Achievement(
-        title: 'Dynasty Master'.tr,
-        points: 400,
-        description: 'Discover all artifacts. New discovery'.tr,
-        unlocked: false,
-        icon: Icons.emoji_events_outlined,
-      ),
-    ],
-  ),
-  _Museum(
-    name: 'Contemporary Art Gallery'.tr,
-    location: 'Exhibition Floor 3'.tr,
-    totalPoints: 0,
-    unlocked: 2,
-    total: 4,
-    achievements: [
-      _Achievement(
-        title: 'Modern Eye'.tr,
-        points: 100,
-        description: 'View 5 contemporary artworks'.tr,
-        unlocked: true,
-        icon: Icons.remove_red_eye_outlined,
-      ),
-      _Achievement(
-        title: 'Art Critic'.tr,
-        points: 150,
-        description: 'Rate 10 artworks'.tr,
-        unlocked: true,
-        icon: Icons.rate_review_outlined,
-      ),
-      _Achievement(
-        title: 'Curator'.tr,
-        points: 200,
-        description: 'Save 20 artworks to favorites'.tr,
-        unlocked: false,
-        icon: Icons.bookmark_border,
-      ),
-      _Achievement(
-        title: 'Gallery Master'.tr,
-        points: 350,
-        description: 'Complete the full gallery tour'.tr,
-        unlocked: false,
-        icon: Icons.emoji_events_outlined,
-      ),
-    ],
-  ),
-  _Museum(
-    name: 'Museum of Natural History'.tr,
-    location: 'Mars Entrance'.tr,
-    totalPoints: 0,
-    unlocked: 0,
-    total: 3,
-    achievements: [
-      _Achievement(
-        title: 'Fossil Hunter'.tr,
-        points: 120,
-        description: 'Find 5 fossil specimens'.tr,
-        unlocked: false,
-        icon: Icons.search,
-      ),
-      _Achievement(
-        title: 'Evolution Expert'.tr,
-        points: 180,
-        description: 'Complete the evolution trail'.tr,
-        unlocked: false,
-        icon: Icons.timeline,
-      ),
-      _Achievement(
-        title: 'Nature\'s Champion'.tr,
-        points: 300,
-        description: 'Unlock all natural history badges'.tr,
-        unlocked: false,
-        icon: Icons.emoji_events_outlined,
-      ),
-    ],
-  ),
-];
+import 'package:museamigo/services/backend_api.dart';
+import 'package:museamigo/session.dart';
 
 class AchievementsScreen extends StatefulWidget {
   const AchievementsScreen({super.key});
@@ -158,19 +11,61 @@ class AchievementsScreen extends StatefulWidget {
 }
 
 class _AchievementsScreenState extends State<AchievementsScreen> {
-  // which museums are expanded
-  final Set<int> _expanded = {};
+  List<Map<String, dynamic>> _achievements = [];
+  int _totalPoints = 0;
+  int _totalUnlocked = 0;
+  bool _isLoading = true;
+  String? _error;
 
-  int get _totalPoints => _museums.fold(
-    0,
-    (sum, m) =>
-        sum +
-        m.achievements.where((a) => a.unlocked).fold(0, (s, a) => s + a.points),
-  );
+  @override
+  void initState() {
+    super.initState();
+    _loadAchievements();
+  }
 
-  int get _totalUnlocked => _museums.fold(0, (sum, m) => sum + m.unlocked);
+  Future<void> _loadAchievements() async {
+    setState(() => _isLoading = true);
+    try {
+      final userId = AppSession.userId.value;
+      if (userId == null) {
+        setState(() {
+          _error = 'User not logged in';
+          _isLoading = false;
+        });
+        return;
+      }
 
-  int get _totalAchievements => _museums.fold(0, (sum, m) => sum + m.total);
+      final data = await BackendApi.instance.fetchUserAchievements(userId);
+      setState(() {
+        _achievements = List<Map<String, dynamic>>.from(data['achievements'] ?? []);
+        _totalPoints = data['total_points'] ?? 0;
+        _totalUnlocked = _achievements.where((a) => a['is_completed'] == true).length;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Failed to load achievements: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  IconData _getIconForAchievement(String requirementType) {
+    switch (requirementType) {
+      case 'scan_count':
+        return Icons.qr_code_scanner;
+      case 'museum_scan_count':
+        return Icons.museum;
+      case 'museum_visit':
+        return Icons.location_on;
+      case 'all_museums':
+        return Icons.public;
+      case 'area_complete':
+        return Icons.emoji_events;
+      default:
+        return Icons.star;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -189,176 +84,176 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
           style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // Summary row
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? Center(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        'Total Points'.tr,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFFFFCDD2),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '$_totalPoints',
-                        style: const TextStyle(
-                          fontSize: 34,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
+                      Text(_error!),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _loadAchievements,
+                        child: const Text('Retry'),
                       ),
                     ],
                   ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Unlocked'.tr,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF9CA3AF),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '$_totalUnlocked/$_totalAchievements',
-                        style: const TextStyle(
-                          fontSize: 34,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF171A21),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // Museum sections
-          ...List.generate(_museums.length, (i) {
-            final museum = _museums[i];
-            final isExpanded = _expanded.contains(i);
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Column(
+                )
+              : ListView(
+                  padding: const EdgeInsets.all(16),
                   children: [
-                    // Museum header
-                    InkWell(
-                      onTap: () => setState(() {
-                        if (isExpanded) {
-                          _expanded.remove(i);
-                        } else {
-                          _expanded.add(i);
-                        }
-                      }),
-                      borderRadius: BorderRadius.circular(14),
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    museum.name,
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFF171A21),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    museum.location,
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      color: Color(0xFF9CA3AF),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    '${museum.totalPoints} ${'points'.tr} · ${museum.unlocked}/${museum.total} ${'unlocked'.tr}',
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      color: Color(0xFF6B7280),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                    // Summary row
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
                             ),
-                            Icon(
-                              isExpanded
-                                  ? Icons.keyboard_arrow_up
-                                  : Icons.keyboard_arrow_down,
-                              color: const Color(0xFF9CA3AF),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primary,
+                              borderRadius: BorderRadius.circular(14),
                             ),
-                          ],
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Total Points'.tr,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFFFFCDD2),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '$_totalPoints',
+                                  style: const TextStyle(
+                                    fontSize: 34,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Unlocked'.tr,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFF9CA3AF),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '$_totalUnlocked/${_achievements.length}',
+                                  style: const TextStyle(
+                                    fontSize: 34,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF171A21),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    // Achievements list
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Row(
+                              children: [
+                                Text(
+                                  'All Achievements'.tr,
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF171A21),
+                                  ),
+                                ),
+                                const Spacer(),
+                                Text(
+                                  '${_achievements.length} Total',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Color(0xFF6B7280),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          ...List.generate(_achievements.length, (i) {
+                            final achievement = _achievements[i];
+                            final isCompleted = achievement['is_completed'] == true;
+                            final progress = achievement['progress'] ?? 0;
+                            final requirementValue = achievement['requirement_value'] ?? 0;
+                            final requirementType = achievement['requirement_type'] ?? '';
+                            
+                            return _AchievementRow(
+                              title: achievement['name'] ?? 'Unknown',
+                              description: achievement['description'] ?? '',
+                              points: achievement['points'] ?? 0,
+                              unlocked: isCompleted,
+                              icon: _getIconForAchievement(requirementType),
+                              progress: progress,
+                              maxProgress: requirementValue,
+                            );
+                          }),
+                        ],
                       ),
                     ),
-                    if (isExpanded) ...[
-                      const Divider(height: 1, color: Color(0xFFF3F4F6)),
-                      ...museum.achievements.map(
-                        (a) => _AchievementRow(achievement: a),
-                      ),
-                      const SizedBox(height: 4),
-                    ],
                   ],
                 ),
-              ),
-            );
-          }),
-        ],
-      ),
     );
   }
 }
 
 class _AchievementRow extends StatelessWidget {
-  const _AchievementRow({required this.achievement});
+  const _AchievementRow({
+    required this.title,
+    required this.description,
+    required this.points,
+    required this.unlocked,
+    required this.icon,
+    required this.progress,
+    required this.maxProgress,
+  });
 
-  final _Achievement achievement;
+  final String title;
+  final String description;
+  final int points;
+  final bool unlocked;
+  final IconData icon;
+  final int progress;
+  final int maxProgress;
 
   @override
   Widget build(BuildContext context) {
-    final unlocked = achievement.unlocked;
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 2),
       child: Row(
@@ -373,7 +268,7 @@ class _AchievementRow extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             child: Icon(
-              unlocked ? achievement.icon : Icons.lock_outline,
+              unlocked ? icon : Icons.lock_outline,
               size: 20,
               color: unlocked ? Colors.white : const Color(0xFF9CA3AF),
             ),
@@ -383,41 +278,65 @@ class _AchievementRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  achievement.title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: unlocked
-                        ? const Color(0xFF171A21)
-                        : const Color(0xFF9CA3AF),
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: unlocked
+                              ? const Color(0xFF171A21)
+                              : const Color(0xFF9CA3AF),
+                        ),
+                      ),
+                    ),
+                    if (!unlocked && maxProgress > 0)
+                      Text(
+                        '$progress/$maxProgress',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF6B7280),
+                        ),
+                      ),
+                  ],
                 ),
+                const SizedBox(height: 2),
                 Text(
-                  achievement.description,
+                  description,
                   style: const TextStyle(
                     fontSize: 11,
                     color: Color(0xFF6B7280),
                   ),
                 ),
+                if (!unlocked && maxProgress > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: maxProgress > 0 ? progress / maxProgress : 0,
+                        backgroundColor: const Color(0xFFF3F4F6),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Theme.of(context).colorScheme.primary,
+                        ),
+                        minHeight: 4,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
+          const SizedBox(width: 8),
+          Text(
+            '+$points',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
               color: unlocked
                   ? Theme.of(context).colorScheme.primary
-                  : const Color(0xFFE5E7EB),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              '+${achievement.points}',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: unlocked ? Colors.white : const Color(0xFF9CA3AF),
-              ),
+                  : const Color(0xFF9CA3AF),
             ),
           ),
         ],
