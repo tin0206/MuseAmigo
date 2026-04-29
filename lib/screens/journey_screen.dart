@@ -1,9 +1,72 @@
 import 'package:flutter/material.dart';
 import 'package:museamigo/app_routes.dart';
 import 'package:museamigo/l10n/translations.dart';
+import 'package:museamigo/services/backend_api.dart';
+import 'package:museamigo/session.dart';
 
-class JourneyScreen extends StatelessWidget {
+class JourneyScreen extends StatefulWidget {
   const JourneyScreen({super.key});
+
+  @override
+  State<JourneyScreen> createState() => _JourneyScreenState();
+}
+
+class _JourneyScreenState extends State<JourneyScreen> {
+  List<Map<String, dynamic>> _achievements = [];
+  int _totalPoints = 0;
+  int _unlockedCount = 0;
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAchievements();
+  }
+
+  Future<void> _loadAchievements() async {
+    setState(() => _isLoading = true);
+    try {
+      final userId = AppSession.userId.value;
+      if (userId == null) {
+        setState(() {
+          _error = 'User not logged in';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final data = await BackendApi.instance.fetchUserAchievements(userId);
+      setState(() {
+        _achievements = List<Map<String, dynamic>>.from(data['achievements'] ?? []);
+        _totalPoints = data['total_points'] ?? 0;
+        _unlockedCount = _achievements.where((a) => a['is_completed'] == true).length;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Failed to load achievements: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  IconData _getIconForAchievement(String requirementType) {
+    switch (requirementType) {
+      case 'scan_count':
+        return Icons.qr_code_scanner;
+      case 'museum_scan_count':
+        return Icons.museum;
+      case 'museum_visit':
+        return Icons.location_on;
+      case 'all_museums':
+        return Icons.public;
+      case 'area_complete':
+        return Icons.emoji_events;
+      default:
+        return Icons.star_border_rounded;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +116,7 @@ class JourneyScreen extends StatelessWidget {
                 children: [
                   Expanded(
                     child: _StatCard(
-                      value: '12',
+                      value: '$_unlockedCount',
                       label: 'Artifacts Discovered'.tr,
                       active: true,
                     ),
@@ -61,7 +124,7 @@ class JourneyScreen extends StatelessWidget {
                   SizedBox(width: 8),
                   Expanded(
                     child: _StatCard(
-                      value: '1250',
+                      value: '$_totalPoints',
                       label: 'Points Earned'.tr,
                       active: false,
                     ),
@@ -83,74 +146,54 @@ class JourneyScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const Text(
-                    '5/15',
-                    style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+                  Text(
+                    '$_unlockedCount/${_achievements.length}',
+                    style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
                   ),
                 ],
               ),
               const SizedBox(height: 10),
-              Expanded(
-                child: ListView(
-                  children: [
-                    _AchievementTile(
-                      title: 'First Steps'.tr,
-                      subtitle: 'Visit your first artifact'.tr,
-                      points: '+50 points',
-                      icon: Icons.star_border_rounded,
-                      unlocked: true,
+              if (_isLoading)
+                const Expanded(
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (_error != null)
+                Expanded(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(_error!),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: _loadAchievements,
+                          child: const Text('Retry'),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 8),
-                    _AchievementTile(
-                      title: 'Explorer'.tr,
-                      subtitle: 'Discover 10 artifacts'.tr,
-                      points: '+150 points',
-                      icon: Icons.emoji_events_outlined,
-                      unlocked: true,
-                    ),
-                    const SizedBox(height: 8),
-                    _AchievementTile(
-                      title: 'AR Pioneer'.tr,
-                      subtitle: 'View 5 artifacts in AR'.tr,
-                      points: '+200 points',
-                      icon: Icons.bolt_outlined,
-                      unlocked: true,
-                    ),
-                    const SizedBox(height: 8),
-                    _AchievementTile(
-                      title: 'Curious Mind'.tr,
-                      subtitle: 'Ask 20 questions to AI'.tr,
-                      points: '+100 points',
-                      icon: Icons.workspace_premium_outlined,
-                      unlocked: true,
-                    ),
-                    const SizedBox(height: 8),
-                    _AchievementTile(
-                      title: 'Journey Mapper'.tr,
-                      subtitle: 'Complete a full floor tour.'.tr,
-                      points: '+250 points',
-                      icon: Icons.map_outlined,
-                      unlocked: true,
-                    ),
-                    const SizedBox(height: 8),
-                    _AchievementTile(
-                      title: 'Dynasty Master'.tr,
-                      subtitle: 'Discover all artifacts from one dynasty'.tr,
-                      points: '',
-                      icon: Icons.auto_awesome_outlined,
-                      unlocked: false,
-                    ),
-                    const SizedBox(height: 8),
-                    _AchievementTile(
-                      title: 'Museum Expert'.tr,
-                      subtitle: 'Discover 25 artifacts'.tr,
-                      points: '',
-                      icon: Icons.military_tech_outlined,
-                      unlocked: false,
-                    ),
-                  ],
+                  ),
+                )
+              else
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: _achievements.length,
+                    itemBuilder: (context, index) {
+                      final achievement = _achievements[index];
+                      final isCompleted = achievement['is_completed'] == true;
+                      final requirementType = achievement['requirement_type'] ?? '';
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: _AchievementTile(
+                          title: achievement['name'] ?? 'Unknown',
+                          subtitle: achievement['description'] ?? '',
+                          points: isCompleted ? '+${achievement['points'] ?? 0} points' : '',
+                          icon: _getIconForAchievement(requirementType),
+                          unlocked: isCompleted,
+                        ),
+                      );
+                    },
+                  ),
                 ),
-              ),
             ],
           ),
         ),

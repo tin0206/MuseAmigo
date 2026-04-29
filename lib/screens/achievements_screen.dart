@@ -37,6 +37,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
 
       final data = await BackendApi.instance.fetchUserAchievements(userId);
       print('Fetched ${data["achievements"]?.length ?? 0} achievements');
+      print('Achievement data: ${data["achievements"]}');
       setState(() {
         _achievements = List<Map<String, dynamic>>.from(data['achievements'] ?? []);
         _totalPoints = data['total_points'] ?? 0;
@@ -177,57 +178,55 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    // Achievements list
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Column(
+                    // Achievements header
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
                         children: [
-                          Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Row(
-                              children: [
-                                Text(
-                                  'All Achievements'.tr,
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF171A21),
-                                  ),
-                                ),
-                                const Spacer(),
-                                Text(
-                                  '${_achievements.length} Total',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Color(0xFF6B7280),
-                                  ),
-                                ),
-                              ],
+                          Text(
+                            'All Achievements'.tr,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF171A21),
                             ),
                           ),
-                          ...List.generate(_achievements.length, (i) {
-                            final achievement = _achievements[i];
-                            final isCompleted = achievement['is_completed'] == true;
-                            final progress = achievement['progress'] ?? 0;
-                            final requirementValue = achievement['requirement_value'] ?? 0;
-                            final requirementType = achievement['requirement_type'] ?? '';
-                            
-                            return _AchievementRow(
-                              title: achievement['name'] ?? 'Unknown',
-                              description: achievement['description'] ?? '',
-                              points: achievement['points'] ?? 0,
-                              unlocked: isCompleted,
-                              icon: _getIconForAchievement(requirementType),
-                              progress: progress,
-                              maxProgress: requirementValue,
-                            );
-                          }),
+                          const Spacer(),
+                          Text(
+                            '${_achievements.length} Total',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF6B7280),
+                            ),
+                          ),
                         ],
                       ),
                     ),
+                    // Achievements list
+                    ...List.generate(_achievements.length, (i) {
+                      final achievement = _achievements[i];
+                      final isCompleted = achievement['is_completed'] == true;
+                      final progress = achievement['progress'] ?? 0;
+                      final requirementValue = achievement['requirement_value'] ?? 0;
+                      final requirementType = achievement['requirement_type'] ?? '';
+                      
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: _AchievementRow(
+                          title: achievement['name'] ?? 'Unknown',
+                          description: achievement['description'] ?? '',
+                          points: achievement['points'] ?? 0,
+                          unlocked: isCompleted,
+                          icon: _getIconForAchievement(requirementType),
+                          progress: progress,
+                          maxProgress: requirementValue,
+                        ),
+                      );
+                    }),
                   ],
                 ),
     );
