@@ -34,18 +34,46 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Future<void> _submitSignUp() async {
     if (_isSubmitting) return;
 
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    final confirmPassword = _confirmPasswordController.text;
+
     // Validate all required fields are filled
-    if (_nameController.text.trim().isEmpty ||
-        _emailController.text.trim().isEmpty ||
-        _passwordController.text.isEmpty ||
-        _confirmPasswordController.text.isEmpty) {
+    if (name.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill all the info')),
       );
       return;
     }
 
-    if (_passwordController.text != _confirmPasswordController.text) {
+    // Full name: letters and spaces only
+    final nameRegex = RegExp(r"^[\p{L}\s]+$", unicode: true);
+    if (!nameRegex.hasMatch(name)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Full name must contain only letters.')),
+      );
+      return;
+    }
+
+    // Email format validation
+    final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+    if (!emailRegex.hasMatch(email)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid email address.')),
+      );
+      return;
+    }
+
+    // Password: required (already checked above) and min length
+    if (password.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password must be at least 6 characters.')),
+      );
+      return;
+    }
+
+    if (password != confirmPassword) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Password and confirmation must match.')),
       );
@@ -61,9 +89,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
     setState(() => _isSubmitting = true);
     try {
       await BackendApi.instance.register(
-        fullName: _nameController.text.trim(),
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
+        fullName: name,
+        email: email,
+        password: password,
       );
     } on ApiException catch (e) {
       if (!mounted) return;

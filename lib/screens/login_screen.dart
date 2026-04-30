@@ -6,6 +6,7 @@ import 'package:museamigo/app_routes.dart';
 import 'package:museamigo/services/backend_api.dart';
 import 'package:museamigo/session.dart';
 import 'package:museamigo/widgets/auth_form_widgets.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -22,6 +23,43 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isSubmitting = false;
 
   @override
+  void initState() {
+    super.initState();
+    _loadSavedCredentials();
+  }
+
+  Future<void> _loadSavedCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedEmail = prefs.getString('saved_email');
+    final savedPassword = prefs.getString('saved_password');
+    final rememberMe = prefs.getBool('remember_me') ?? false;
+    if (savedEmail != null) {
+      _emailController.text = savedEmail;
+    }
+    if (savedPassword != null && rememberMe) {
+      _passwordController.text = savedPassword;
+    }
+    if (mounted) {
+      setState(() {
+        _rememberMe = rememberMe;
+      });
+    }
+  }
+
+  Future<void> _saveCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (_rememberMe) {
+      await prefs.setString('saved_email', _emailController.text.trim());
+      await prefs.setString('saved_password', _passwordController.text);
+      await prefs.setBool('remember_me', true);
+    } else {
+      await prefs.remove('saved_email');
+      await prefs.remove('saved_password');
+      await prefs.setBool('remember_me', false);
+    }
+  }
+
+  @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
@@ -36,6 +74,7 @@ class _LoginScreenState extends State<LoginScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
+      await _saveCredentials();
       AppSession.userId.value = result.userId;
       AppSession.fullName.value = result.fullName;
     } on SocketException catch (e) {

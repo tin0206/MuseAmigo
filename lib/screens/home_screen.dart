@@ -3,6 +3,7 @@ import 'package:museamigo/app_routes.dart';
 import 'package:museamigo/l10n/translations.dart';
 import 'package:museamigo/profile_notifier.dart';
 import 'package:museamigo/language_notifier.dart';
+import 'package:museamigo/session.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -12,54 +13,112 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  static const _areas = <_AreaItem>[
-    _AreaItem(label: 'Exhibition of paintings', sublabel: 'Hall C'),
-    _AreaItem(label: 'Exhibition of weapons', sublabel: 'Ground Floor'),
-    _AreaItem(label: 'Colonial History', sublabel: 'Hall A'),
-  ];
+  List<_AreaItem> _areasForMuseum(int museumId) {
+    switch (museumId) {
+      case 2: // War Remnants Museum
+        return const [
+          _AreaItem(label: 'War Artifacts', sublabel: 'Hall A'),
+          _AreaItem(label: 'Photography Exhibit', sublabel: 'Hall B'),
+          _AreaItem(label: 'Outdoor Collection', sublabel: 'Courtyard'),
+        ];
+      case 3: // HCMC Museum of Fine Arts
+        return const [
+          _AreaItem(label: 'Modern Art', sublabel: 'Hall 1'),
+          _AreaItem(label: 'Traditional Lacquer', sublabel: 'Hall 2'),
+          _AreaItem(label: 'Sculpture Garden', sublabel: 'Ground Floor'),
+        ];
+      case 4: // Ho Chi Minh City Museum
+        return const [
+          _AreaItem(label: 'City History', sublabel: 'Floor 1'),
+          _AreaItem(label: 'Archaeology', sublabel: 'Floor 2'),
+          _AreaItem(label: 'Cultural Heritage', sublabel: 'Hall A'),
+        ];
+      default: // Independence Palace
+        return const [
+          _AreaItem(label: 'Exhibition of paintings', sublabel: 'Hall C'),
+          _AreaItem(label: 'Exhibition of weapons', sublabel: 'Ground Floor'),
+          _AreaItem(label: 'Colonial History', sublabel: 'Hall A'),
+        ];
+    }
+  }
 
-  static const _artifacts = <_ArtifactItem>[
-    _ArtifactItem(
-      name: 'Money Frame',
-      period: '1800-1900',
-      color: Color(0xFFE8A04A),
-    ),
-    _ArtifactItem(name: 'AK47', period: '1942-1947', color: Color(0xFF6B7A8D)),
-    _ArtifactItem(
-      name: 'War Photograph',
-      period: '1965-1975',
-      color: Color(0xFF8B5E3C),
-    ),
-  ];
+  List<_ArtifactItem> _artifactsForMuseum(int museumId) {
+    switch (museumId) {
+      case 2: // War Remnants Museum
+        return const [
+          _ArtifactItem(name: 'Tiger Cages', period: '1960s', color: Color(0xFF6B7A8D)),
+          _ArtifactItem(name: 'Guillotine', period: 'Early 1900s', color: Color(0xFF8B5E3C)),
+          _ArtifactItem(name: 'Bomb Casings', period: '1965-1975', color: Color(0xFF5E5E5E)),
+        ];
+      case 3: // HCMC Museum of Fine Arts
+        return const [
+          _ArtifactItem(name: 'Lacquer Painting', period: '1942', color: Color(0xFFE8A04A)),
+          _ArtifactItem(name: 'Buddhist Statue', period: '17th Century', color: Color(0xFF4A6A8A)),
+          _ArtifactItem(name: 'Silk Painting', period: '1930s', color: Color(0xFF8A4A6A)),
+        ];
+      case 4: // Ho Chi Minh City Museum
+        return const [
+          _ArtifactItem(name: 'Traditional Ao Dai', period: '1930s', color: Color(0xFF8A4A6A)),
+          _ArtifactItem(name: 'Saigon Map 1930', period: '1930', color: Color(0xFF5E8A6E)),
+          _ArtifactItem(name: 'Ancient Coins', period: '1800-1900', color: Color(0xFFE8A04A)),
+        ];
+      default: // Independence Palace
+        return const [
+          _ArtifactItem(name: 'Money Frame', period: '1800-1900', color: Color(0xFFE8A04A)),
+          _ArtifactItem(name: 'AK47', period: '1942-1947', color: Color(0xFF6B7A8D)),
+          _ArtifactItem(name: 'War Photograph', period: '1965-1975', color: Color(0xFF8B5E3C)),
+        ];
+    }
+  }
 
-  static const _secondFloorArtifacts = <_ArtifactItem>[
-    _ArtifactItem(
-      name: 'Ancient Vase',
-      period: '200-400 AD',
-      color: Color(0xFF5E8A6E),
-    ),
-    _ArtifactItem(
-      name: 'Bronze Cannon',
-      period: '1700-1800',
-      color: Color(0xFF7A5C3A),
-    ),
-    _ArtifactItem(
-      name: 'Royal Seal',
-      period: '1600-1700',
-      color: Color(0xFF4A6A8A),
-    ),
-    _ArtifactItem(
-      name: 'Silk Robe',
-      period: '1800-1900',
-      color: Color(0xFF8A4A6A),
-    ),
-  ];
+  List<_ArtifactItem> _secondFloorArtifactsForMuseum(int museumId) {
+    switch (museumId) {
+      case 2: // War Remnants Museum
+        return const [
+          _ArtifactItem(name: 'Agent Orange Documents', period: '1960s', color: Color(0xFF5E8A6E)),
+          _ArtifactItem(name: 'Military Uniforms', period: '1940-1975', color: Color(0xFF7A5C3A)),
+          _ArtifactItem(name: 'Propaganda Posters', period: '1960s', color: Color(0xFF4A6A8A)),
+          _ArtifactItem(name: 'Helicopter Parts', period: '1970s', color: Color(0xFF8A4A6A)),
+        ];
+      case 3: // HCMC Museum of Fine Arts
+        return const [
+          _ArtifactItem(name: 'Oil Portrait', period: '1950s', color: Color(0xFF5E8A6E)),
+          _ArtifactItem(name: 'Ceramic Vase', period: '15th Century', color: Color(0xFF7A5C3A)),
+          _ArtifactItem(name: 'Watercolor Landscape', period: '1940s', color: Color(0xFF4A6A8A)),
+          _ArtifactItem(name: 'Wood Carving', period: '18th Century', color: Color(0xFF8A4A6A)),
+        ];
+      case 4: // Ho Chi Minh City Museum
+        return const [
+          _ArtifactItem(name: 'Colonial Documents', period: '1880s', color: Color(0xFF5E8A6E)),
+          _ArtifactItem(name: 'River Boat Model', period: '1900s', color: Color(0xFF7A5C3A)),
+          _ArtifactItem(name: 'Trade Ceramics', period: '17th Century', color: Color(0xFF4A6A8A)),
+          _ArtifactItem(name: 'Ethnic Costume', period: '1800s', color: Color(0xFF8A4A6A)),
+        ];
+      default: // Independence Palace
+        return const [
+          _ArtifactItem(name: 'Ancient Vase', period: '200-400 AD', color: Color(0xFF5E8A6E)),
+          _ArtifactItem(name: 'Bronze Cannon', period: '1700-1800', color: Color(0xFF7A5C3A)),
+          _ArtifactItem(name: 'Royal Seal', period: '1600-1700', color: Color(0xFF4A6A8A)),
+          _ArtifactItem(name: 'Silk Robe', period: '1800-1900', color: Color(0xFF8A4A6A)),
+        ];
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([profileNotifier, languageNotifier]),
+      listenable: Listenable.merge([
+        profileNotifier,
+        languageNotifier,
+        AppSession.currentMuseumName,
+      ]),
       builder: (context, _) {
+        final museumId = AppSession.currentMuseumId.value;
+        final museumName = AppSession.currentMuseumName.value;
+        final areas = _areasForMuseum(museumId);
+        final artifacts = _artifactsForMuseum(museumId);
+        final secondFloorArtifacts = _secondFloorArtifactsForMuseum(museumId);
+
         return Scaffold(
           backgroundColor: Colors.white,
           body: SafeArea(
@@ -163,7 +222,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: Text(
-                            'You are exploring the Independence Palace'.tr,
+                            '${'You are exploring the'.tr} $museumName',
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                               fontSize: 14,
@@ -188,16 +247,16 @@ class _HomeScreenState extends State<HomeScreen> {
                           height: 180,
                           child: ListView.separated(
                             scrollDirection: Axis.horizontal,
-                            itemCount: _areas.length,
+                            itemCount: areas.length,
                             separatorBuilder: (_, __) =>
                                 const SizedBox(width: 14),
                             itemBuilder: (context, i) {
                               return _AreaCard(
-                                area: _areas[i],
+                                area: areas[i],
                                 onTap: () => Navigator.of(context).pushNamed(
                                   AppRoutes.search,
                                   arguments: {
-                                    'initialFilter': _areas[i].label,
+                                    'initialFilter': areas[i].label,
                                     'showResults': true,
                                   },
                                 ),
@@ -219,16 +278,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(height: 12),
                         ...List.generate(
-                          _artifacts.length,
+                          artifacts.length,
                           (i) => _ArtifactRow(
-                            item: _artifacts[i],
+                            item: artifacts[i],
                             onTap: () => Navigator.of(context).pushNamed(
                               AppRoutes.artifactDetail,
                               arguments: <String, dynamic>{
-                                'title': _artifacts[i].name,
-                                'year': _artifacts[i].period,
+                                'title': artifacts[i].name,
+                                'year': artifacts[i].period,
                                 'location': 'Ground Floor',
-                                'currentLocation': 'Independence Palace',
+                                'currentLocation': museumName,
                                 'height': '~2.4 meters',
                                 'weight': '~39.7 tons',
                                 'imageAsset': 'assets/images/museum.jpg',
@@ -251,16 +310,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(height: 12),
                         ...List.generate(
-                          _secondFloorArtifacts.length,
+                          secondFloorArtifacts.length,
                           (i) => _ArtifactRow(
-                            item: _secondFloorArtifacts[i],
+                            item: secondFloorArtifacts[i],
                             onTap: () => Navigator.of(context).pushNamed(
                               AppRoutes.artifactDetail,
                               arguments: <String, dynamic>{
-                                'title': _secondFloorArtifacts[i].name,
-                                'year': _secondFloorArtifacts[i].period,
+                                'title': secondFloorArtifacts[i].name,
+                                'year': secondFloorArtifacts[i].period,
                                 'location': 'Floor 2',
-                                'currentLocation': 'Independence Palace',
+                                'currentLocation': museumName,
                                 'height': '~2.4 meters',
                                 'weight': '~39.7 tons',
                                 'imageAsset': 'assets/images/museum.jpg',

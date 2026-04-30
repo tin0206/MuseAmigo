@@ -23,7 +23,7 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
     _scanController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
-    )..repeat(reverse: true);
+    )..repeat();
   }
 
   @override
@@ -68,6 +68,9 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
         artifactId: artifact.id,
       );
 
+      // Notify listeners that the collection has changed
+      AppSession.collectionUpdated.value++;
+
       if (!mounted) return;
 
       // Navigate to artifact detail
@@ -77,7 +80,7 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
       } else if (code == 'IP-002') {
         audioAsset = 'assets/audio/t54_tank.mp3';
       }
-      
+
       Navigator.of(context).pushNamed(
         AppRoutes.artifactDetail,
         arguments: <String, dynamic>{
@@ -316,6 +319,47 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
                                     ),
                                   ],
                                 ),
+                              ),
+                              AnimatedBuilder(
+                                animation: _scanController,
+                                builder: (_, __) {
+                                  final top =
+                                      30 + (_scanController.value * 156);
+                                  return Positioned(
+                                    left: 16,
+                                    right: 16,
+                                    top: top,
+                                    child: Container(
+                                      height: 2.2,
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            Theme.of(context)
+                                                .colorScheme
+                                                .primary
+                                                .withValues(alpha: 0),
+                                            Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
+                                            Theme.of(context)
+                                                .colorScheme
+                                                .primary
+                                                .withValues(alpha: 0),
+                                          ],
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .primary
+                                                .withValues(alpha: 0.75),
+                                            blurRadius: 10,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
                             ],
                           ),

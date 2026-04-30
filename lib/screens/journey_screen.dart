@@ -22,16 +22,18 @@ class _JourneyScreenState extends State<JourneyScreen> {
   void initState() {
     super.initState();
     _loadAchievements();
-    AppSession.currentMuseumId.addListener(_onMuseumChanged);
+    AppSession.currentMuseumId.addListener(_onRefreshTrigger);
+    AppSession.collectionUpdated.addListener(_onRefreshTrigger);
   }
 
   @override
   void dispose() {
-    AppSession.currentMuseumId.removeListener(_onMuseumChanged);
+    AppSession.currentMuseumId.removeListener(_onRefreshTrigger);
+    AppSession.collectionUpdated.removeListener(_onRefreshTrigger);
     super.dispose();
   }
 
-  void _onMuseumChanged() {
+  void _onRefreshTrigger() {
     _loadAchievements();
   }
 
@@ -399,7 +401,9 @@ class _ProgressCard extends StatelessWidget {
   const _ProgressCard({required this.unlockedCount});
 
   final int unlockedCount;
-  static const int _max = 15;
+
+  /// Linear progress proportional to scan count (max 15).
+  double get _progressValue => unlockedCount >= 15 ? 1.0 : unlockedCount / 15.0;
 
   @override
   Widget build(BuildContext context) {
@@ -426,48 +430,57 @@ class _ProgressCard extends StatelessWidget {
                 ),
               ),
               Text(
-                '$unlockedCount/$_max',
+                '$unlockedCount/15',
                 style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
               ),
             ],
           ),
           const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(3),
-            child: LinearProgressIndicator(
-              minHeight: 6,
-              value: unlockedCount / _max,
-              backgroundColor: const Color(0xFFD6D8DD),
-              valueColor: AlwaysStoppedAnimation<Color>(
-                Theme.of(context).colorScheme.primary,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(3),
+              child: LinearProgressIndicator(
+                minHeight: 6,
+                value: _progressValue,
+                backgroundColor: const Color(0xFFD6D8DD),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  Theme.of(context).colorScheme.primary,
+                ),
               ),
             ),
           ),
           const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _ProgressStep(
-                label: '2',
-                icon: unlockedCount >= 2 ? Icons.emoji_events_outlined : Icons.lock_outline,
-                active: unlockedCount >= 2,
-              ),
-              _ProgressStep(
-                label: '5',
-                icon: unlockedCount >= 5 ? Icons.emoji_events_outlined : Icons.lock_outline,
-                active: unlockedCount >= 5,
-              ),
-              _ProgressStep(
-                label: '10',
-                icon: unlockedCount >= 10 ? Icons.emoji_events_outlined : Icons.lock_outline,
-                active: unlockedCount >= 10,
-              ),
-              _ProgressStep(
-                label: '15',
-                icon: unlockedCount >= 15 ? Icons.emoji_events_outlined : Icons.lock_outline,
-                active: unlockedCount >= 15,
-              ),
-            ],
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              children: [
+                Expanded(flex: 2, child: SizedBox()),
+                _ProgressStep(
+                  label: '2',
+                  icon: unlockedCount >= 2 ? Icons.emoji_events_outlined : Icons.lock_outline,
+                  active: unlockedCount >= 2,
+                ),
+                Expanded(flex: 3, child: SizedBox()),
+                _ProgressStep(
+                  label: '5',
+                  icon: unlockedCount >= 5 ? Icons.emoji_events_outlined : Icons.lock_outline,
+                  active: unlockedCount >= 5,
+                ),
+                Expanded(flex: 5, child: SizedBox()),
+                _ProgressStep(
+                  label: '10',
+                  icon: unlockedCount >= 10 ? Icons.emoji_events_outlined : Icons.lock_outline,
+                  active: unlockedCount >= 10,
+                ),
+                Expanded(flex: 5, child: SizedBox()),
+                _ProgressStep(
+                  label: '15',
+                  icon: unlockedCount >= 15 ? Icons.emoji_events_outlined : Icons.lock_outline,
+                  active: unlockedCount >= 15,
+                ),
+              ],
+            ),
           ),
         ],
       ),
