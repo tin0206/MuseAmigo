@@ -1,4 +1,5 @@
 import 'package:museamigo/app_routes.dart';
+import 'package:museamigo/services/audio_assets.dart';
 import 'package:flutter/material.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -516,7 +517,7 @@ class _ResultCard extends StatelessWidget {
         'height': '~2.4 meters',
         'weight': '~39.7 tons',
         'imageAsset': 'assets/images/museum.jpg',
-        'audioAsset': '',
+        'audioAsset': AudioAssets.standardPath,
         // 'modelAsset': item.has3dModel ? 'assets/models/${item.modelName}.obj' : '', // Temporarily commented
       },
     );

@@ -4,6 +4,7 @@ import 'package:museamigo/l10n/translations.dart';
 import 'package:museamigo/profile_notifier.dart';
 import 'package:museamigo/language_notifier.dart';
 import 'package:museamigo/session.dart';
+import 'package:museamigo/services/audio_assets.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -291,7 +292,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 'height': '~2.4 meters',
                                 'weight': '~39.7 tons',
                                 'imageAsset': 'assets/images/museum.jpg',
-                                'audioAsset': '',
+                                'audioAsset': AudioAssets.standardPath,
                               },
                             ),
                           ),
@@ -323,7 +324,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 'height': '~2.4 meters',
                                 'weight': '~39.7 tons',
                                 'imageAsset': 'assets/images/museum.jpg',
-                                'audioAsset': '',
+                                'audioAsset': AudioAssets.standardPath,
                               },
                             ),
                           ),

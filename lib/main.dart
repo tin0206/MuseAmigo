@@ -15,6 +15,7 @@ import 'package:museamigo/screens/edit_profile_screen.dart';
 import 'package:museamigo/screens/achievements_screen.dart';
 import 'package:museamigo/screens/onboarding_flow_screen.dart';
 import 'package:museamigo/screens/sign_up_screen.dart';
+import 'package:museamigo/services/audio_assets.dart';
 
 import 'package:museamigo/language_notifier.dart';
 import 'package:museamigo/profile_notifier.dart';
@@ -108,7 +109,7 @@ class MuseAmigoApp extends StatelessWidget {
                   imageAsset:
                       args?['imageAsset'] as String? ??
                       'assets/images/museum.jpg',
-                  audioAsset: args?['audioAsset'] as String? ?? '',
+                  audioAsset: args?['audioAsset'] as String? ?? AudioAssets.standardPath,
                   // modelAsset: args?['modelAsset'] as String? ?? '', // Temporarily commented
                 ),
               );
