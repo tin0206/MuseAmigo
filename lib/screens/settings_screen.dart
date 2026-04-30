@@ -19,6 +19,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _autoPlay = false;
   bool _indoorNavigation = true;
   String _fontSize = 'Medium';
+  double _horizontalDragDistance = 0;
+  bool _isEdgeSwipe = false;
+  bool _hasPoppedBySwipe = false;
+
+  void _handleSwipeStart(DragStartDetails details) {
+    _horizontalDragDistance = 0;
+    _hasPoppedBySwipe = false;
+    _isEdgeSwipe = details.globalPosition.dx <= 32;
+  }
+
+  void _handleSwipeUpdate(DragUpdateDetails details) {
+    if (!_isEdgeSwipe || _hasPoppedBySwipe) return;
+    final delta = details.primaryDelta ?? 0;
+    if (delta <= 0) return;
+    _horizontalDragDistance += delta;
+    if (_horizontalDragDistance > 90 && Navigator.of(context).canPop()) {
+      _hasPoppedBySwipe = true;
+      Navigator.of(context).pop();
+    }
+  }
+
+  void _handleSwipeEnd(DragEndDetails details) {
+    _horizontalDragDistance = 0;
+    _isEdgeSwipe = false;
+    _hasPoppedBySwipe = false;
+  }
 
   void _showColorSchemeDialog(BuildContext context) {
     const quickPicks = [
@@ -253,7 +279,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-
   void _showLanguageDialog(BuildContext context) {
     String temp = languageNotifier.currentLanguage;
     showDialog<void>(
@@ -380,7 +405,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, ss) => Dialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
             child: Column(
@@ -418,7 +445,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const SizedBox(height: 16),
                 ...FontSizeLevel.values.map((level) {
                   final sel = temp == level;
-                  String label = level.name[0].toUpperCase() + level.name.substring(1);
+                  String label =
+                      level.name[0].toUpperCase() + level.name.substring(1);
                   return GestureDetector(
                     onTap: () => ss(() => temp = level),
                     child: Container(
@@ -429,7 +457,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       decoration: BoxDecoration(
                         color: sel
-                            ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.08)
+                            ? Theme.of(
+                                context,
+                              ).colorScheme.primary.withValues(alpha: 0.08)
                             : const Color(0xFFF3F4F6),
                         borderRadius: BorderRadius.circular(10),
                         border: sel
@@ -445,7 +475,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               label.tr,
                               style: TextStyle(
                                 fontSize: 15,
-                                fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
+                                fontWeight: sel
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
                                 color: sel
                                     ? Theme.of(context).colorScheme.primary
                                     : const Color(0xFF374151),
@@ -963,217 +995,240 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge(
-          [profileNotifier, languageNotifier, themeNotifier, fontSizeNotifier]),
+      listenable: Listenable.merge([
+        profileNotifier,
+        languageNotifier,
+        themeNotifier,
+        fontSizeNotifier,
+      ]),
       builder: (context, _) {
         return Scaffold(
           backgroundColor: const Color(0xFFF3F4F6),
           body: SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(14, 6, 14, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Settings'.tr,
-                    style: const TextStyle(
-                      fontSize: 38,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF171A21),
+            child: GestureDetector(
+              onHorizontalDragStart: _handleSwipeStart,
+              onHorizontalDragUpdate: _handleSwipeUpdate,
+              onHorizontalDragEnd: _handleSwipeEnd,
+              onHorizontalDragCancel: () {
+                _horizontalDragDistance = 0;
+                _isEdgeSwipe = false;
+                _hasPoppedBySwipe = false;
+              },
+              behavior: HitTestBehavior.translucent,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(14, 6, 14, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Settings'.tr,
+                      style: const TextStyle(
+                        fontSize: 38,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF171A21),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Customize your museum experience'.tr,
-                    style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-                  ),
-                  const SizedBox(height: 12),
-                  Material(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    child: InkWell(
+                    const SizedBox(height: 2),
+                    Text(
+                      'Customize your museum experience'.tr,
+                      style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                    ),
+                    const SizedBox(height: 12),
+                    Material(
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(14),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(14),
+                        onTap: () => Navigator.of(
+                          context,
+                        ).pushNamed(AppRoutes.editProfile),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 50,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                  ),
+                                ),
+                                child: ClipOval(
+                                  child: Image.asset(
+                                    'assets/images/model.png',
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      profileNotifier.name,
+                                      style: const TextStyle(
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      profileNotifier.email,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Color(0xFF6B7280),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(
+                                Icons.chevron_right,
+                                color: Color(0xFF9CA3AF),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _SectionLabel(text: 'APPEARANCE'.tr),
+                    const SizedBox(height: 8),
+                    _ToggleTile(
+                      icon: Icons.wb_sunny_outlined,
+                      title: 'Theme',
+                      subtitle: _themeLight ? 'Light' : 'Dark',
+                      value: _themeLight,
+                      onChanged: (v) => setState(() => _themeLight = v),
+                    ),
+                    const SizedBox(height: 8),
+                    _ArrowTile(
+                      icon: Icons.palette_outlined,
+                      title: 'Color Scheme',
+                      subtitle: 'Custom',
+                      trailingDot: true,
+                      onTap: () => _showColorSchemeDialog(context),
+                    ),
+                    const SizedBox(height: 8),
+                    _ArrowTile(
+                      icon: Icons.text_fields_rounded,
+                      title: 'Font Size',
+                      subtitle: fontSizeNotifier.levelName,
+                      onTap: () => _showFontSizeDialog(context),
+                    ),
+                    const SizedBox(height: 16),
+                    _SectionLabel(text: 'MUSEUM EXPERIENCE'.tr),
+                    const SizedBox(height: 8),
+                    _ArrowTile(
+                      icon: Icons.language_outlined,
+                      title: 'Language',
+                      subtitle: languageNotifier.currentLanguage,
+                      onTap: () => _showLanguageDialog(context),
+                    ),
+                    const SizedBox(height: 8),
+                    _ToggleTile(
+                      icon: Icons.record_voice_over_outlined,
+                      title: 'Audio Guide',
+                      subtitle: 'Narrated tours',
+                      value: _audioGuide,
+                      onChanged: (v) => setState(() => _audioGuide = v),
+                    ),
+                    const SizedBox(height: 8),
+                    _ToggleTile(
+                      icon: Icons.play_circle_outline,
+                      title: 'Auto-Play Tours',
+                      subtitle: 'Automatic playback',
+                      value: _autoPlay,
+                      onChanged: (v) => setState(() => _autoPlay = v),
+                    ),
+                    const SizedBox(height: 8),
+                    _ToggleTile(
+                      icon: Icons.location_on_outlined,
+                      title: 'Indoor Navigation',
+                      subtitle: 'Track your location',
+                      value: _indoorNavigation,
+                      onChanged: (v) => setState(() => _indoorNavigation = v),
+                    ),
+                    const SizedBox(height: 16),
+                    _SectionLabel(text: 'ACCOUNT & PRIVACY'.tr),
+                    const SizedBox(height: 8),
+                    _ArrowTile(
+                      icon: Icons.shield_outlined,
+                      title: 'Privacy & Security',
+                      subtitle: 'Data preferences',
+                      onTap: () => _showPrivacySecurityDialog(context),
+                    ),
+                    const SizedBox(height: 8),
+                    _ArrowTile(
+                      icon: Icons.confirmation_number_outlined,
+                      title: 'My Tickets',
+                      subtitle: 'View bookings',
+                      onTap: () =>
+                          Navigator.of(context).pushNamed(AppRoutes.myTickets),
+                    ),
+                    const SizedBox(height: 8),
+                    _ArrowTile(
+                      icon: Icons.emoji_events_outlined,
+                      title: 'Achievements',
+                      subtitle: 'View badges',
                       onTap: () => Navigator.of(
                         context,
-                      ).pushNamed(AppRoutes.editProfile),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 50,
-                              height: 50,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                              ),
-                              child: ClipOval(
-                                child: Image.asset(
-                                  'assets/images/model.png',
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    profileNotifier.name,
-                                    style: const TextStyle(
-                                      fontSize: 17,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    profileNotifier.email,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Color(0xFF6B7280),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const Icon(
-                              Icons.chevron_right,
-                              color: Color(0xFF9CA3AF),
-                            ),
-                          ],
+                      ).pushNamed(AppRoutes.achievements),
+                    ),
+                    const SizedBox(height: 16),
+                    _SectionLabel(text: 'SUPPORT'.tr),
+                    const SizedBox(height: 8),
+                    const _ArrowTile(
+                      icon: Icons.help_outline,
+                      title: 'Help Center',
+                      subtitle: 'FAQs & guides',
+                    ),
+                    const SizedBox(height: 8),
+                    const _ArrowTile(
+                      icon: Icons.info_outline,
+                      title: 'About',
+                      subtitle: 'Version 2.4.3',
+                    ),
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _showLogoutConfirmDialog(context),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Theme.of(
+                            context,
+                          ).colorScheme.primary,
+                          side: const BorderSide(color: Color(0xFFEFCDD0)),
+                          backgroundColor: const Color(0xFFFFF5F5),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        icon: const Icon(Icons.logout_rounded),
+                        label: Text(
+                          'Log Out'.tr,
+                          style: TextStyle(fontWeight: FontWeight.w700),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  _SectionLabel(text: 'APPEARANCE'.tr),
-                  const SizedBox(height: 8),
-                  _ToggleTile(
-                    icon: Icons.wb_sunny_outlined,
-                    title: 'Theme',
-                    subtitle: _themeLight ? 'Light' : 'Dark',
-                    value: _themeLight,
-                    onChanged: (v) => setState(() => _themeLight = v),
-                  ),
-                  const SizedBox(height: 8),
-                  _ArrowTile(
-                    icon: Icons.palette_outlined,
-                    title: 'Color Scheme',
-                    subtitle: 'Custom',
-                    trailingDot: true,
-                    onTap: () => _showColorSchemeDialog(context),
-                  ),
-                  const SizedBox(height: 8),
-                  _ArrowTile(
-                    icon: Icons.text_fields_rounded,
-                    title: 'Font Size',
-                    subtitle: fontSizeNotifier.levelName,
-                    onTap: () => _showFontSizeDialog(context),
-                  ),
-                  const SizedBox(height: 16),
-                  _SectionLabel(text: 'MUSEUM EXPERIENCE'.tr),
-                  const SizedBox(height: 8),
-                  _ArrowTile(
-                    icon: Icons.language_outlined,
-                    title: 'Language',
-                    subtitle: languageNotifier.currentLanguage,
-                    onTap: () => _showLanguageDialog(context),
-                  ),
-                  const SizedBox(height: 8),
-                  _ToggleTile(
-                    icon: Icons.record_voice_over_outlined,
-                    title: 'Audio Guide',
-                    subtitle: 'Narrated tours',
-                    value: _audioGuide,
-                    onChanged: (v) => setState(() => _audioGuide = v),
-                  ),
-                  const SizedBox(height: 8),
-                  _ToggleTile(
-                    icon: Icons.play_circle_outline,
-                    title: 'Auto-Play Tours',
-                    subtitle: 'Automatic playback',
-                    value: _autoPlay,
-                    onChanged: (v) => setState(() => _autoPlay = v),
-                  ),
-                  const SizedBox(height: 8),
-                  _ToggleTile(
-                    icon: Icons.location_on_outlined,
-                    title: 'Indoor Navigation',
-                    subtitle: 'Track your location',
-                    value: _indoorNavigation,
-                    onChanged: (v) => setState(() => _indoorNavigation = v),
-                  ),
-                  const SizedBox(height: 16),
-                  _SectionLabel(text: 'ACCOUNT & PRIVACY'.tr),
-                  const SizedBox(height: 8),
-                  _ArrowTile(
-                    icon: Icons.shield_outlined,
-                    title: 'Privacy & Security',
-                    subtitle: 'Data preferences',
-                    onTap: () => _showPrivacySecurityDialog(context),
-                  ),
-                  const SizedBox(height: 8),
-                  _ArrowTile(
-                    icon: Icons.confirmation_number_outlined,
-                    title: 'My Tickets',
-                    subtitle: 'View bookings',
-                    onTap: () =>
-                        Navigator.of(context).pushNamed(AppRoutes.myTickets),
-                  ),
-                  const SizedBox(height: 8),
-                  _ArrowTile(
-                    icon: Icons.emoji_events_outlined,
-                    title: 'Achievements',
-                    subtitle: 'View badges',
-                    onTap: () =>
-                        Navigator.of(context).pushNamed(AppRoutes.achievements),
-                  ),
-                  const SizedBox(height: 16),
-                  _SectionLabel(text: 'SUPPORT'.tr),
-                  const SizedBox(height: 8),
-                  const _ArrowTile(
-                    icon: Icons.help_outline,
-                    title: 'Help Center',
-                    subtitle: 'FAQs & guides',
-                  ),
-                  const SizedBox(height: 8),
-                  const _ArrowTile(
-                    icon: Icons.info_outline,
-                    title: 'About',
-                    subtitle: 'Version 2.4.3',
-                  ),
-                  const SizedBox(height: 14),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () => _showLogoutConfirmDialog(context),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Theme.of(context).colorScheme.primary,
-                        side: const BorderSide(color: Color(0xFFEFCDD0)),
-                        backgroundColor: const Color(0xFFFFF5F5),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    const SizedBox(height: 10),
+                    const Center(
+                      child: Text(
+                        'MuseAmigo · MobileDev252HCMUT',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Color(0xFFB4BAC5),
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      icon: const Icon(Icons.logout_rounded),
-                      label: Text(
-                        'Log Out'.tr,
-                        style: TextStyle(fontWeight: FontWeight.w700),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  const Center(
-                    child: Text(
-                      'MuseAmigo · MobileDev252HCMUT',
-                      style: TextStyle(fontSize: 10, color: Color(0xFFB4BAC5)),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
