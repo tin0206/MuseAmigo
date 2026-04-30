@@ -33,6 +33,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   Future<void> _submitSignUp() async {
     if (_isSubmitting) return;
+
+    // Validate all required fields are filled
+    if (_nameController.text.trim().isEmpty ||
+        _emailController.text.trim().isEmpty ||
+        _passwordController.text.isEmpty ||
+        _confirmPasswordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all the info')),
+      );
+      return;
+    }
+
     if (_passwordController.text != _confirmPasswordController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Password and confirmation must match.')),
