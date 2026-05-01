@@ -20,6 +20,9 @@ import 'package:museamigo/services/audio_assets.dart';
 import 'package:museamigo/language_notifier.dart';
 import 'package:museamigo/profile_notifier.dart';
 import 'package:museamigo/font_size_notifier.dart';
+import 'package:museamigo/achievement_notifier.dart';
+
+final GlobalKey<NavigatorState> globalNavigatorKey = GlobalKey<NavigatorState>();
 
 void main() {
   runApp(
@@ -41,17 +44,19 @@ class MuseAmigoApp extends StatelessWidget {
         languageNotifier,
         profileNotifier,
         fontSizeNotifier,
+        achievementNotifier,
       ]),
       builder: (context, _) {
         final primary = themeNotifier.primaryColor;
         return MaterialApp(
+          navigatorKey: globalNavigatorKey,
           debugShowCheckedModeBanner: false,
           locale: DevicePreview.locale(context),
           builder: (context, child) {
             final appChild = DevicePreview.appBuilder(context, child);
             return ListenableBuilder(
               listenable: Listenable.merge(
-                  [languageNotifier, profileNotifier, themeNotifier, fontSizeNotifier]),
+                  [languageNotifier, profileNotifier, themeNotifier, fontSizeNotifier, achievementNotifier]),
               builder: (context, child) {
                 return MediaQuery(
                   data: MediaQuery.of(context).copyWith(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:museamigo/l10n/translations.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:museamigo/services/audio_assets.dart';
+import 'package:museamigo/language_notifier.dart';
 // import 'package:flutter_3d_controller/flutter_3d_controller.dart'; // Temporarily commented
 
 class ArtifactDetailScreen extends StatefulWidget {
@@ -33,60 +34,12 @@ class ArtifactDetailScreen extends StatefulWidget {
 }
 
 class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
-  final AudioPlayer _audioPlayer = AudioPlayer();
-  bool _isPlaying = false;
-  bool _isLoading = false;
-  late final AssetSource _audioSource;
-
-  @override
-  void initState() {
-    super.initState();
-    _audioSource = widget.audioAsset.isEmpty || widget.audioAsset == AudioAssets.standardPath 
-        ? AudioAssets.getLocalizedSource() 
-        : AudioAssets.sourceFor(widget.audioAsset);
-    _audioPlayer.setSource(_audioSource);
-    _audioPlayer.onPlayerStateChanged.listen((state) {
-      if (state == PlayerState.completed) {
-        setState(() => _isPlaying = false);
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _audioPlayer.dispose();
-    super.dispose();
-  }
-
-  Future<void> _toggleAudio() async {
-    if (_isLoading) return;
-
-    if (_isPlaying) {
-      await _audioPlayer.pause();
-      setState(() => _isPlaying = false);
-    } else {
-      setState(() => _isLoading = true);
-      try {
-        // Resume preloaded source for instant playback
-        await _audioPlayer.resume();
-        setState(() {
-          _isPlaying = true;
-          _isLoading = false;
-        });
-      } catch (e) {
-        setState(() => _isLoading = false);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Audio file not found: $e')),
-          );
-        }
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return ListenableBuilder(
+      listenable: languageNotifier,
+      builder: (context, _) {
+        return Scaffold(
       backgroundColor: const Color(0xFFF2F2F2),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -152,49 +105,7 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
                 ],
               ),
               const SizedBox(height: 12),
-              // Audio Player Section - always show for testing
-              Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 12),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF3F3F3),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            'Audio Guide'.tr,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF171A21),
-                            ),
-                          ),
-                          const Spacer(),
-                          IconButton(
-                            onPressed: _toggleAudio,
-                            icon: Icon(
-                              _isPlaying ? Icons.pause : Icons.play_arrow,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (_isLoading)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 12),
-                          child: CircularProgressIndicator(),
-                        ),
-                      if (!_isLoading && _isPlaying)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 12),
-                          child: LinearProgressIndicator(),
-                        ),
-                    ],
-                  ),
-                ),
+              // Old Audio Player Section removed
               const SizedBox(height: 14),
               // 3D Model View Section - Temporarily commented out
               /*
@@ -255,73 +166,9 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              widget.title.tr,
-                              style: const TextStyle(
-                                fontSize: 30,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF171A21),
-                              ),
-                            ),
-                          ),
-                          Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primary,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.pause,
-                              color: Colors.white,
-                              size: 18,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Column(
-                        children: [
-                          SliderTheme(
-                            data: SliderTheme.of(context).copyWith(
-                              trackHeight: 3,
-                              thumbShape: const RoundSliderThumbShape(
-                                enabledThumbRadius: 5,
-                              ),
-                              activeTrackColor: Theme.of(
-                                context,
-                              ).colorScheme.primary,
-                              inactiveTrackColor: const Color(0xFFB5B5B5),
-                              thumbColor: Theme.of(context).colorScheme.primary,
-                            ),
-                            child: Slider(value: 0.55, onChanged: (_) {}),
-                          ),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 2),
-                            child: Row(
-                              children: [
-                                Text(
-                                  '00:48',
-                                  style: TextStyle(
-                                    color: Color(0xFF6D7785),
-                                    fontSize: 11,
-                                  ),
-                                ),
-                                Spacer(),
-                                Text(
-                                  '01:30',
-                                  style: TextStyle(
-                                    color: Color(0xFF6D7785),
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                      InlineAudioPlayer(
+                        audioAsset: widget.audioAsset,
+                        title: widget.title.tr,
                       ),
                       const SizedBox(height: 12),
                       _infoRow('Title:'.tr, widget.title.tr),
@@ -385,6 +232,8 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
         ),
       ),
     );
+      },
+    );
   }
 
   Widget _infoRow(String label, String value) {
@@ -408,6 +257,153 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class InlineAudioPlayer extends StatefulWidget {
+  final String audioAsset;
+  final String title;
+
+  const InlineAudioPlayer({super.key, required this.audioAsset, required this.title});
+
+  @override
+  State<InlineAudioPlayer> createState() => _InlineAudioPlayerState();
+}
+
+class _InlineAudioPlayerState extends State<InlineAudioPlayer> {
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  bool _isPlaying = false;
+  Duration _duration = Duration.zero;
+  Duration _position = Duration.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    final source = widget.audioAsset.isEmpty || widget.audioAsset == AudioAssets.standardPath 
+        ? AudioAssets.getLocalizedSource() 
+        : AudioAssets.sourceFor(widget.audioAsset);
+    
+    _audioPlayer.setSource(source).then((_) {
+      _audioPlayer.getDuration().then((d) {
+        if (d != null && mounted) setState(() => _duration = d);
+      });
+    });
+
+    _audioPlayer.onPlayerStateChanged.listen((state) {
+      if (mounted) {
+        setState(() {
+          _isPlaying = state == PlayerState.playing;
+          if (state == PlayerState.completed) {
+            _position = Duration.zero;
+            _isPlaying = false;
+          }
+        });
+      }
+    });
+
+    _audioPlayer.onDurationChanged.listen((newDuration) {
+      if (mounted) setState(() => _duration = newDuration);
+    });
+
+    _audioPlayer.onPositionChanged.listen((newPosition) {
+      if (mounted) setState(() => _position = newPosition);
+    });
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+
+  Future<void> _toggleAudio() async {
+    if (_isPlaying) {
+      await _audioPlayer.pause();
+    } else {
+      await _audioPlayer.resume();
+    }
+  }
+
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final seconds = twoDigits(duration.inSeconds.remainder(60));
+    return "$minutes:$seconds";
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                widget.title,
+                style: const TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF171A21),
+                ),
+              ),
+            ),
+            GestureDetector(
+              onTap: _toggleAudio,
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  _isPlaying ? Icons.pause : Icons.play_arrow,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            trackHeight: 3,
+            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
+            activeTrackColor: Theme.of(context).colorScheme.primary,
+            inactiveTrackColor: const Color(0xFFB5B5B5),
+            thumbColor: Theme.of(context).colorScheme.primary,
+            overlayShape: const RoundSliderOverlayShape(overlayRadius: 10),
+          ),
+          child: Slider(
+            min: 0.0,
+            max: _duration.inMilliseconds.toDouble() > 0 ? _duration.inMilliseconds.toDouble() : 1.0,
+            value: _position.inMilliseconds.toDouble().clamp(0.0, _duration.inMilliseconds.toDouble() > 0 ? _duration.inMilliseconds.toDouble() : 1.0),
+            onChanged: (value) {
+              final newPosition = Duration(milliseconds: value.toInt());
+              _audioPlayer.seek(newPosition);
+            },
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 2),
+          child: Row(
+            children: [
+              Text(
+                _formatDuration(_position),
+                style: const TextStyle(color: Color(0xFF6D7785), fontSize: 11),
+              ),
+              const Spacer(),
+              Text(
+                _formatDuration(_duration),
+                style: const TextStyle(color: Color(0xFF6D7785), fontSize: 11),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

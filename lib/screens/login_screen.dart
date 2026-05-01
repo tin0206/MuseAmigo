@@ -97,10 +97,10 @@ class _LoginScreenState extends State<LoginScreen> {
         context,
       ).showSnackBar(SnackBar(content: Text(e.message)));
       return;
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unable to login. Please try again.')),
+        SnackBar(content: Text('Unable to login: $e')),
       );
       return;
     } finally {

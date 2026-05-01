@@ -4,6 +4,7 @@ import 'package:museamigo/services/backend_api.dart';
 import 'package:museamigo/services/audio_assets.dart';
 import 'package:museamigo/app_routes.dart';
 import 'package:museamigo/session.dart';
+import 'package:museamigo/achievement_notifier.dart';
 
 class ArtifactScanScreen extends StatefulWidget {
   const ArtifactScanScreen({super.key});
@@ -71,6 +72,9 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
 
       // Notify listeners that the collection has changed
       AppSession.collectionUpdated.value++;
+
+      // UPDATE ACHIEVEMENT PROGRESS
+      achievementNotifier.updateProgress(currentMuseumId, 5); // Add 5 progress to current museum
 
       if (!mounted) return;
 
