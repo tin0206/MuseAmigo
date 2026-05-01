@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:museamigo/l10n/translations.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:museamigo/services/audio_assets.dart';
 // import 'package:flutter_3d_controller/flutter_3d_controller.dart'; // Temporarily commented
 
 class ArtifactDetailScreen extends StatefulWidget {
@@ -35,13 +36,15 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool _isPlaying = false;
   bool _isLoading = false;
-  static final _demoAudio = AssetSource('audio/sample.wav');
+  late final AssetSource _audioSource;
 
   @override
   void initState() {
     super.initState();
-    // Preload audio so playback starts instantly when user presses play
-    _audioPlayer.setSource(_demoAudio);
+    _audioSource = widget.audioAsset.isEmpty || widget.audioAsset == AudioAssets.standardPath 
+        ? AudioAssets.getLocalizedSource() 
+        : AudioAssets.sourceFor(widget.audioAsset);
+    _audioPlayer.setSource(_audioSource);
     _audioPlayer.onPlayerStateChanged.listen((state) {
       if (state == PlayerState.completed) {
         setState(() => _isPlaying = false);

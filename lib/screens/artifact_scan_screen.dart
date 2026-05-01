@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:museamigo/services/backend_api.dart';
+import 'package:museamigo/services/audio_assets.dart';
 import 'package:museamigo/app_routes.dart';
 import 'package:museamigo/session.dart';
 
@@ -74,7 +75,7 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
       if (!mounted) return;
 
       // Navigate to artifact detail
-      String audioAsset = '';
+      String audioAsset = AudioAssets.standardPath;
       if (code == 'IP-001') {
         audioAsset = 'assets/audio/presidential_desk.mp3';
       } else if (code == 'IP-002') {
