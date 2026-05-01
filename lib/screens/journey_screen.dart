@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:museamigo/app_routes.dart';
 import 'package:museamigo/l10n/translations.dart';
-import 'package:museamigo/services/backend_api.dart';
 import 'package:museamigo/session.dart';
 import 'package:museamigo/language_notifier.dart';
+import 'package:museamigo/achievement_notifier.dart';
 
 class JourneyScreen extends StatefulWidget {
   const JourneyScreen({super.key});
@@ -13,81 +13,43 @@ class JourneyScreen extends StatefulWidget {
 }
 
 class _JourneyScreenState extends State<JourneyScreen> {
-  List<Map<String, dynamic>> _achievements = [];
-  int _totalPoints = 0;
-  int _unlockedCount = 0;
-  bool _isLoading = true;
-  String? _error;
-
   @override
   void initState() {
     super.initState();
-    _loadAchievements();
-    AppSession.currentMuseumId.addListener(_onRefreshTrigger);
-    AppSession.collectionUpdated.addListener(_onRefreshTrigger);
+    // Listen for changes to refresh UI reactively
+    achievementNotifier.addListener(_onDataChanged);
   }
 
   @override
   void dispose() {
-    AppSession.currentMuseumId.removeListener(_onRefreshTrigger);
-    AppSession.collectionUpdated.removeListener(_onRefreshTrigger);
+    achievementNotifier.removeListener(_onDataChanged);
     super.dispose();
   }
 
-  void _onRefreshTrigger() {
-    _loadAchievements();
+  void _onDataChanged() {
+    if (mounted) setState(() {});
   }
 
-  Future<void> _loadAchievements() async {
-    setState(() => _isLoading = true);
-    try {
-      final userId = AppSession.userId.value;
-      if (userId == null) {
-        setState(() {
-          _error = 'User not logged in';
-          _isLoading = false;
-        });
-        return;
-      }
-
-      final museumId = AppSession.currentMuseumId.value;
-      final data = await BackendApi.instance.fetchUserAchievements(userId, museumId);
-      setState(() {
-        _achievements = List<Map<String, dynamic>>.from(data['achievements'] ?? []);
-        _totalPoints = data['total_points'] ?? 0;
-        _unlockedCount = data['unlocked_count'] ?? 0;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _error = 'Failed to load achievements: $e';
-        _isLoading = false;
-      });
-    }
-  }
-
-  IconData _getIconForAchievement(String requirementType) {
-    switch (requirementType) {
-      case 'scan_count':
-        return Icons.qr_code_scanner;
-      case 'museum_scan_count':
-        return Icons.museum;
-      case 'museum_visit':
-        return Icons.location_on;
-      case 'all_museums':
-        return Icons.public;
-      case 'area_complete':
-        return Icons.emoji_events;
-      default:
-        return Icons.star_border_rounded;
-    }
+  IconData _getIconForMilestone(int requiredScans) {
+    if (requiredScans <= 1) return Icons.qr_code_scanner;
+    if (requiredScans <= 3) return Icons.explore;
+    if (requiredScans <= 5) return Icons.psychology;
+    if (requiredScans <= 7) return Icons.map;
+    if (requiredScans <= 10) return Icons.emoji_events;
+    return Icons.star;
   }
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: languageNotifier,
+      listenable: Listenable.merge([languageNotifier, achievementNotifier]),
       builder: (context, _) {
+        // All data derived from the SAME source: achievementNotifier
+        final scanned = achievementNotifier.scannedCount;
+        final totalPoints = achievementNotifier.totalPoints;
+        final milestones = achievementNotifier.milestones;
+        final maxArtifacts = achievementNotifier.maxArtifacts;
+
         return Scaffold(
           backgroundColor: const Color(0xFFF3F4F6),
       body: SafeArea(
@@ -152,15 +114,15 @@ class _JourneyScreenState extends State<JourneyScreen> {
                 children: [
                   Expanded(
                     child: _StatCard(
-                      value: '$_unlockedCount',
+                      value: '$scanned',
                       label: 'Artifacts Discovered'.tr,
                       active: true,
                     ),
                   ),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: _StatCard(
-                      value: '$_totalPoints',
+                      value: '$totalPoints',
                       label: 'Points Earned'.tr,
                       active: false,
                     ),
@@ -168,7 +130,10 @@ class _JourneyScreenState extends State<JourneyScreen> {
                 ],
               ),
               const SizedBox(height: 12),
-              _ProgressCard(unlockedCount: _unlockedCount),
+              _ProgressCard(
+                scannedCount: scanned,
+                maxArtifacts: maxArtifacts,
+              ),
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -183,48 +148,33 @@ class _JourneyScreenState extends State<JourneyScreen> {
                     ),
                   ),
                   Text(
-                    '$_unlockedCount/${_achievements.length}',
+                    '${achievementNotifier.unlockedMilestoneCount}/${milestones.length}',
                     style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
                   ),
                 ],
               ),
               const SizedBox(height: 10),
-              if (_isLoading)
+              if (achievementNotifier.isLoading)
                 const Expanded(
                   child: Center(child: CircularProgressIndicator()),
-                )
-              else if (_error != null)
-                Expanded(
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(_error!),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: _loadAchievements,
-                          child: const Text('Retry'),
-                        ),
-                      ],
-                    ),
-                  ),
                 )
               else
                 Expanded(
                   child: ListView.builder(
-                    itemCount: _achievements.length,
+                    itemCount: milestones.length,
                     itemBuilder: (context, index) {
-                      final achievement = _achievements[index];
-                      final isCompleted = achievement['is_completed'] == true;
-                      final requirementType = achievement['requirement_type'] ?? '';
+                      final milestone = milestones[index];
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: _AchievementTile(
-                          title: (achievement['name'] ?? 'Unknown').toString().tr,
-                          subtitle: (achievement['description'] ?? '').toString().tr,
-                          points: isCompleted ? '+${achievement['points'] ?? 0} ${'points'.tr}' : '',
-                          icon: _getIconForAchievement(requirementType),
-                          unlocked: isCompleted,
+                          title: milestone.name.tr,
+                          subtitle: milestone.description.tr,
+                          points: milestone.isUnlocked
+                              ? '+${milestone.points} ${'points'.tr}'
+                              : '$scanned/${milestone.requiredScans}',
+                          icon: _getIconForMilestone(milestone.requiredScans),
+                          unlocked: milestone.isUnlocked,
+                          progress: (scanned / milestone.requiredScans).clamp(0.0, 1.0),
                         ),
                       );
                     },
@@ -404,12 +354,16 @@ class _StatCard extends StatelessWidget {
 }
 
 class _ProgressCard extends StatelessWidget {
-  const _ProgressCard({required this.unlockedCount});
+  const _ProgressCard({
+    required this.scannedCount,
+    required this.maxArtifacts,
+  });
 
-  final int unlockedCount;
+  final int scannedCount;
+  final int maxArtifacts;
 
-  /// Linear progress proportional to scan count (max 15).
-  double get _progressValue => unlockedCount >= 15 ? 1.0 : unlockedCount / 15.0;
+  double get _progressValue =>
+      scannedCount >= maxArtifacts ? 1.0 : scannedCount / maxArtifacts;
 
   @override
   Widget build(BuildContext context) {
@@ -436,7 +390,7 @@ class _ProgressCard extends StatelessWidget {
                 ),
               ),
               Text(
-                '$unlockedCount/15',
+                '$scannedCount/$maxArtifacts',
                 style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
               ),
             ],
@@ -461,29 +415,29 @@ class _ProgressCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(
               children: [
-                Expanded(flex: 2, child: SizedBox()),
+                const Expanded(flex: 2, child: SizedBox()),
                 _ProgressStep(
                   label: '2',
-                  icon: unlockedCount >= 2 ? Icons.emoji_events_outlined : Icons.lock_outline,
-                  active: unlockedCount >= 2,
+                  icon: scannedCount >= 2 ? Icons.emoji_events_outlined : Icons.lock_outline,
+                  active: scannedCount >= 2,
                 ),
-                Expanded(flex: 3, child: SizedBox()),
+                const Expanded(flex: 3, child: SizedBox()),
                 _ProgressStep(
                   label: '5',
-                  icon: unlockedCount >= 5 ? Icons.emoji_events_outlined : Icons.lock_outline,
-                  active: unlockedCount >= 5,
+                  icon: scannedCount >= 5 ? Icons.emoji_events_outlined : Icons.lock_outline,
+                  active: scannedCount >= 5,
                 ),
-                Expanded(flex: 5, child: SizedBox()),
+                const Expanded(flex: 5, child: SizedBox()),
                 _ProgressStep(
                   label: '10',
-                  icon: unlockedCount >= 10 ? Icons.emoji_events_outlined : Icons.lock_outline,
-                  active: unlockedCount >= 10,
+                  icon: scannedCount >= 10 ? Icons.emoji_events_outlined : Icons.lock_outline,
+                  active: scannedCount >= 10,
                 ),
-                Expanded(flex: 5, child: SizedBox()),
+                const Expanded(flex: 5, child: SizedBox()),
                 _ProgressStep(
                   label: '15',
-                  icon: unlockedCount >= 15 ? Icons.emoji_events_outlined : Icons.lock_outline,
-                  active: unlockedCount >= 15,
+                  icon: scannedCount >= 15 ? Icons.emoji_events_outlined : Icons.lock_outline,
+                  active: scannedCount >= 15,
                 ),
               ],
             ),
@@ -537,6 +491,7 @@ class _AchievementTile extends StatelessWidget {
     required this.points,
     required this.icon,
     required this.unlocked,
+    required this.progress,
   });
 
   final String title;
@@ -544,6 +499,7 @@ class _AchievementTile extends StatelessWidget {
   final String points;
   final IconData icon;
   final bool unlocked;
+  final double progress;
 
   @override
   Widget build(BuildContext context) {
@@ -595,6 +551,20 @@ class _AchievementTile extends StatelessWidget {
                     color: Color(0xFF6B7280),
                   ),
                 ),
+                if (!unlocked) ...[
+                  const SizedBox(height: 4),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(3),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 4,
+                      backgroundColor: const Color(0xFFD6D8DD),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Theme.of(context).colorScheme.primary.withValues(alpha: 0.6),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -608,7 +578,14 @@ class _AchievementTile extends StatelessWidget {
               ),
             )
           else
-            const Icon(Icons.lock_outline, color: Color(0xFF9CA3AF)),
+            Text(
+              points,
+              style: const TextStyle(
+                fontSize: 11,
+                color: Color(0xFF9CA3AF),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
         ],
       ),
     );

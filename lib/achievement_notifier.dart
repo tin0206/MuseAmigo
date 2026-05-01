@@ -10,113 +10,262 @@ import 'package:museamigo/session.dart';
 // DATA MODEL
 // ============================================================================
 
-class MuseumAchievement {
+/// Represents a single achievement milestone (e.g. "Scan 1 artifact").
+class AchievementMilestone {
   final int id;
-  String name;
-  int progress;
+  final String name;
+  final String description;
+  final int requiredScans;
+  final int points;
   bool isUnlocked;
-  Set<int> scannedArtifactIds;
 
-  MuseumAchievement({
+  AchievementMilestone({
     required this.id,
     required this.name,
-    this.progress = 0,
+    required this.description,
+    required this.requiredScans,
+    required this.points,
     this.isUnlocked = false,
-    Set<int>? scannedArtifactIds,
-  }) : scannedArtifactIds = scannedArtifactIds ?? {};
+  });
 
   Map<String, dynamic> toJson() => {
         'id': id,
         'name': name,
-        'progress': progress,
+        'description': description,
+        'requiredScans': requiredScans,
+        'points': points,
         'isUnlocked': isUnlocked,
-        'scannedArtifactIds': scannedArtifactIds.toList(),
       };
 
-  factory MuseumAchievement.fromJson(Map<String, dynamic> json) =>
-      MuseumAchievement(
+  factory AchievementMilestone.fromJson(Map<String, dynamic> json) =>
+      AchievementMilestone(
         id: json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 0,
-        name: json['name'],
-        progress: json['progress'] ?? 0,
+        name: json['name'] ?? '',
+        description: json['description'] ?? '',
+        requiredScans: json['requiredScans'] ?? 0,
+        points: json['points'] ?? 0,
         isUnlocked: json['isUnlocked'] ?? false,
-        scannedArtifactIds: (json['scannedArtifactIds'] as List<dynamic>?)
-                ?.map((e) => e as int)
-                .toSet() ??
-            {},
       );
 }
 
+/// Holds all progress data for a single museum.
+class MuseumProgress {
+  final int museumId;
+  String museumName;
+  Set<int> scannedArtifactIds;
+  int totalArtifactCount;
+  List<AchievementMilestone> milestones;
+
+  MuseumProgress({
+    required this.museumId,
+    required this.museumName,
+    Set<int>? scannedArtifactIds,
+    this.totalArtifactCount = 15,
+    List<AchievementMilestone>? milestones,
+  })  : scannedArtifactIds = scannedArtifactIds ?? {},
+        milestones = milestones ?? _defaultMilestones();
+
+  /// The single source of truth: number of scanned artifacts.
+  int get scannedCount => scannedArtifactIds.length;
+
+  /// Total points earned from unlocked milestones.
+  int get totalPoints =>
+      milestones.where((m) => m.isUnlocked).fold(0, (sum, m) => sum + m.points);
+
+  /// Number of unlocked milestones.
+  int get unlockedMilestoneCount =>
+      milestones.where((m) => m.isUnlocked).length;
+
+  /// Check and unlock milestones based on current scannedCount.
+  List<AchievementMilestone> evaluateMilestones() {
+    final newlyUnlocked = <AchievementMilestone>[];
+    for (final m in milestones) {
+      if (!m.isUnlocked && scannedCount >= m.requiredScans) {
+        m.isUnlocked = true;
+        newlyUnlocked.add(m);
+      }
+    }
+    return newlyUnlocked;
+  }
+
+  static List<AchievementMilestone> _defaultMilestones() => [
+        AchievementMilestone(
+          id: 1,
+          name: 'First Steps',
+          description: 'Scan your first artifact',
+          requiredScans: 1,
+          points: 10,
+        ),
+        AchievementMilestone(
+          id: 2,
+          name: 'Explorer',
+          description: 'Scan 2 artifacts',
+          requiredScans: 2,
+          points: 20,
+        ),
+        AchievementMilestone(
+          id: 3,
+          name: 'AR Pioneer',
+          description: 'Scan 3 artifacts',
+          requiredScans: 3,
+          points: 30,
+        ),
+        AchievementMilestone(
+          id: 4,
+          name: 'Curious Mind',
+          description: 'Scan 5 artifacts',
+          requiredScans: 5,
+          points: 50,
+        ),
+        AchievementMilestone(
+          id: 5,
+          name: 'Journey Mapper',
+          description: 'Scan 7 artifacts',
+          requiredScans: 7,
+          points: 70,
+        ),
+        AchievementMilestone(
+          id: 6,
+          name: 'Dynasty Master',
+          description: 'Scan 10 artifacts',
+          requiredScans: 10,
+          points: 100,
+        ),
+        AchievementMilestone(
+          id: 7,
+          name: 'Museum Expert',
+          description: 'Scan all 15 artifacts',
+          requiredScans: 15,
+          points: 150,
+        ),
+      ];
+
+  Map<String, dynamic> toJson() => {
+        'museumId': museumId,
+        'museumName': museumName,
+        'scannedArtifactIds': scannedArtifactIds.toList(),
+        'totalArtifactCount': totalArtifactCount,
+        'milestones': milestones.map((m) => m.toJson()).toList(),
+      };
+
+  factory MuseumProgress.fromJson(Map<String, dynamic> json) {
+    final milestonesJson = json['milestones'] as List<dynamic>?;
+    return MuseumProgress(
+      museumId: json['museumId'] as int,
+      museumName: json['museumName'] as String? ?? '',
+      scannedArtifactIds: (json['scannedArtifactIds'] as List<dynamic>?)
+              ?.map((e) => e as int)
+              .toSet() ??
+          {},
+      totalArtifactCount: json['totalArtifactCount'] as int? ?? 15,
+      milestones: milestonesJson != null
+          ? milestonesJson
+              .map((e) => AchievementMilestone.fromJson(e as Map<String, dynamic>))
+              .toList()
+          : _defaultMilestones(),
+    );
+  }
+}
+
 // ============================================================================
-// STATE MANAGEMENT & CORE LOGIC
+// STATE MANAGEMENT & CORE LOGIC  (Single Source of Truth)
 // ============================================================================
 
 class AchievementNotifier extends ChangeNotifier {
-  static const String _storageKey = 'user_achievements';
-  
+  static const String _storageKeyPrefix = 'museum_progress';
+
   String get _currentStorageKey {
     final uid = AppSession.userId.value;
-    return uid != null ? '${_storageKey}_$uid' : _storageKey;
+    return uid != null ? '${_storageKeyPrefix}_$uid' : _storageKeyPrefix;
   }
 
-  final int unlockThreshold = 15;
-  
-  List<MuseumAchievement> _achievements = [];
-  List<MuseumAchievement> get achievements => _achievements;
-  
+  /// Maximum number of artifacts per museum (used for collection progress bar).
+  final int maxArtifacts = 15;
+
+  /// Museum ID → MuseumProgress map.
+  final Map<int, MuseumProgress> _progressMap = {};
+
   bool _isLoading = true;
   bool get isLoading => _isLoading;
 
+  // ── Computed getters for the CURRENT museum ──
+
+  MuseumProgress? get currentProgress =>
+      _progressMap[AppSession.currentMuseumId.value];
+
+  /// Scanned artifact count for current museum (single source of truth).
+  int get scannedCount => currentProgress?.scannedCount ?? 0;
+
+  /// Total points for current museum.
+  int get totalPoints => currentProgress?.totalPoints ?? 0;
+
+  /// Milestones for current museum.
+  List<AchievementMilestone> get milestones =>
+      currentProgress?.milestones ?? [];
+
+  /// Unlocked milestone count for current museum.
+  int get unlockedMilestoneCount =>
+      currentProgress?.unlockedMilestoneCount ?? 0;
+
+  // ── Legacy compatibility: expose list for AchievementsScreen ──
+
+  /// All museum-level progress entries (for the grid in AchievementsScreen).
+  List<MuseumProgress> get allProgress => _progressMap.values.toList();
+
   AchievementNotifier() {
-    _initAchievements();
+    _initProgress();
     AppSession.userId.addListener(_onUserChanged);
+    AppSession.currentMuseumId.addListener(_onMuseumChanged);
   }
 
-  void _onUserChanged() {
-    _initAchievements();
-  }
+  void _onUserChanged() => _initProgress();
+  void _onMuseumChanged() => notifyListeners();
 
   @override
   void dispose() {
     AppSession.userId.removeListener(_onUserChanged);
+    AppSession.currentMuseumId.removeListener(_onMuseumChanged);
     super.dispose();
   }
 
-  Future<void> _initAchievements() async {
+  Future<void> _initProgress() async {
+    _isLoading = true;
+    notifyListeners();
+
     try {
-      debugPrint('[ACHIEVEMENTS] Fetching museum list from source...');
+      debugPrint('[ACHIEVEMENTS] Loading progress data...');
       final museums = await BackendApi.instance.fetchMuseums();
-      debugPrint('[ACHIEVEMENTS] Museums loaded: ${museums.map((m) => "${m.name} (${m.id})").toList()}');
 
       final prefs = await SharedPreferences.getInstance();
       final String? storedData = prefs.getString(_currentStorageKey);
-      
-      Map<int, MuseumAchievement> storedMap = {};
+
+      Map<int, MuseumProgress> storedMap = {};
       if (storedData != null) {
         final List<dynamic> decoded = jsonDecode(storedData);
         for (var item in decoded) {
-          final ach = MuseumAchievement.fromJson(item);
-          storedMap[ach.id] = ach;
+          final progress = MuseumProgress.fromJson(item as Map<String, dynamic>);
+          storedMap[progress.museumId] = progress;
         }
       }
 
-      _achievements = [];
+      _progressMap.clear();
       for (final museum in museums) {
         if (storedMap.containsKey(museum.id)) {
           final existing = storedMap[museum.id]!;
-          existing.name = museum.name; // Keep name synced
-          _achievements.add(existing);
+          existing.museumName = museum.name;
+          _progressMap[museum.id] = existing;
         } else {
-          _achievements.add(
-            MuseumAchievement(id: museum.id, name: museum.name),
+          _progressMap[museum.id] = MuseumProgress(
+            museumId: museum.id,
+            museumName: museum.name,
           );
         }
       }
 
-      debugPrint('[ACHIEVEMENTS] Mapped achievements: ${_achievements.map((a) => "${a.name} (Progress: ${a.progress}, Unlocked: ${a.isUnlocked})").toList()}');
-      
+      debugPrint('[ACHIEVEMENTS] Progress loaded: ${_progressMap.values.map((p) => "${p.museumName} (scanned: ${p.scannedCount})").toList()}');
       _saveToStorage();
     } catch (e) {
-      debugPrint('[ACHIEVEMENTS] Error loading museum data: $e');
+      debugPrint('[ACHIEVEMENTS] Error loading progress: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -125,58 +274,55 @@ class AchievementNotifier extends ChangeNotifier {
 
   Future<void> _saveToStorage() async {
     final prefs = await SharedPreferences.getInstance();
-    final String encodedData =
-        jsonEncode(_achievements.map((e) => e.toJson()).toList());
-    await prefs.setString(_currentStorageKey, encodedData);
+    final encoded = jsonEncode(
+      _progressMap.values.map((p) => p.toJson()).toList(),
+    );
+    await prefs.setString(_currentStorageKey, encoded);
   }
 
-  // INTEGRATION POINT
-  void updateProgress(int museumId, int artifactId, int addedValue) {
-    debugPrint('[ACHIEVEMENTS] Received progress update: museumId=$museumId, artifactId=$artifactId, addedValue=$addedValue');
-    
-    final index = _achievements.indexWhere((m) => m.id == museumId);
-    if (index == -1) {
-      debugPrint('[ACHIEVEMENTS] Warning: Museum ID $museumId not found in achievements map.');
+  // ── INTEGRATION POINT ──
+
+  /// Call this when a user scans an artifact.
+  /// [museumId] – the museum the artifact belongs to.
+  /// [artifactId] – unique artifact id (used to prevent duplicate counting).
+  void recordScan(int museumId, int artifactId) {
+    debugPrint('[ACHIEVEMENTS] recordScan: museumId=$museumId, artifactId=$artifactId');
+
+    final progress = _progressMap[museumId];
+    if (progress == null) {
+      debugPrint('[ACHIEVEMENTS] Warning: Museum ID $museumId not found.');
       return;
     }
 
-    final achievement = _achievements[index];
-
-    // Avoid duplicate scans for the same artifact
-    if (achievement.scannedArtifactIds.contains(artifactId)) {
-      debugPrint('[ACHIEVEMENTS] Artifact $artifactId already scanned for ${achievement.name}. Skipping.');
+    // Avoid duplicate scans
+    if (progress.scannedArtifactIds.contains(artifactId)) {
+      debugPrint('[ACHIEVEMENTS] Artifact $artifactId already scanned. Skipping.');
       return;
     }
 
-    // Avoid updating if already unlocked (but still track the artifact)
-    achievement.scannedArtifactIds.add(artifactId);
-    
-    if (achievement.isUnlocked) {
-      debugPrint('[ACHIEVEMENTS] Achievement already unlocked for ${achievement.name}. Skipping progress update.');
-      _saveToStorage();
-      return;
-    }
+    progress.scannedArtifactIds.add(artifactId);
+    debugPrint('[ACHIEVEMENTS] Scanned count for ${progress.museumName}: ${progress.scannedCount}/$maxArtifacts');
 
-    achievement.progress += addedValue;
-    debugPrint('[ACHIEVEMENTS] Progress for ${achievement.name} is now ${achievement.progress} / $unlockThreshold');
-
-    if (achievement.progress >= unlockThreshold && !achievement.isUnlocked) {
-      achievement.progress = unlockThreshold; // Cap at max
-      achievement.isUnlocked = true;
-      debugPrint('[ACHIEVEMENTS] UNLOCK TRIGGERED for ${achievement.name}!');
-      
-      // Trigger Banner
+    // Evaluate milestones
+    final newlyUnlocked = progress.evaluateMilestones();
+    for (final m in newlyUnlocked) {
+      debugPrint('[ACHIEVEMENTS] UNLOCKED: ${m.name}');
       final context = globalNavigatorKey.currentContext;
       if (context != null) {
         BannerQueue.instance.showBanner(
           context,
-          'Achievement Unlocked: ${achievement.name}',
+          'Achievement Unlocked: ${m.name}',
         );
       }
     }
 
     _saveToStorage();
     notifyListeners();
+  }
+
+  // ── Legacy adapter for old code that calls updateProgress ──
+  void updateProgress(int museumId, int artifactId, int addedValue) {
+    recordScan(museumId, artifactId);
   }
 }
 

@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:museamigo/app_routes.dart';
+import 'package:museamigo/l10n/translations.dart';
 import 'package:museamigo/services/backend_api.dart';
 import 'package:museamigo/session.dart';
 import 'package:museamigo/profile_notifier.dart';
@@ -69,11 +70,23 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _submitLogin() async {
     if (_isSubmitting) return;
+
+    // Validate inputs before making the API call
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter both email and password.')),
+      );
+      return;
+    }
+
     setState(() => _isSubmitting = true);
     try {
       final result = await BackendApi.instance.login(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
+        email: email,
+        password: password,
       );
       await _saveCredentials();
       AppSession.userId.value = result.userId;
@@ -146,7 +159,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Log in to continue your journey through ancient Egypt.',
+                    'Log in to continue your journey through museum'.tr,
                     style: TextStyle(
                       fontSize: 22,
                       color: Colors.blueGrey.shade700,
