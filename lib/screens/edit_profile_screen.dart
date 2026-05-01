@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:museamigo/profile_notifier.dart';
+import 'package:museamigo/session.dart';
+import 'package:museamigo/services/backend_api.dart';
 import 'package:museamigo/l10n/translations.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -14,6 +16,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late final TextEditingController _dobCtrl;
   late final TextEditingController _bioCtrl;
   late final TextEditingController _interestsCtrl;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -22,6 +25,72 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _dobCtrl = TextEditingController(text: profileNotifier.dob);
     _bioCtrl = TextEditingController(text: profileNotifier.bio);
     _interestsCtrl = TextEditingController(text: profileNotifier.interests);
+    _loadUserFromBackend();
+  }
+
+  Future<void> _loadUserFromBackend() async {
+    final userId = AppSession.userId.value;
+    if (userId == null) return;
+    setState(() => _isLoading = true);
+    try {
+      final data = await BackendApi.instance.fetchUser(userId);
+      if (!mounted) return;
+      final fullName = data['full_name'] as String? ?? '';
+      final email = data['email'] as String? ?? '';
+      profileNotifier.setUser(name: fullName, email: email);
+      _nameCtrl.text = fullName;
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      // Silently fallback to session data
+      _nameCtrl.text = AppSession.fullName.value;
+    } catch (_) {
+      if (!mounted) return;
+      _nameCtrl.text = AppSession.fullName.value;
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _saveProfile() async {
+    final userId = AppSession.userId.value;
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You must be logged in to update your profile.')),
+      );
+      return;
+    }
+
+    final name = _nameCtrl.text.trim();
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Full name cannot be empty.')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await BackendApi.instance.updateUserProfile(userId, fullName: name);
+      if (!mounted) return;
+      AppSession.fullName.value = name;
+      profileNotifier.updateProfile(
+        name: name,
+        dob: _dobCtrl.text,
+        bio: _bioCtrl.text,
+        interests: _interestsCtrl.text,
+      );
+      Navigator.of(context).pop();
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unable to update profile. $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -130,7 +199,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     _fieldLabel('Email (Read-only)'.tr),
                     _textField(
                       null,
-                      hint: profileNotifier.email,
+                      hint: profileNotifier.email.isEmpty ? 'Loading...' : profileNotifier.email,
                       enabled: false,
                     ),
                     const SizedBox(height: 2),
@@ -174,15 +243,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
-                        onPressed: () {
-                          profileNotifier.updateProfile(
-                            name: _nameCtrl.text,
-                            dob: _dobCtrl.text,
-                            bio: _bioCtrl.text,
-                            interests: _interestsCtrl.text,
-                          );
-                          Navigator.of(context).pop();
-                        },
+                        onPressed: _isLoading ? null : _saveProfile,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Theme.of(
                             context,
@@ -197,7 +258,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           ),
                           padding: const EdgeInsets.symmetric(vertical: 13),
                         ),
-                        icon: const Icon(Icons.save_rounded, size: 18),
+                        icon: _isLoading
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(Icons.save_rounded, size: 18),
                         label: Text(
                           'Save Changes'.tr,
                           style: const TextStyle(
