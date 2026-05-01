@@ -205,7 +205,7 @@ class BackendApi {
           body: jsonEncode({'email': email, 'password': password}),
         )
         .timeout(
-          const Duration(seconds: 10), // 10 second timeout
+          const Duration(seconds: 60), // Increased timeout to 60 seconds for Render spin-up
         );
     final json = await _readJson(response);
     if (response.statusCode < 200 || response.statusCode >= 300) {

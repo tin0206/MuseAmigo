@@ -3,6 +3,7 @@ import 'package:museamigo/app_routes.dart';
 import 'package:museamigo/l10n/translations.dart';
 import 'package:museamigo/services/backend_api.dart';
 import 'package:museamigo/session.dart';
+import 'package:museamigo/language_notifier.dart';
 
 class JourneyScreen extends StatefulWidget {
   const JourneyScreen({super.key});
@@ -84,8 +85,11 @@ class _JourneyScreenState extends State<JourneyScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F6),
+    return ListenableBuilder(
+      listenable: languageNotifier,
+      builder: (context, _) {
+        return Scaffold(
+          backgroundColor: const Color(0xFFF3F4F6),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
@@ -216,9 +220,9 @@ class _JourneyScreenState extends State<JourneyScreen> {
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: _AchievementTile(
-                          title: achievement['name'] ?? 'Unknown',
-                          subtitle: achievement['description'] ?? '',
-                          points: isCompleted ? '+${achievement['points'] ?? 0} points' : '',
+                          title: (achievement['name'] ?? 'Unknown').toString().tr,
+                          subtitle: (achievement['description'] ?? '').toString().tr,
+                          points: isCompleted ? '+${achievement['points'] ?? 0} ${'points'.tr}' : '',
                           icon: _getIconForAchievement(requirementType),
                           unlocked: isCompleted,
                         ),
@@ -230,6 +234,8 @@ class _JourneyScreenState extends State<JourneyScreen> {
           ),
         ),
       ),
+    );
+      },
     );
   }
 
