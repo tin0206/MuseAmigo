@@ -74,7 +74,7 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
       AppSession.collectionUpdated.value++;
 
       // UPDATE ACHIEVEMENT PROGRESS
-      achievementNotifier.updateProgress(currentMuseumId, 5); // Add 5 progress to current museum
+      achievementNotifier.updateProgress(currentMuseumId, artifact.id, 5); // Add 5 progress to current museum
 
       if (!mounted) return;
 
