@@ -38,7 +38,7 @@ class AchievementsScreen extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
-              childAspectRatio: 0.75,
+              childAspectRatio: 1.0,
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
             ),
@@ -97,20 +97,20 @@ class AchievementBadge extends StatelessWidget {
             : [const BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(12.0),
+        padding: const EdgeInsets.all(10.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // ── 2-Layer Trophy Icon ──
             SizedBox(
-              width: 80,
-              height: 80,
+              width: 64,
+              height: 64,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
                   // Layer 1: Background Trophy Image
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                     child: AnimatedSwitcher(
                       duration: const Duration(milliseconds: 300),
                       child: Image.asset(
@@ -118,8 +118,8 @@ class AchievementBadge extends StatelessWidget {
                             ? 'assets/images/Trophy_Unlock.jpg'
                             : 'assets/images/Trophy_Lock.jpg',
                         key: ValueKey(unlocked),
-                        width: 80,
-                        height: 80,
+                        width: 64,
+                        height: 64,
                         fit: BoxFit.cover,
                         opacity: AlwaysStoppedAnimation(unlocked ? 1.0 : 0.5),
                       ),
@@ -128,16 +128,16 @@ class AchievementBadge extends StatelessWidget {
                   // Layer 2: Lock Icon Overlay (only when locked)
                   if (!unlocked)
                     Container(
-                      width: 80,
-                      height: 80,
+                      width: 64,
+                      height: 64,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(10),
                         color: Colors.black.withValues(alpha: 0.25),
                       ),
                       child: const Center(
                         child: Icon(
                           Icons.lock,
-                          size: 32,
+                          size: 28,
                           color: Colors.white70,
                         ),
                       ),
@@ -145,14 +145,14 @@ class AchievementBadge extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 6),
             Text(
               museumName,
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: 12,
                 fontWeight: FontWeight.w700,
                 color: unlocked ? Colors.brown.shade800 : const Color(0xFF374151),
               ),
@@ -166,14 +166,14 @@ class AchievementBadge extends StatelessWidget {
                 valueColor: AlwaysStoppedAnimation<Color>(
                   unlocked ? Colors.green : Theme.of(context).colorScheme.primary,
                 ),
-                minHeight: 6,
+                minHeight: 5,
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             Text(
               '$scannedCount / $maxArtifacts',
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: FontWeight.w600,
                 color: unlocked ? Colors.green.shade700 : const Color(0xFF6B7280),
               ),
