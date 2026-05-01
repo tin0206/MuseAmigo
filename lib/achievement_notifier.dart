@@ -15,19 +15,22 @@ class MuseumAchievement {
   String name;
   int progress;
   bool isUnlocked;
+  Set<int> scannedArtifactIds;
 
   MuseumAchievement({
     required this.id,
     required this.name,
     this.progress = 0,
     this.isUnlocked = false,
-  });
+    Set<int>? scannedArtifactIds,
+  }) : scannedArtifactIds = scannedArtifactIds ?? {};
 
   Map<String, dynamic> toJson() => {
         'id': id,
         'name': name,
         'progress': progress,
         'isUnlocked': isUnlocked,
+        'scannedArtifactIds': scannedArtifactIds.toList(),
       };
 
   factory MuseumAchievement.fromJson(Map<String, dynamic> json) =>
@@ -36,6 +39,10 @@ class MuseumAchievement {
         name: json['name'],
         progress: json['progress'] ?? 0,
         isUnlocked: json['isUnlocked'] ?? false,
+        scannedArtifactIds: (json['scannedArtifactIds'] as List<dynamic>?)
+                ?.map((e) => e as int)
+                .toSet() ??
+            {},
       );
 }
 
@@ -124,8 +131,8 @@ class AchievementNotifier extends ChangeNotifier {
   }
 
   // INTEGRATION POINT
-  void updateProgress(int museumId, int addedValue) {
-    debugPrint('[ACHIEVEMENTS] Received progress update: museumId=$museumId, addedValue=$addedValue');
+  void updateProgress(int museumId, int artifactId, int addedValue) {
+    debugPrint('[ACHIEVEMENTS] Received progress update: museumId=$museumId, artifactId=$artifactId, addedValue=$addedValue');
     
     final index = _achievements.indexWhere((m) => m.id == museumId);
     if (index == -1) {
@@ -135,9 +142,18 @@ class AchievementNotifier extends ChangeNotifier {
 
     final achievement = _achievements[index];
 
-    // Avoid updating if already unlocked
+    // Avoid duplicate scans for the same artifact
+    if (achievement.scannedArtifactIds.contains(artifactId)) {
+      debugPrint('[ACHIEVEMENTS] Artifact $artifactId already scanned for ${achievement.name}. Skipping.');
+      return;
+    }
+
+    // Avoid updating if already unlocked (but still track the artifact)
+    achievement.scannedArtifactIds.add(artifactId);
+    
     if (achievement.isUnlocked) {
       debugPrint('[ACHIEVEMENTS] Achievement already unlocked for ${achievement.name}. Skipping progress update.');
+      _saveToStorage();
       return;
     }
 

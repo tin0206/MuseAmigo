@@ -22,9 +22,13 @@ import 'package:museamigo/profile_notifier.dart';
 import 'package:museamigo/font_size_notifier.dart';
 import 'package:museamigo/achievement_notifier.dart';
 
+import 'package:museamigo/session.dart';
+
 final GlobalKey<NavigatorState> globalNavigatorKey = GlobalKey<NavigatorState>();
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await AppSession.init();
   runApp(
     DevicePreview(
       enabled: !kReleaseMode,
