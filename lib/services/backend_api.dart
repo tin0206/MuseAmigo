@@ -351,4 +351,26 @@ class BackendApi {
       _throwForResponse(response, json);
     }
   }
+
+  Future<Map<String, dynamic>> fetchUser(int userId) async {
+    final response = await http.get(_uri('/users/$userId'));
+    final json = await _readJson(response);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      _throwForResponse(response, json);
+    }
+    return json;
+  }
+
+  Future<Map<String, dynamic>> updateUserProfile(int userId, {required String fullName}) async {
+    final response = await http.patch(
+      _uri('/users/$userId'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'full_name': fullName}),
+    );
+    final json = await _readJson(response);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      _throwForResponse(response, json);
+    }
+    return json;
+  }
 }

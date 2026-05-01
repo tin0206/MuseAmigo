@@ -2,17 +2,23 @@ import 'package:flutter/material.dart';
 
 /// A global [ChangeNotifier] that holds the user's profile information.
 class ProfileNotifier extends ChangeNotifier {
-  String _name = 'Justin Nguyen';
-  final String _email = 'justin@museum.com'; // Read-only
+  String _name = '';
+  String _email = '';
   String _dob = '';
   String _bio = '';
-  String _interests = 'Ancient Egypt, Mythology, Archaeology';
+  String _interests = '';
 
   String get name => _name;
   String get email => _email;
   String get dob => _dob;
   String get bio => _bio;
   String get interests => _interests;
+
+  void setUser({required String name, required String email}) {
+    _name = name;
+    _email = email;
+    notifyListeners();
+  }
 
   void updateProfile({
     String? name,

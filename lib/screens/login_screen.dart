@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:museamigo/app_routes.dart';
 import 'package:museamigo/services/backend_api.dart';
 import 'package:museamigo/session.dart';
+import 'package:museamigo/profile_notifier.dart';
 import 'package:museamigo/widgets/auth_form_widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -77,6 +78,7 @@ class _LoginScreenState extends State<LoginScreen> {
       await _saveCredentials();
       AppSession.userId.value = result.userId;
       AppSession.fullName.value = result.fullName;
+      profileNotifier.setUser(name: result.fullName, email: _emailController.text.trim());
     } on SocketException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
