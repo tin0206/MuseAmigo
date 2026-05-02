@@ -16,6 +16,8 @@ class _JourneyScreenState extends State<JourneyScreen> {
   @override
   void initState() {
     super.initState();
+    // Preload data if empty
+    achievementNotifier.ensureLoaded();
     // Listen for changes to refresh UI reactively
     achievementNotifier.addListener(_onDataChanged);
   }

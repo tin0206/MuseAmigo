@@ -96,6 +96,7 @@ class AchievementNotifier extends ChangeNotifier {
   final Map<int, MuseumProgress> _progressMap = {};
 
   bool _isLoading = true;
+  bool _isFetching = false;
   bool get isLoading => _isLoading;
 
   // ── Computed getters for the CURRENT museum ──
@@ -131,6 +132,13 @@ class AchievementNotifier extends ChangeNotifier {
   void _onUserChanged() => _initProgress();
   void _onMuseumChanged() => notifyListeners();
 
+  /// Preload achievements if they haven't been loaded yet.
+  Future<void> ensureLoaded() async {
+    if (_progressMap.isEmpty) {
+      await _initProgress();
+    }
+  }
+
   @override
   void dispose() {
     AppSession.userId.removeListener(_onUserChanged);
@@ -138,59 +146,60 @@ class AchievementNotifier extends ChangeNotifier {
     super.dispose();
   }
 
-  /// Fetch all achievement data from backend API.
+  /// Fetch all achievement data from backend API in parallel.
   Future<void> _initProgress() async {
+    if (_isFetching) return;
+    _isFetching = true;
     _isLoading = true;
     notifyListeners();
 
     try {
       debugPrint('[ACHIEVEMENTS] Loading progress data...');
       final museums = await BackendApi.instance.fetchMuseums();
-
-      Map<int, MuseumProgress> fetchedMap = {};
-      
       final userId = AppSession.userId.value;
-      if (userId != null) {
-        for (final museum in museums) {
-          try {
-            final apiResponse = await BackendApi.instance.fetchUserAchievementsRaw(userId, museum.id);
-            final achievementsList = apiResponse['achievements'] as List<dynamic>? ?? [];
-            final milestones = achievementsList
-                .map((e) => AchievementMilestone.fromJson(e as Map<String, dynamic>))
-                .toList();
-            fetchedMap[museum.id] = MuseumProgress(
-              museumId: museum.id,
-              museumName: museum.name,
-              milestones: milestones,
-              apiTotalPoints: apiResponse['total_points'] as int? ?? 0,
-              apiUnlockedCount: apiResponse['unlocked_count'] as int? ?? 0,
-            );
-          } catch (e) {
-            debugPrint('[ACHIEVEMENTS] Error fetching achievements for museum ${museum.id}: $e');
-            fetchedMap[museum.id] = MuseumProgress(
-              museumId: museum.id,
-              museumName: museum.name,
-              milestones: [],
-            );
-          }
-        }
-      } else {
-        for (final museum in museums) {
-          fetchedMap[museum.id] = MuseumProgress(
+
+      // Fetch all museum achievements in parallel
+      final results = await Future.wait(museums.map((museum) async {
+        if (userId == null) {
+          return MuseumProgress(
             museumId: museum.id,
             museumName: museum.name,
             milestones: [],
           );
         }
-      }
+        try {
+          final apiResponse = await BackendApi.instance.fetchUserAchievementsRaw(userId, museum.id);
+          final achievementsList = apiResponse['achievements'] as List<dynamic>? ?? [];
+          final milestones = achievementsList
+              .map((e) => AchievementMilestone.fromJson(e as Map<String, dynamic>))
+              .toList();
+          return MuseumProgress(
+            museumId: museum.id,
+            museumName: museum.name,
+            milestones: milestones,
+            apiTotalPoints: apiResponse['total_points'] as int? ?? 0,
+            apiUnlockedCount: apiResponse['unlocked_count'] as int? ?? 0,
+          );
+        } catch (e) {
+          debugPrint('[ACHIEVEMENTS] Error fetching achievements for museum ${museum.id}: $e');
+          return MuseumProgress(
+            museumId: museum.id,
+            museumName: museum.name,
+            milestones: [],
+          );
+        }
+      }));
 
       _progressMap.clear();
-      _progressMap.addAll(fetchedMap);
+      for (final p in results) {
+        _progressMap[p.museumId] = p;
+      }
 
-      debugPrint('[ACHIEVEMENTS] Progress loaded: ${_progressMap.values.map((p) => "${p.museumName} (scanned: ${p.scannedCount}, unlocked: ${p.unlockedMilestoneCount}/${p.milestones.length})").toList()}');
+      debugPrint('[ACHIEVEMENTS] Successfully loaded progress for ${_progressMap.length} museums.');
     } catch (e) {
       debugPrint('[ACHIEVEMENTS] Error loading progress: $e');
     } finally {
+      _isFetching = false;
       _isLoading = false;
       notifyListeners();
     }
@@ -231,16 +240,15 @@ class AchievementNotifier extends ChangeNotifier {
           progress.apiTotalPoints += m.points;
           newlyUnlocked.add(m);
         }
+        
+        // Trigger UI rebuild as soon as one succeeds for better perceived performance
+        notifyListeners();
       } catch (e) {
         debugPrint('[ACHIEVEMENTS] API progress update failed for achievement ${m.id}: $e');
-        // If API fails, we do NOT update locally to maintain single source of truth
       }
     });
 
     await Future.wait(updateFutures);
-
-    // Trigger UI rebuild immediately
-    notifyListeners();
 
     // Show banners for newly unlocked achievements
     for (final m in newlyUnlocked) {
