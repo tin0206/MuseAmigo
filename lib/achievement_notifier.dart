@@ -211,61 +211,86 @@ class AchievementNotifier extends ChangeNotifier {
   // ── INTEGRATION POINT ──
 
   /// Call this when a user scans an artifact.
-  Future<void> recordScan(int museumId, int artifactId) async {
-    debugPrint('[ACHIEVEMENTS] recordScan: museumId=$museumId, artifactId=$artifactId');
+  Future<void> recordScan(int museumId, int artifactId, {int increment = 1}) async {
+    debugPrint('[ACHIEVEMENTS] recordScan: museumId=$museumId, artifactId=$artifactId, inc=$increment');
 
     final progress = _progressMap[museumId];
     if (progress == null) {
-      debugPrint('[ACHIEVEMENTS] Warning: Museum ID $museumId not found.');
+      debugPrint('[ACHIEVEMENTS] Warning: Museum ID $museumId not found in progress map.');
       return;
     }
 
     final userId = AppSession.userId.value;
-    if (userId == null) return;
+    if (userId == null) {
+      debugPrint('[ACHIEVEMENTS] Warning: No userId found in session.');
+      return;
+    }
 
-    final List<AchievementMilestone> newlyUnlocked = [];
-    
-    // Call API to update progress in database for all incomplete milestones in parallel
-    final updateFutures = progress.milestones.where((m) => !m.isUnlocked).map((m) async {
-      final newProgress = m.progress + 1;
-      try {
-        // Call API FIRST
-        await BackendApi.instance.updateAchievementProgress(userId, m.id, newProgress);
+    // Capture current milestones to update them immutably
+    final List<AchievementMilestone> currentMilestones = List.from(progress.milestones);
+    final List<Future<void>> updateTasks = [];
+
+    for (int i = 0; i < currentMilestones.length; i++) {
+      final m = currentMilestones[i];
+      if (!m.isUnlocked) {
+        final newProgressValue = m.progress + increment;
         
-        // ON SUCCESS: Update locally
-        m.progress = newProgress;
-        if (m.progress >= m.requiredScans) {
-          m.isUnlocked = true;
-          progress.apiUnlockedCount += 1;
-          progress.apiTotalPoints += m.points;
-          newlyUnlocked.add(m);
-        }
-        
-        // Trigger UI rebuild as soon as one succeeds for better perceived performance
-        notifyListeners();
-      } catch (e) {
-        debugPrint('[ACHIEVEMENTS] API progress update failed for achievement ${m.id}: $e');
-      }
-    });
+        updateTasks.add(
+          BackendApi.instance.updateAchievementProgress(userId, m.id, newProgressValue)
+            .then((_) {
+              // ── STEP 2: FIX STATE UPDATE AFTER SCAN (CRITICAL) ──
+              // Create a NEW milestone instance to ensure the UI detects the change
+              final updatedMilestone = AchievementMilestone(
+                id: m.id,
+                name: m.name,
+                description: m.description,
+                requiredScans: m.requiredScans,
+                points: m.points,
+                progress: newProgressValue,
+                isUnlocked: newProgressValue >= m.requiredScans,
+              );
 
-    await Future.wait(updateFutures);
+              // Update the list reference (Immutability pattern)
+              currentMilestones[i] = updatedMilestone;
+              
+              // Update the progress object's internal list reference
+              progress.milestones = List.from(currentMilestones);
 
-    // Show banners for newly unlocked achievements
-    for (final m in newlyUnlocked) {
-      debugPrint('[ACHIEVEMENTS] UNLOCKED: ${m.name}');
-      final context = globalNavigatorKey.currentContext;
-      if (context != null) {
-        BannerQueue.instance.showBanner(
-          context,
-          'Achievement Unlocked: ${m.name}',
+              if (updatedMilestone.isUnlocked && !m.isUnlocked) {
+                progress.apiUnlockedCount += 1;
+                progress.apiTotalPoints += updatedMilestone.points;
+                
+                // Show banner
+                final context = globalNavigatorKey.currentContext;
+                if (context != null) {
+                  BannerQueue.instance.showBanner(context, 'Achievement Unlocked: ${updatedMilestone.name}');
+                }
+              }
+
+              debugPrint('[ACHIEVEMENTS] Instant UI Sync: Milestone ${m.id} -> $newProgressValue');
+              
+              // ── STEP 3: FORCE UI REBUILD ──
+              notifyListeners(); 
+            })
+            .catchError((e) {
+              debugPrint('[ACHIEVEMENTS] API Update Failed for ${m.id}: $e');
+            })
         );
       }
     }
+
+    if (updateTasks.isEmpty) {
+      debugPrint('[ACHIEVEMENTS] No locked milestones to update for this museum.');
+      return;
+    }
+
+    await Future.wait(updateTasks);
+    debugPrint('[ACHIEVEMENTS] recordScan completed for all milestones.');
   }
 
   // ── Legacy adapter for old code that calls updateProgress ──
-  void updateProgress(int museumId, int artifactId, int addedValue) {
-    recordScan(museumId, artifactId);
+  Future<void> updateProgress(int museumId, int artifactId, int addedValue) async {
+    await recordScan(museumId, artifactId, increment: addedValue);
   }
 }
 
