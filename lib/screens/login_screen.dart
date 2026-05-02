@@ -9,6 +9,7 @@ import 'package:museamigo/session.dart';
 import 'package:museamigo/profile_notifier.dart';
 import 'package:museamigo/widgets/auth_form_widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:museamigo/achievement_notifier.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -92,6 +93,8 @@ class _LoginScreenState extends State<LoginScreen> {
       AppSession.userId.value = result.userId;
       AppSession.fullName.value = result.fullName;
       profileNotifier.setUser(name: result.fullName, email: _emailController.text.trim());
+      // Start preloading achievements right after login
+      achievementNotifier.ensureLoaded();
     } on SocketException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(

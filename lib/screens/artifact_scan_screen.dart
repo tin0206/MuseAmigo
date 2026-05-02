@@ -74,7 +74,22 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
       AppSession.collectionUpdated.value++;
 
       // UPDATE ACHIEVEMENT PROGRESS
-      achievementNotifier.updateProgress(currentMuseumId, artifact.id, 5); // Add 5 progress to current museum
+      print('===========================================================');
+      print(
+        '[SCAN_TRACE] Initiating achievement update for museum ${artifact.museumId}',
+      );
+      print(
+        '[SCAN_TRACE] Current AppSession.currentMuseumId is: $currentMuseumId',
+      );
+      print('[SCAN_TRACE] Calling achievementNotifier.updateProgress...');
+      // We use artifact.museumId to ensure progress is recorded for the correct museum
+      await achievementNotifier.updateProgress(
+        artifact.museumId,
+        artifact.id,
+        1,
+      );
+      print('[SCAN_TRACE] achievementNotifier.updateProgress FINISHED');
+      print('===========================================================');
 
       if (!mounted) return;
 

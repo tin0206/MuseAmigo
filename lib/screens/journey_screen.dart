@@ -16,6 +16,8 @@ class _JourneyScreenState extends State<JourneyScreen> {
   @override
   void initState() {
     super.initState();
+    // Preload data if empty
+    achievementNotifier.ensureLoaded();
     // Listen for changes to refresh UI reactively
     achievementNotifier.addListener(_onDataChanged);
   }
@@ -44,10 +46,26 @@ class _JourneyScreenState extends State<JourneyScreen> {
     return ListenableBuilder(
       listenable: Listenable.merge([languageNotifier, achievementNotifier]),
       builder: (context, _) {
-        // All data derived from the SAME source: achievementNotifier
+        // ── STEP 4: REMOVE STALE DATA SOURCES (ONLY READ FROM NOTIFIER) ──
         final scanned = achievementNotifier.scannedCount;
         final totalPoints = achievementNotifier.totalPoints;
         final milestones = achievementNotifier.milestones;
+        
+        print('===========================================================');
+        print('[UI_TRACE] JourneyScreen BUILT!');
+        print('[UI_TRACE] Scanned: $scanned, Points: $totalPoints, Milestones: ${milestones.length}');
+        print('[UI_TRACE] achievementNotifier Hash: ${achievementNotifier.hashCode}');
+        print('[UI_TRACE] currentMuseumId in Session: ${AppSession.currentMuseumId.value}');
+        if (achievementNotifier.currentProgress != null) {
+           print('[UI_TRACE] Progress in map for museum: ${achievementNotifier.currentProgress!.scannedCount}');
+           for (var m in milestones) {
+             print('  - ${m.name}: Progress=${m.progress}, Unlocked=${m.isUnlocked}');
+           }
+        } else {
+           print('[UI_TRACE] currentProgress is NULL!');
+        }
+        print('===========================================================');
+        
         final maxArtifacts = achievementNotifier.maxArtifacts;
 
         return Scaffold(

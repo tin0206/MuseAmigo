@@ -3,6 +3,8 @@ import 'package:museamigo/app_routes.dart';
 import 'package:museamigo/services/backend_api.dart';
 import 'package:museamigo/widgets/auth_form_widgets.dart';
 import 'package:museamigo/session.dart';
+import 'package:museamigo/profile_notifier.dart';
+import 'package:museamigo/achievement_notifier.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -96,6 +98,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
       );
       if (userId > 0) {
         AppSession.userId.value = userId;
+        AppSession.fullName.value = name;
+        profileNotifier.setUser(name: name, email: email);
+        // Start preloading achievements right after signup
+        achievementNotifier.ensureLoaded();
       }
     } on ApiException catch (e) {
       if (!mounted) return;

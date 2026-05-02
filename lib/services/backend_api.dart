@@ -206,7 +206,9 @@ class BackendApi {
           body: jsonEncode({'email': email, 'password': password}),
         )
         .timeout(
-          const Duration(seconds: 60), // Increased timeout to 60 seconds for Render spin-up
+          const Duration(
+            seconds: 60,
+          ), // Increased timeout to 60 seconds for Render spin-up
         );
     final json = await _readJson(response);
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -318,6 +320,15 @@ class BackendApi {
   }
 
   Future<List<dynamic>> fetchUserAchievements(int userId, int museumId) async {
+    final raw = await fetchUserAchievementsRaw(userId, museumId);
+    return raw['achievements'] as List<dynamic>? ?? [];
+  }
+
+  /// Returns the full API response: {user_id, museum_id, total_points, unlocked_count, achievements: [...]}
+  Future<Map<String, dynamic>> fetchUserAchievementsRaw(
+    int userId,
+    int museumId,
+  ) async {
     final response = await http.get(
       _uri('/users/$userId/achievements?museum_id=$museumId'),
     );
@@ -326,21 +337,29 @@ class BackendApi {
       _throwForResponse(response, json);
     }
     final decoded = jsonDecode(response.body);
-    
-    // Handle wrapper object with 'achievements' key
-    if (decoded is Map<String, dynamic> && decoded['achievements'] is List) {
-      return decoded['achievements'] as List<dynamic>;
-    }
-    
-    // Handle direct array (fallback)
-    if (decoded is List) {
+
+    // API returns {achievements: [...], total_points, unlocked_count, ...}
+    if (decoded is Map<String, dynamic>) {
       return decoded;
     }
-    
-    throw ApiException('Unexpected achievements format: expected {achievements: [...]} or [...]');
+
+    // Fallback: direct array
+    if (decoded is List) {
+      return <String, dynamic>{
+        'achievements': decoded,
+        'total_points': 0,
+        'unlocked_count': 0,
+      };
+    }
+
+    throw ApiException('Unexpected achievements format');
   }
 
-  Future<void> updateAchievementProgress(int userId, int achievementId, int progress) async {
+  Future<Map<String, dynamic>> updateAchievementProgress(
+    int userId,
+    int achievementId,
+    int progress,
+  ) async {
     final response = await http.patch(
       _uri('/users/$userId/achievements/$achievementId'),
       headers: {'Content-Type': 'application/json'},
@@ -350,6 +369,7 @@ class BackendApi {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       _throwForResponse(response, json);
     }
+    return json;
   }
 
   Future<Map<String, dynamic>> forgotPassword(String email) async {
@@ -365,7 +385,10 @@ class BackendApi {
     return json;
   }
 
-  Future<void> resetPassword({required String token, required String newPassword}) async {
+  Future<void> resetPassword({
+    required String token,
+    required String newPassword,
+  }) async {
     final response = await http.post(
       _uri('/auth/reset-password'),
       headers: {'Content-Type': 'application/json'},
@@ -386,7 +409,10 @@ class BackendApi {
     return json;
   }
 
-  Future<Map<String, dynamic>> updateUserProfile(int userId, {required String fullName}) async {
+  Future<Map<String, dynamic>> updateUserProfile(
+    int userId, {
+    required String fullName,
+  }) async {
     final response = await http.patch(
       _uri('/users/$userId'),
       headers: {'Content-Type': 'application/json'},

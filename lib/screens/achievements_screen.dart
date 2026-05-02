@@ -2,8 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:museamigo/l10n/translations.dart';
 import 'package:museamigo/achievement_notifier.dart';
 
-class AchievementsScreen extends StatelessWidget {
+class AchievementsScreen extends StatefulWidget {
   const AchievementsScreen({super.key});
+
+  @override
+  State<AchievementsScreen> createState() => _AchievementsScreenState();
+}
+
+class _AchievementsScreenState extends State<AchievementsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    achievementNotifier.ensureLoaded();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,11 +36,20 @@ class AchievementsScreen extends StatelessWidget {
       body: ListenableBuilder(
         listenable: achievementNotifier,
         builder: (context, child) {
+          print('===========================================================');
+          print('[UI_TRACE] AchievementsScreen BUILT!');
+          
           if (achievementNotifier.isLoading) {
+            print('[UI_TRACE] isLoading is true');
             return const Center(child: CircularProgressIndicator());
           }
 
           final allProgress = achievementNotifier.allProgress;
+          print('[UI_TRACE] allProgress length: ${allProgress.length}');
+          for (var p in allProgress) {
+            print('  - Museum: ${p.museumName}, Scanned: ${p.scannedCount}');
+          }
+          print('===========================================================');
           if (allProgress.isEmpty) {
             return const Center(child: Text('No achievements available.'));
           }
@@ -45,12 +65,14 @@ class AchievementsScreen extends StatelessWidget {
             itemCount: allProgress.length,
             itemBuilder: (context, index) {
               final progress = allProgress[index];
-              // A museum is "unlocked" if all artifacts have been scanned
-              final unlocked = progress.scannedCount >= achievementNotifier.maxArtifacts;
+              // A museum achievement is "unlocked" if all milestones are completed
+              final unlocked = progress.milestones.isNotEmpty && 
+                  progress.unlockedMilestoneCount == progress.milestones.length;
               return AchievementBadge(
                 museumName: progress.museumName,
                 scannedCount: progress.scannedCount,
-                maxArtifacts: achievementNotifier.maxArtifacts,
+                totalMilestones: progress.milestones.length,
+                unlockedMilestones: progress.unlockedMilestoneCount,
                 unlocked: unlocked,
               );
             },
@@ -68,20 +90,24 @@ class AchievementsScreen extends StatelessWidget {
 class AchievementBadge extends StatelessWidget {
   final String museumName;
   final int scannedCount;
-  final int maxArtifacts;
+  final int totalMilestones;
+  final int unlockedMilestones;
   final bool unlocked;
 
   const AchievementBadge({
     Key? key,
     required this.museumName,
     required this.scannedCount,
-    required this.maxArtifacts,
+    required this.totalMilestones,
+    required this.unlockedMilestones,
     required this.unlocked,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final double progressPercent = (scannedCount / maxArtifacts).clamp(0.0, 1.0);
+    final double progressPercent = totalMilestones > 0 
+        ? (unlockedMilestones / totalMilestones).clamp(0.0, 1.0)
+        : 0.0;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
@@ -171,7 +197,7 @@ class AchievementBadge extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              '$scannedCount / $maxArtifacts',
+              '$unlockedMilestones / $totalMilestones',
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
