@@ -9,6 +9,7 @@ import 'package:museamigo/session.dart';
 import 'package:museamigo/widgets/app_bottom_nav.dart';
 import 'package:museamigo/l10n/translations.dart';
 import 'package:museamigo/language_notifier.dart';
+import 'package:museamigo/achievement_notifier.dart';
 
 /// Shell widget that hosts all bottom-nav tab screens in an [IndexedStack].
 /// Switching tabs never destroys a screen — state is fully preserved.
@@ -52,10 +53,16 @@ class _MainShellState extends State<MainShell> {
       final artifact = await BackendApi.instance.fetchArtifact(scannedCode);
       unlockedTitle = artifact.title;
       final userId = AppSession.userId.value ?? 1;
+      
+      // Update collection
       await BackendApi.instance.addToCollection(
         userId: userId,
         artifactId: artifact.id,
       );
+      AppSession.collectionUpdated.value++;
+
+      // UNIFIED HANDLER: update achievements using single source of truth
+      await achievementNotifier.recordScan(artifact.museumId, artifact.id);
     } catch (_) {
       // Keep UI flow alive if backend collection call fails.
     }

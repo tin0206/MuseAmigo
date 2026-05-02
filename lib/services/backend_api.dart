@@ -355,7 +355,7 @@ class BackendApi {
     throw ApiException('Unexpected achievements format');
   }
 
-  Future<void> updateAchievementProgress(
+  Future<Map<String, dynamic>> updateAchievementProgress(
     int userId,
     int achievementId,
     int progress,
@@ -369,6 +369,7 @@ class BackendApi {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       _throwForResponse(response, json);
     }
+    return json;
   }
 
   Future<Map<String, dynamic>> forgotPassword(String email) async {

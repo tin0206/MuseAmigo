@@ -36,11 +36,20 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
       body: ListenableBuilder(
         listenable: achievementNotifier,
         builder: (context, child) {
+          print('===========================================================');
+          print('[UI_TRACE] AchievementsScreen BUILT!');
+          
           if (achievementNotifier.isLoading) {
+            print('[UI_TRACE] isLoading is true');
             return const Center(child: CircularProgressIndicator());
           }
 
           final allProgress = achievementNotifier.allProgress;
+          print('[UI_TRACE] allProgress length: ${allProgress.length}');
+          for (var p in allProgress) {
+            print('  - Museum: ${p.museumName}, Scanned: ${p.scannedCount}');
+          }
+          print('===========================================================');
           if (allProgress.isEmpty) {
             return const Center(child: Text('No achievements available.'));
           }
