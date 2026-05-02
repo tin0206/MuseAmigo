@@ -326,10 +326,18 @@ class BackendApi {
       _throwForResponse(response, json);
     }
     final decoded = jsonDecode(response.body);
-    if (decoded is! List) {
-      throw ApiException('Unexpected achievements format');
+    
+    // Handle wrapper object with 'achievements' key
+    if (decoded is Map<String, dynamic> && decoded['achievements'] is List) {
+      return decoded['achievements'] as List<dynamic>;
     }
-    return decoded;
+    
+    // Handle direct array (fallback)
+    if (decoded is List) {
+      return decoded;
+    }
+    
+    throw ApiException('Unexpected achievements format: expected {achievements: [...]} or [...]');
   }
 
   Future<void> updateAchievementProgress(int userId, int achievementId, int progress) async {
