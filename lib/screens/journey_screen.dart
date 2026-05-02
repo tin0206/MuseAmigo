@@ -171,10 +171,12 @@ class _JourneyScreenState extends State<JourneyScreen> {
                           subtitle: milestone.description.tr,
                           points: milestone.isUnlocked
                               ? '+${milestone.points} ${'points'.tr}'
-                              : '$scanned/${milestone.requiredScans}',
+                              : '${milestone.progress}/${milestone.requiredScans}',
                           icon: _getIconForMilestone(milestone.requiredScans),
                           unlocked: milestone.isUnlocked,
-                          progress: (scanned / milestone.requiredScans).clamp(0.0, 1.0),
+                          progress: milestone.requiredScans > 0 
+                              ? (milestone.progress / milestone.requiredScans).clamp(0.0, 1.0) 
+                              : 0.0,
                         ),
                       );
                     },
