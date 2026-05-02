@@ -56,69 +56,32 @@ class AchievementMilestone {
 class MuseumProgress {
   final int museumId;
   String museumName;
-  Set<int> scannedArtifactIds;
-  int totalArtifactCount;
   List<AchievementMilestone> milestones;
+
+  /// These come directly from the API wrapper response.
+  int apiTotalPoints;
+  int apiUnlockedCount;
 
   MuseumProgress({
     required this.museumId,
     required this.museumName,
-    Set<int>? scannedArtifactIds,
-    this.totalArtifactCount = 15,
     List<AchievementMilestone>? milestones,
-  })  : scannedArtifactIds = scannedArtifactIds ?? {},
-        milestones = milestones ?? _defaultMilestones();
+    this.apiTotalPoints = 0,
+    this.apiUnlockedCount = 0,
+  }) : milestones = milestones ?? [];
 
-  /// The single source of truth: number of scanned artifacts.
-  int get scannedCount => scannedArtifactIds.length;
+  /// Computed from milestones — the highest progress value across all milestones.
+  /// Since all milestones track "total scans", the max progress IS the scan count.
+  int get scannedCount {
+    if (milestones.isEmpty) return 0;
+    return milestones.map((m) => m.progress).reduce((a, b) => a > b ? a : b);
+  }
 
   /// Total points earned from unlocked milestones.
-  int get totalPoints =>
-      milestones.where((m) => m.isUnlocked).fold(0, (sum, m) => sum + m.points);
+  int get totalPoints => apiTotalPoints;
 
   /// Number of unlocked milestones.
-  int get unlockedMilestoneCount =>
-      milestones.where((m) => m.isUnlocked).length;
-
-  /// Check and unlock milestones based on current scannedCount.
-  List<AchievementMilestone> evaluateMilestones() {
-    final newlyUnlocked = <AchievementMilestone>[];
-    for (final m in milestones) {
-      if (!m.isUnlocked && scannedCount >= m.requiredScans) {
-        m.isUnlocked = true;
-        newlyUnlocked.add(m);
-      }
-    }
-    return newlyUnlocked;
-  }
-
-  static List<AchievementMilestone> _defaultMilestones() => [];
-
-  Map<String, dynamic> toJson() => {
-        'museumId': museumId,
-        'museumName': museumName,
-        'scannedArtifactIds': scannedArtifactIds.toList(),
-        'totalArtifactCount': totalArtifactCount,
-        'milestones': milestones.map((m) => m.toJson()).toList(),
-      };
-
-  factory MuseumProgress.fromJson(Map<String, dynamic> json) {
-    final milestonesJson = json['milestones'] as List<dynamic>?;
-    return MuseumProgress(
-      museumId: json['museumId'] as int,
-      museumName: json['museumName'] as String? ?? '',
-      scannedArtifactIds: (json['scannedArtifactIds'] as List<dynamic>?)
-              ?.map((e) => e as int)
-              .toSet() ??
-          {},
-      totalArtifactCount: json['totalArtifactCount'] as int? ?? 15,
-      milestones: milestonesJson != null
-          ? milestonesJson
-              .map((e) => AchievementMilestone.fromJson(e as Map<String, dynamic>))
-              .toList()
-          : _defaultMilestones(),
-    );
-  }
+  int get unlockedMilestoneCount => apiUnlockedCount;
 }
 
 // ============================================================================
@@ -129,7 +92,7 @@ class AchievementNotifier extends ChangeNotifier {
   /// Maximum number of artifacts per museum (used for collection progress bar).
   final int maxArtifacts = 15;
 
-  /// Museum ID → MuseumProgress map.
+  /// Museum ID → MuseumProgress map.  THIS IS THE SINGLE SOURCE OF TRUTH.
   final Map<int, MuseumProgress> _progressMap = {};
 
   bool _isLoading = true;
@@ -140,7 +103,7 @@ class AchievementNotifier extends ChangeNotifier {
   MuseumProgress? get currentProgress =>
       _progressMap[AppSession.currentMuseumId.value];
 
-  /// Scanned artifact count for current museum (single source of truth).
+  /// Scanned artifact count for current museum.
   int get scannedCount => currentProgress?.scannedCount ?? 0;
 
   /// Total points for current museum.
@@ -175,6 +138,7 @@ class AchievementNotifier extends ChangeNotifier {
     super.dispose();
   }
 
+  /// Fetch all achievement data from backend API.
   Future<void> _initProgress() async {
     _isLoading = true;
     notifyListeners();
@@ -189,16 +153,20 @@ class AchievementNotifier extends ChangeNotifier {
       if (userId != null) {
         for (final museum in museums) {
           try {
-            final apiAchievements = await BackendApi.instance.fetchUserAchievements(userId, museum.id);
-            final milestones = apiAchievements.map((e) => AchievementMilestone.fromJson(e as Map<String, dynamic>)).toList();
+            final apiResponse = await BackendApi.instance.fetchUserAchievementsRaw(userId, museum.id);
+            final achievementsList = apiResponse['achievements'] as List<dynamic>? ?? [];
+            final milestones = achievementsList
+                .map((e) => AchievementMilestone.fromJson(e as Map<String, dynamic>))
+                .toList();
             fetchedMap[museum.id] = MuseumProgress(
               museumId: museum.id,
               museumName: museum.name,
               milestones: milestones,
+              apiTotalPoints: apiResponse['total_points'] as int? ?? 0,
+              apiUnlockedCount: apiResponse['unlocked_count'] as int? ?? 0,
             );
           } catch (e) {
             debugPrint('[ACHIEVEMENTS] Error fetching achievements for museum ${museum.id}: $e');
-            // Create empty progress if fetch fails
             fetchedMap[museum.id] = MuseumProgress(
               museumId: museum.id,
               museumName: museum.name,
@@ -207,7 +175,6 @@ class AchievementNotifier extends ChangeNotifier {
           }
         }
       } else {
-        // Fallback for not logged in users (or guest)
         for (final museum in museums) {
           fetchedMap[museum.id] = MuseumProgress(
             museumId: museum.id,
@@ -220,7 +187,7 @@ class AchievementNotifier extends ChangeNotifier {
       _progressMap.clear();
       _progressMap.addAll(fetchedMap);
 
-      debugPrint('[ACHIEVEMENTS] Progress loaded: ${_progressMap.values.map((p) => "${p.museumName} (scanned: ${p.scannedCount})").toList()}');
+      debugPrint('[ACHIEVEMENTS] Progress loaded: ${_progressMap.values.map((p) => "${p.museumName} (scanned: ${p.scannedCount}, unlocked: ${p.unlockedMilestoneCount}/${p.milestones.length})").toList()}');
     } catch (e) {
       debugPrint('[ACHIEVEMENTS] Error loading progress: $e');
     } finally {
@@ -229,11 +196,12 @@ class AchievementNotifier extends ChangeNotifier {
     }
   }
 
+  /// Public method to force a refresh from API.
+  Future<void> refresh() => _initProgress();
+
   // ── INTEGRATION POINT ──
 
   /// Call this when a user scans an artifact.
-  /// [museumId] – the museum the artifact belongs to.
-  /// [artifactId] – unique artifact id (used to prevent duplicate counting).
   Future<void> recordScan(int museumId, int artifactId) async {
     debugPrint('[ACHIEVEMENTS] recordScan: museumId=$museumId, artifactId=$artifactId');
 
@@ -244,21 +212,46 @@ class AchievementNotifier extends ChangeNotifier {
     }
 
     final userId = AppSession.userId.value;
-    if (userId != null) {
-      // Find incomplete milestones and increment their progress via API
-      for (final m in progress.milestones) {
-        if (!m.isUnlocked) {
-          m.progress += 1; // Increment locally first
-          try {
-            await BackendApi.instance.updateAchievementProgress(userId, m.id, m.progress);
-          } catch (e) {
-            debugPrint('[ACHIEVEMENTS] Failed to update progress for achievement ${m.id}: $e');
-          }
+    if (userId == null) return;
+
+    final List<AchievementMilestone> newlyUnlocked = [];
+    
+    // Call API to update progress in database for all incomplete milestones in parallel
+    final updateFutures = progress.milestones.where((m) => !m.isUnlocked).map((m) async {
+      final newProgress = m.progress + 1;
+      try {
+        // Call API FIRST
+        await BackendApi.instance.updateAchievementProgress(userId, m.id, newProgress);
+        
+        // ON SUCCESS: Update locally
+        m.progress = newProgress;
+        if (m.progress >= m.requiredScans) {
+          m.isUnlocked = true;
+          progress.apiUnlockedCount += 1;
+          progress.apiTotalPoints += m.points;
+          newlyUnlocked.add(m);
         }
+      } catch (e) {
+        debugPrint('[ACHIEVEMENTS] API progress update failed for achievement ${m.id}: $e');
+        // If API fails, we do NOT update locally to maintain single source of truth
       }
-      
-      // Re-fetch from API to ensure sync
-      await _initProgress();
+    });
+
+    await Future.wait(updateFutures);
+
+    // Trigger UI rebuild immediately
+    notifyListeners();
+
+    // Show banners for newly unlocked achievements
+    for (final m in newlyUnlocked) {
+      debugPrint('[ACHIEVEMENTS] UNLOCKED: ${m.name}');
+      final context = globalNavigatorKey.currentContext;
+      if (context != null) {
+        BannerQueue.instance.showBanner(
+          context,
+          'Achievement Unlocked: ${m.name}',
+        );
+      }
     }
   }
 
