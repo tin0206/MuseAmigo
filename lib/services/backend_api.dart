@@ -169,7 +169,7 @@ class BackendApi {
     throw ApiException(message);
   }
 
-  Future<void> register({
+  Future<int> register({
     required String fullName,
     required String email,
     required String password,
@@ -188,6 +188,7 @@ class BackendApi {
       if (response.statusCode < 200 || response.statusCode >= 300) {
         _throwForResponse(response, json);
       }
+      return json['id'] as int? ?? json['user_id'] as int? ?? 0;
     } catch (e) {
       if (e is ApiException) rethrow;
       throw ApiException('Unable to reach backend: $e');
@@ -316,15 +317,31 @@ class BackendApi {
     return TicketDto.fromJson(json);
   }
 
-  Future<Map<String, dynamic>> fetchUserAchievements(int userId, int museumId) async {
+  Future<List<dynamic>> fetchUserAchievements(int userId, int museumId) async {
     final response = await http.get(
       _uri('/users/$userId/achievements?museum_id=$museumId'),
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final json = await _readJson(response);
+      _throwForResponse(response, json);
+    }
+    final decoded = jsonDecode(response.body);
+    if (decoded is! List) {
+      throw ApiException('Unexpected achievements format');
+    }
+    return decoded;
+  }
+
+  Future<void> updateAchievementProgress(int userId, int achievementId, int progress) async {
+    final response = await http.patch(
+      _uri('/users/$userId/achievements/$achievementId'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'progress': progress}),
     );
     final json = await _readJson(response);
     if (response.statusCode < 200 || response.statusCode >= 300) {
       _throwForResponse(response, json);
     }
-    return json;
   }
 
   Future<Map<String, dynamic>> forgotPassword(String email) async {

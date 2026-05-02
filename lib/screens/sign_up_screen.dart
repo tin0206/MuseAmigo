@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:museamigo/app_routes.dart';
 import 'package:museamigo/services/backend_api.dart';
 import 'package:museamigo/widgets/auth_form_widgets.dart';
+import 'package:museamigo/session.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -88,11 +89,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     setState(() => _isSubmitting = true);
     try {
-      await BackendApi.instance.register(
+      final userId = await BackendApi.instance.register(
         fullName: name,
         email: email,
         password: password,
       );
+      if (userId > 0) {
+        AppSession.userId.value = userId;
+      }
     } on ApiException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
