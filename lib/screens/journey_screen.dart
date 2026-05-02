@@ -16,6 +16,8 @@ class _JourneyScreenState extends State<JourneyScreen> {
   @override
   void initState() {
     super.initState();
+    // Preload data if empty
+    achievementNotifier.ensureLoaded();
     // Listen for changes to refresh UI reactively
     achievementNotifier.addListener(_onDataChanged);
   }
@@ -44,10 +46,13 @@ class _JourneyScreenState extends State<JourneyScreen> {
     return ListenableBuilder(
       listenable: Listenable.merge([languageNotifier, achievementNotifier]),
       builder: (context, _) {
-        // All data derived from the SAME source: achievementNotifier
+        // ── STEP 4: REMOVE STALE DATA SOURCES (ONLY READ FROM NOTIFIER) ──
         final scanned = achievementNotifier.scannedCount;
         final totalPoints = achievementNotifier.totalPoints;
         final milestones = achievementNotifier.milestones;
+        
+        debugPrint('[UI_TRACE] JourneyScreen Building. Scanned: $scanned, Achievements: ${achievementNotifier.unlockedMilestoneCount}/${milestones.length}');
+        debugPrint('[UI_TRACE] Data Source: achievementNotifier instance hash: ${achievementNotifier.hashCode}');
         final maxArtifacts = achievementNotifier.maxArtifacts;
 
         return Scaffold(

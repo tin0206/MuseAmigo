@@ -1000,6 +1000,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         languageNotifier,
         themeNotifier,
         fontSizeNotifier,
+        profileNotifier,
       ]),
       builder: (context, _) {
         return Scaffold(
