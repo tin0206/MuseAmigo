@@ -394,7 +394,13 @@ class BannerQueue {
     _isShowing = true;
     final message = _queue.removeAt(0);
 
-    final overlay = Overlay.of(context);
+    final overlay = globalNavigatorKey.currentState?.overlay;
+    if (overlay == null) {
+      // If we can't find an overlay, just discard the banner and continue
+      _showNext(context);
+      return;
+    }
+
     final key = GlobalKey<_AnimatedBannerState>();
     
     final entry = OverlayEntry(
