@@ -1,9 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 
+import 'package:museamigo/app_routes.dart';
+import 'package:museamigo/font_size_notifier.dart';
+import 'package:museamigo/l10n/translations.dart';
+import 'package:museamigo/language_notifier.dart';
 import 'package:museamigo/main.dart'; // To access globalNavigatorKey
 import 'package:museamigo/services/backend_api.dart';
 import 'package:museamigo/session.dart';
+import 'package:museamigo/theme_notifier.dart';
 
 // ============================================================================
 // DATA MODEL
@@ -203,6 +208,7 @@ class AchievementNotifier extends ChangeNotifier {
                       AchievementMilestone.fromJson(e as Map<String, dynamic>),
                 )
                 .toList();
+
             return MuseumProgress(
               museumId: museum.id,
               museumName: museum.name,
@@ -373,6 +379,15 @@ class AchievementNotifier extends ChangeNotifier {
       }
     }
 
+    // Check if ALL milestones are now unlocked → show museum badge popup
+    final allUnlocked =
+        newlyUnlocked.isNotEmpty &&
+        progress.milestones.every((m) => m.isUnlocked);
+    if (allUnlocked) {
+      await Future.delayed(const Duration(milliseconds: 600));
+      _showMuseumBadgeDialog(progress.museumName);
+    }
+
     debugPrint('[ACHIEVEMENTS] recordScan COMPLETE.');
   }
 
@@ -383,6 +398,118 @@ class AchievementNotifier extends ChangeNotifier {
     int addedValue,
   ) async {
     await recordScan(museumId, artifactId, increment: addedValue);
+  }
+
+  /// Show a dialog congratulating the user for collecting all badges of a museum.
+  void _showMuseumBadgeDialog(String museumName) {
+    final ctx = globalNavigatorKey.currentContext;
+    if (ctx == null) return;
+    showDialog<void>(
+      context: ctx,
+      barrierDismissible: true,
+      builder: (_) => ListenableBuilder(
+        listenable: Listenable.merge([
+          themeNotifier,
+          fontSizeNotifier,
+          languageNotifier,
+        ]),
+        builder: (dialogCtx, __) {
+          final primary = themeNotifier.primaryColor;
+          final scale = fontSizeNotifier.scale;
+          return Dialog(
+            backgroundColor: Colors.white,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: primary,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.emoji_events_rounded,
+                      color: Colors.white,
+                      size: 46,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    '🎉 ${"Congratulations!".tr}',
+                    style: TextStyle(
+                      fontSize: 26 * scale,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF171A21),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 10),
+                  RichText(
+                    textAlign: TextAlign.center,
+                    text: TextSpan(
+                      style: TextStyle(
+                        fontSize: 15 * scale,
+                        color: const Color(0xFF4B5563),
+                        height: 1.5,
+                      ),
+                      children: [
+                        TextSpan(
+                          text: '${"You've earned the museum badge of".tr}\n',
+                        ),
+                        TextSpan(
+                          text: museumName,
+                          style: TextStyle(
+                            color: primary,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16 * scale,
+                          ),
+                        ),
+                        const TextSpan(text: '!'),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(dialogCtx, rootNavigator: true).pop();
+                        globalNavigatorKey.currentState?.pushNamed(
+                          AppRoutes.achievements,
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primary,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                      ),
+                      child: Text(
+                        'View Badge'.tr,
+                        style: TextStyle(
+                          fontSize: 16 * scale,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 }
 

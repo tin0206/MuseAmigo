@@ -16,9 +16,7 @@ class _JourneyScreenState extends State<JourneyScreen> {
   @override
   void initState() {
     super.initState();
-    // Preload data if empty
     achievementNotifier.ensureLoaded();
-    // Listen for changes to refresh UI reactively
     achievementNotifier.addListener(_onDataChanged);
   }
 
@@ -57,32 +55,7 @@ class _JourneyScreenState extends State<JourneyScreen> {
             : unlockedMilestones
                   .map((m) => m.requiredScans)
                   .reduce((a, b) => a > b ? a : b);
-        final unlockedCount = achievementNotifier.unlockedMilestoneCount;
-
-        print('===========================================================');
-        print('[UI_TRACE] JourneyScreen BUILT!');
-        print(
-          '[UI_TRACE] Scanned: $scanned, Points: $totalPoints, Milestones: ${milestones.length}',
-        );
-        print(
-          '[UI_TRACE] achievementNotifier Hash: ${achievementNotifier.hashCode}',
-        );
-        print(
-          '[UI_TRACE] currentMuseumId in Session: ${AppSession.currentMuseumId.value}',
-        );
-        if (achievementNotifier.currentProgress != null) {
-          print(
-            '[UI_TRACE] Progress in map for museum: ${achievementNotifier.currentProgress!.scannedCount}',
-          );
-          for (var m in milestones) {
-            print(
-              '  - ${m.name}: Progress=${m.progress}, Unlocked=${m.isUnlocked}',
-            );
-          }
-        } else {
-          print('[UI_TRACE] currentProgress is NULL!');
-        }
-        print('===========================================================');
+        final unlockedCount = milestones.where((m) => m.isUnlocked).length;
 
         final maxArtifacts = achievementNotifier.maxArtifacts;
 
@@ -186,7 +159,8 @@ class _JourneyScreenState extends State<JourneyScreen> {
                         ),
                       ),
                       Text(
-                        '${achievementNotifier.unlockedMilestoneCount}/${milestones.length}',
+                        '${unlockedCount}/${milestones.length}',
+
                         style: const TextStyle(
                           fontSize: 14,
                           color: Color(0xFF6B7280),
@@ -235,7 +209,6 @@ class _JourneyScreenState extends State<JourneyScreen> {
       },
     );
   }
-
   Future<void> _showFinishJourneyDialog(BuildContext context) async {
     final leave = await showDialog<bool>(
       context: context,

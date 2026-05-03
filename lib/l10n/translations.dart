@@ -139,8 +139,10 @@ const Map<String, Map<String, String>> _localizedStrings = {
     'Show Nearby': 'Show Nearby',
     'View Map': 'View Map',
     'Quick access buttons:': 'Quick access buttons:',
-    'Show nearby artifacts and highlights.': 'Show nearby artifacts and highlights.',
-    'Open map and guide me from my current location.': 'Open map and guide me from my current location.',
+    'Show nearby artifacts and highlights.':
+        'Show nearby artifacts and highlights.',
+    'Open map and guide me from my current location.':
+        'Open map and guide me from my current location.',
     'Ask me anything...': 'Ask me anything...',
     'Ogima is typing...': 'Ogima is typing...',
     'The nearest restroom is near Hall C on Floor 1. I can guide you there if you want.':
@@ -300,20 +302,30 @@ const Map<String, Map<String, String>> _localizedStrings = {
     'Hall H — Floor 2': 'Hall H — Floor 2',
     'Rooftop — Floor 2': 'Rooftop — Floor 2',
     'Museum Highlights': 'Museum Highlights',
-    'See the most iconic exhibits in a quick tour': 'See the most iconic exhibits in a quick tour',
+    'See the most iconic exhibits in a quick tour':
+        'See the most iconic exhibits in a quick tour',
     'Full Experience': 'Full Experience',
     'Complete tour covering both floors': 'Complete tour covering both floors',
     'War History Path': 'War History Path',
-    'Deep dive into wartime history and artifacts': 'Deep dive into wartime history and artifacts',
+    'Deep dive into wartime history and artifacts':
+        'Deep dive into wartime history and artifacts',
     'Quick Visit': 'Quick Visit',
-    'Perfect for visitors with limited time': 'Perfect for visitors with limited time',
-    'Start from the main entrance, then follow the route markers to your next stop.': 'Start from the main entrance, then follow the route markers to your next stop.',
-    'T-54 tank No. 843 is a legendary Vietnam People\'s Army tank linked to April 30, 1975 history.': 'T-54 tank No. 843 is a legendary Vietnam People\'s Army tank linked to April 30, 1975 history.',
-    'Explore archival photos and artifacts that document key wartime events.': 'Explore archival photos and artifacts that document key wartime events.',
-    'The President Room preserves original furniture and command equipment.': 'The President Room preserves original furniture and command equipment.',
-    'This area highlights the transition from conflict to peace and reunification.': 'This area highlights the transition from conflict to peace and reunification.',
-    'Take a break with a panoramic rooftop view before continuing your visit.': 'Take a break with a panoramic rooftop view before continuing your visit.',
-    'Follow the highlighted path to continue your museum journey.': 'Follow the highlighted path to continue your museum journey.',
+    'Perfect for visitors with limited time':
+        'Perfect for visitors with limited time',
+    'Start from the main entrance, then follow the route markers to your next stop.':
+        'Start from the main entrance, then follow the route markers to your next stop.',
+    'T-54 tank No. 843 is a legendary Vietnam People\'s Army tank linked to April 30, 1975 history.':
+        'T-54 tank No. 843 is a legendary Vietnam People\'s Army tank linked to April 30, 1975 history.',
+    'Explore archival photos and artifacts that document key wartime events.':
+        'Explore archival photos and artifacts that document key wartime events.',
+    'The President Room preserves original furniture and command equipment.':
+        'The President Room preserves original furniture and command equipment.',
+    'This area highlights the transition from conflict to peace and reunification.':
+        'This area highlights the transition from conflict to peace and reunification.',
+    'Take a break with a panoramic rooftop view before continuing your visit.':
+        'Take a break with a panoramic rooftop view before continuing your visit.',
+    'Follow the highlighted path to continue your museum journey.':
+        'Follow the highlighted path to continue your museum journey.',
     'Hall A · Floor 1': 'Hall A · Floor 1',
     'Hall B · Floor 1': 'Hall B · Floor 1',
     'Hall C · Floor 1': 'Hall C · Floor 1',
@@ -336,11 +348,14 @@ const Map<String, Map<String, String>> _localizedStrings = {
     'Detecting your position...': 'Detecting your position...',
     'Using indoor positioning': 'Using indoor positioning',
     'Where are you now?': 'Where are you now?',
-    'Indoor positioning unavailable. Select your nearest location.': 'Indoor positioning unavailable. Select your nearest location.',
+    'Indoor positioning unavailable. Select your nearest location.':
+        'Indoor positioning unavailable. Select your nearest location.',
     '✨ Recommended Routes': '✨ Recommended Routes',
-    'Choose a guided path to explore the museum': 'Choose a guided path to explore the museum',
+    'Choose a guided path to explore the museum':
+        'Choose a guided path to explore the museum',
     'stops': 'stops',
-    'Log in to continue your journey through museum': 'Log in to continue your journey through museum',
+    'Log in to continue your journey through museum':
+        'Log in to continue your journey through museum',
     'Scan your first artifact': 'Scan your first artifact',
     'Scan 2 artifacts': 'Scan 2 artifacts',
     'Scan 3 artifacts': 'Scan 3 artifacts',
@@ -348,6 +363,8 @@ const Map<String, Map<String, String>> _localizedStrings = {
     'Scan 7 artifacts': 'Scan 7 artifacts',
     'Scan 10 artifacts': 'Scan 10 artifacts',
     'Scan all 15 artifacts': 'Scan all 15 artifacts',
+    'You\'ve earned the museum badge of': 'You\'ve earned the museum badge of',
+    'View Badge': 'View Badge',
   },
   'Vietnamese': {
     'Settings': 'Cài đặt',
@@ -520,8 +537,10 @@ const Map<String, Map<String, String>> _localizedStrings = {
     'Show Nearby': 'Hiển thị lân cận',
     'View Map': 'Xem bản đồ',
     'Quick access buttons:': 'Các nút truy cập nhanh:',
-    'Show nearby artifacts and highlights.': 'Hiển thị các hiện vật và điểm nổi bật lân cận.',
-    'Open map and guide me from my current location.': 'Mở bản đồ và hướng dẫn tôi từ vị trí hiện tại.',
+    'Show nearby artifacts and highlights.':
+        'Hiển thị các hiện vật và điểm nổi bật lân cận.',
+    'Open map and guide me from my current location.':
+        'Mở bản đồ và hướng dẫn tôi từ vị trí hiện tại.',
     'Ask me anything...': 'Hỏi tôi bất cứ điều gì...',
     'Ogima is typing...': 'Ogima đang gõ...',
     'The nearest restroom is near Hall C on Floor 1. I can guide you there if you want.':
@@ -673,20 +692,30 @@ const Map<String, Map<String, String>> _localizedStrings = {
     'Hall H — Floor 2': 'Sảnh H — Tầng 2',
     'Rooftop — Floor 2': 'Sân thượng — Tầng 2',
     'Museum Highlights': 'Điểm nổi bật của bảo tàng',
-    'See the most iconic exhibits in a quick tour': 'Xem các hiện vật mang tính biểu tượng nhất trong một chuyến tham quan nhanh',
+    'See the most iconic exhibits in a quick tour':
+        'Xem các hiện vật mang tính biểu tượng nhất trong một chuyến tham quan nhanh',
     'Full Experience': 'Trải nghiệm đầy đủ',
     'Complete tour covering both floors': 'Chuyến tham quan đầy đủ cả hai tầng',
     'War History Path': 'Con đường Lịch sử Chiến tranh',
-    'Deep dive into wartime history and artifacts': 'Tìm hiểu sâu về lịch sử và hiện vật thời chiến',
+    'Deep dive into wartime history and artifacts':
+        'Tìm hiểu sâu về lịch sử và hiện vật thời chiến',
     'Quick Visit': 'Tham quan nhanh',
-    'Perfect for visitors with limited time': 'Hoàn hảo cho khách tham quan có thời gian hạn hẹp',
-    'Start from the main entrance, then follow the route markers to your next stop.': 'Bắt đầu từ lối vào chính, sau đó đi theo các biển chỉ dẫn lộ trình đến điểm dừng tiếp theo của bạn.',
-    'T-54 tank No. 843 is a legendary Vietnam People\'s Army tank linked to April 30, 1975 history.': 'Xe tăng T-54 số hiệu 843 là chiếc xe tăng huyền thoại của Quân đội Nhân dân Việt Nam gắn liền với lịch sử ngày 30 tháng 4 năm 1975.',
-    'Explore archival photos and artifacts that document key wartime events.': 'Khám phá các bức ảnh lưu trữ và hiện vật ghi lại các sự kiện chính trong thời chiến.',
-    'The President Room preserves original furniture and command equipment.': 'Phòng Tổng thống lưu giữ đồ nội thất và thiết bị chỉ huy nguyên bản.',
-    'This area highlights the transition from conflict to peace and reunification.': 'Khu vực này làm nổi bật sự chuyển đổi từ xung đột sang hòa bình và thống nhất.',
-    'Take a break with a panoramic rooftop view before continuing your visit.': 'Nghỉ ngơi với tầm nhìn toàn cảnh từ sân thượng trước khi tiếp tục chuyến tham quan.',
-    'Follow the highlighted path to continue your museum journey.': 'Đi theo con đường được làm nổi bật để tiếp tục hành trình bảo tàng của bạn.',
+    'Perfect for visitors with limited time':
+        'Hoàn hảo cho khách tham quan có thời gian hạn hẹp',
+    'Start from the main entrance, then follow the route markers to your next stop.':
+        'Bắt đầu từ lối vào chính, sau đó đi theo các biển chỉ dẫn lộ trình đến điểm dừng tiếp theo của bạn.',
+    'T-54 tank No. 843 is a legendary Vietnam People\'s Army tank linked to April 30, 1975 history.':
+        'Xe tăng T-54 số hiệu 843 là chiếc xe tăng huyền thoại của Quân đội Nhân dân Việt Nam gắn liền với lịch sử ngày 30 tháng 4 năm 1975.',
+    'Explore archival photos and artifacts that document key wartime events.':
+        'Khám phá các bức ảnh lưu trữ và hiện vật ghi lại các sự kiện chính trong thời chiến.',
+    'The President Room preserves original furniture and command equipment.':
+        'Phòng Tổng thống lưu giữ đồ nội thất và thiết bị chỉ huy nguyên bản.',
+    'This area highlights the transition from conflict to peace and reunification.':
+        'Khu vực này làm nổi bật sự chuyển đổi từ xung đột sang hòa bình và thống nhất.',
+    'Take a break with a panoramic rooftop view before continuing your visit.':
+        'Nghỉ ngơi với tầm nhìn toàn cảnh từ sân thượng trước khi tiếp tục chuyến tham quan.',
+    'Follow the highlighted path to continue your museum journey.':
+        'Đi theo con đường được làm nổi bật để tiếp tục hành trình bảo tàng của bạn.',
     'Hall A · Floor 1': 'Sảnh A · Tầng 1',
     'Hall B · Floor 1': 'Sảnh B · Tầng 1',
     'Hall C · Floor 1': 'Sảnh C · Tầng 1',
@@ -709,9 +738,11 @@ const Map<String, Map<String, String>> _localizedStrings = {
     'Detecting your position...': 'Đang xác định vị trí của bạn...',
     'Using indoor positioning': 'Sử dụng định vị trong nhà',
     'Where are you now?': 'Bạn đang ở đâu?',
-    'Indoor positioning unavailable. Select your nearest location.': 'Định vị trong nhà không khả dụng. Chọn vị trí gần nhất của bạn.',
+    'Indoor positioning unavailable. Select your nearest location.':
+        'Định vị trong nhà không khả dụng. Chọn vị trí gần nhất của bạn.',
     '✨ Recommended Routes': '✨ Tuyến đường đề xuất',
-    'Choose a guided path to explore the museum': 'Chọn một con đường được dẫn dắt để khám phá bảo tàng',
+    'Choose a guided path to explore the museum':
+        'Chọn một con đường được dẫn dắt để khám phá bảo tàng',
     'Tiger Cages': 'Chuồng cọp',
     'Guillotine': 'Máy chém',
     'Bomb Casings': 'Vỏ bom',
@@ -761,7 +792,8 @@ const Map<String, Map<String, String>> _localizedStrings = {
     'Trending Artifacts': 'Hiện vật nổi bật',
     'Floor 2 Highlights': 'Điểm nổi bật tầng 2',
     'stops': 'điểm dừng',
-    'Log in to continue your journey through museum': 'Đăng nhập để tiếp tục hành trình qua bảo tàng',
+    'Log in to continue your journey through museum':
+        'Đăng nhập để tiếp tục hành trình qua bảo tàng',
     'Scan your first artifact': 'Quét hiện vật đầu tiên của bạn',
     'Scan 2 artifacts': 'Quét 2 hiện vật',
     'Scan 3 artifacts': 'Quét 3 hiện vật',
@@ -769,6 +801,9 @@ const Map<String, Map<String, String>> _localizedStrings = {
     'Scan 7 artifacts': 'Quét 7 hiện vật',
     'Scan 10 artifacts': 'Quét 10 hiện vật',
     'Scan all 15 artifacts': 'Quét tất cả 15 hiện vật',
+    'You\'ve earned the museum badge of':
+        'Bạn đã đạt được huy hiệu của bảo tàng',
+    'View Badge': 'Xem huy hiệu',
   },
 };
 
