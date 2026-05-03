@@ -85,7 +85,7 @@ class _JourneyScreenState extends State<JourneyScreen> {
                               valueListenable: AppSession.currentMuseumName,
                               builder: (context, name, _) {
                                 return Text(
-                                  name,
+                                  name.tr,
                                   style: const TextStyle(
                                     fontSize: 14,
                                     color: Color(0xFF6B7280),
@@ -209,6 +209,7 @@ class _JourneyScreenState extends State<JourneyScreen> {
       },
     );
   }
+
   Future<void> _showFinishJourneyDialog(BuildContext context) async {
     final leave = await showDialog<bool>(
       context: context,

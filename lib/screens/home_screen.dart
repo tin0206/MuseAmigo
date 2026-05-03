@@ -47,27 +47,75 @@ class _HomeScreenState extends State<HomeScreen> {
     switch (museumId) {
       case 2: // War Remnants Museum
         return const [
-          _ArtifactItem(name: 'Tiger Cages', period: '1960s', color: Color(0xFF6B7A8D)),
-          _ArtifactItem(name: 'Guillotine', period: 'Early 1900s', color: Color(0xFF8B5E3C)),
-          _ArtifactItem(name: 'Bomb Casings', period: '1965-1975', color: Color(0xFF5E5E5E)),
+          _ArtifactItem(
+            name: 'Tiger Cages',
+            period: '1960s',
+            color: Color(0xFF6B7A8D),
+          ),
+          _ArtifactItem(
+            name: 'Guillotine',
+            period: 'Early 1900s',
+            color: Color(0xFF8B5E3C),
+          ),
+          _ArtifactItem(
+            name: 'Bomb Casings',
+            period: '1965-1975',
+            color: Color(0xFF5E5E5E),
+          ),
         ];
       case 3: // HCMC Museum of Fine Arts
         return const [
-          _ArtifactItem(name: 'Lacquer Painting', period: '1942', color: Color(0xFFE8A04A)),
-          _ArtifactItem(name: 'Buddhist Statue', period: '17th Century', color: Color(0xFF4A6A8A)),
-          _ArtifactItem(name: 'Silk Painting', period: '1930s', color: Color(0xFF8A4A6A)),
+          _ArtifactItem(
+            name: 'Lacquer Painting',
+            period: '1942',
+            color: Color(0xFFE8A04A),
+          ),
+          _ArtifactItem(
+            name: 'Buddhist Statue',
+            period: '17th Century',
+            color: Color(0xFF4A6A8A),
+          ),
+          _ArtifactItem(
+            name: 'Silk Painting',
+            period: '1930s',
+            color: Color(0xFF8A4A6A),
+          ),
         ];
       case 4: // Ho Chi Minh City Museum
         return const [
-          _ArtifactItem(name: 'Traditional Ao Dai', period: '1930s', color: Color(0xFF8A4A6A)),
-          _ArtifactItem(name: 'Saigon Map 1930', period: '1930', color: Color(0xFF5E8A6E)),
-          _ArtifactItem(name: 'Ancient Coins', period: '1800-1900', color: Color(0xFFE8A04A)),
+          _ArtifactItem(
+            name: 'Traditional Ao Dai',
+            period: '1930s',
+            color: Color(0xFF8A4A6A),
+          ),
+          _ArtifactItem(
+            name: 'Saigon Map 1930',
+            period: '1930',
+            color: Color(0xFF5E8A6E),
+          ),
+          _ArtifactItem(
+            name: 'Ancient Coins',
+            period: '1800-1900',
+            color: Color(0xFFE8A04A),
+          ),
         ];
       default: // Independence Palace
         return const [
-          _ArtifactItem(name: 'Money Frame', period: '1800-1900', color: Color(0xFFE8A04A)),
-          _ArtifactItem(name: 'AK47', period: '1942-1947', color: Color(0xFF6B7A8D)),
-          _ArtifactItem(name: 'War Photograph', period: '1965-1975', color: Color(0xFF8B5E3C)),
+          _ArtifactItem(
+            name: 'Money Frame',
+            period: '1800-1900',
+            color: Color(0xFFE8A04A),
+          ),
+          _ArtifactItem(
+            name: 'AK47',
+            period: '1942-1947',
+            color: Color(0xFF6B7A8D),
+          ),
+          _ArtifactItem(
+            name: 'War Photograph',
+            period: '1965-1975',
+            color: Color(0xFF8B5E3C),
+          ),
         ];
     }
   }
@@ -76,31 +124,95 @@ class _HomeScreenState extends State<HomeScreen> {
     switch (museumId) {
       case 2: // War Remnants Museum
         return const [
-          _ArtifactItem(name: 'Agent Orange Documents', period: '1960s', color: Color(0xFF5E8A6E)),
-          _ArtifactItem(name: 'Military Uniforms', period: '1940-1975', color: Color(0xFF7A5C3A)),
-          _ArtifactItem(name: 'Propaganda Posters', period: '1960s', color: Color(0xFF4A6A8A)),
-          _ArtifactItem(name: 'Helicopter Parts', period: '1970s', color: Color(0xFF8A4A6A)),
+          _ArtifactItem(
+            name: 'Agent Orange Documents',
+            period: '1960s',
+            color: Color(0xFF5E8A6E),
+          ),
+          _ArtifactItem(
+            name: 'Military Uniforms',
+            period: '1940-1975',
+            color: Color(0xFF7A5C3A),
+          ),
+          _ArtifactItem(
+            name: 'Propaganda Posters',
+            period: '1960s',
+            color: Color(0xFF4A6A8A),
+          ),
+          _ArtifactItem(
+            name: 'Helicopter Parts',
+            period: '1970s',
+            color: Color(0xFF8A4A6A),
+          ),
         ];
       case 3: // HCMC Museum of Fine Arts
         return const [
-          _ArtifactItem(name: 'Oil Portrait', period: '1950s', color: Color(0xFF5E8A6E)),
-          _ArtifactItem(name: 'Ceramic Vase', period: '15th Century', color: Color(0xFF7A5C3A)),
-          _ArtifactItem(name: 'Watercolor Landscape', period: '1940s', color: Color(0xFF4A6A8A)),
-          _ArtifactItem(name: 'Wood Carving', period: '18th Century', color: Color(0xFF8A4A6A)),
+          _ArtifactItem(
+            name: 'Oil Portrait',
+            period: '1950s',
+            color: Color(0xFF5E8A6E),
+          ),
+          _ArtifactItem(
+            name: 'Ceramic Vase',
+            period: '15th Century',
+            color: Color(0xFF7A5C3A),
+          ),
+          _ArtifactItem(
+            name: 'Watercolor Landscape',
+            period: '1940s',
+            color: Color(0xFF4A6A8A),
+          ),
+          _ArtifactItem(
+            name: 'Wood Carving',
+            period: '18th Century',
+            color: Color(0xFF8A4A6A),
+          ),
         ];
       case 4: // Ho Chi Minh City Museum
         return const [
-          _ArtifactItem(name: 'Colonial Documents', period: '1880s', color: Color(0xFF5E8A6E)),
-          _ArtifactItem(name: 'River Boat Model', period: '1900s', color: Color(0xFF7A5C3A)),
-          _ArtifactItem(name: 'Trade Ceramics', period: '17th Century', color: Color(0xFF4A6A8A)),
-          _ArtifactItem(name: 'Ethnic Costume', period: '1800s', color: Color(0xFF8A4A6A)),
+          _ArtifactItem(
+            name: 'Colonial Documents',
+            period: '1880s',
+            color: Color(0xFF5E8A6E),
+          ),
+          _ArtifactItem(
+            name: 'River Boat Model',
+            period: '1900s',
+            color: Color(0xFF7A5C3A),
+          ),
+          _ArtifactItem(
+            name: 'Trade Ceramics',
+            period: '17th Century',
+            color: Color(0xFF4A6A8A),
+          ),
+          _ArtifactItem(
+            name: 'Ethnic Costume',
+            period: '1800s',
+            color: Color(0xFF8A4A6A),
+          ),
         ];
       default: // Independence Palace
         return const [
-          _ArtifactItem(name: 'Ancient Vase', period: '200-400 AD', color: Color(0xFF5E8A6E)),
-          _ArtifactItem(name: 'Bronze Cannon', period: '1700-1800', color: Color(0xFF7A5C3A)),
-          _ArtifactItem(name: 'Royal Seal', period: '1600-1700', color: Color(0xFF4A6A8A)),
-          _ArtifactItem(name: 'Silk Robe', period: '1800-1900', color: Color(0xFF8A4A6A)),
+          _ArtifactItem(
+            name: 'Ancient Vase',
+            period: '200-400 AD',
+            color: Color(0xFF5E8A6E),
+          ),
+          _ArtifactItem(
+            name: 'Bronze Cannon',
+            period: '1700-1800',
+            color: Color(0xFF7A5C3A),
+          ),
+          _ArtifactItem(
+            name: 'Royal Seal',
+            period: '1600-1700',
+            color: Color(0xFF4A6A8A),
+          ),
+          _ArtifactItem(
+            name: 'Silk Robe',
+            period: '1800-1900',
+            color: Color(0xFF8A4A6A),
+          ),
         ];
     }
   }
@@ -223,7 +335,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: Text(
-                            '${'You are exploring the'.tr} $museumName',
+                            '${'You are exploring the'.tr} ${museumName.tr}',
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                               fontSize: 14,

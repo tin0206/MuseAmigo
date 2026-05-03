@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:museamigo/l10n/translations.dart';
 import 'package:museamigo/achievement_notifier.dart';
+import 'package:museamigo/language_notifier.dart';
 
 class AchievementsScreen extends StatefulWidget {
   const AchievementsScreen({super.key});
@@ -34,11 +35,11 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
         ),
       ),
       body: ListenableBuilder(
-        listenable: achievementNotifier,
+        listenable: Listenable.merge([achievementNotifier, languageNotifier]),
         builder: (context, child) {
           print('===========================================================');
           print('[UI_TRACE] AchievementsScreen BUILT!');
-          
+
           if (achievementNotifier.isLoading) {
             print('[UI_TRACE] isLoading is true');
             return const Center(child: CircularProgressIndicator());
@@ -51,7 +52,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
           }
           print('===========================================================');
           if (allProgress.isEmpty) {
-            return const Center(child: Text('No achievements available.'));
+            return Center(child: Text('No achievements available.'.tr));
           }
 
           return GridView.builder(
@@ -66,7 +67,8 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
             itemBuilder: (context, index) {
               final progress = allProgress[index];
               // A museum achievement is "unlocked" if all milestones are completed
-              final unlocked = progress.milestones.isNotEmpty && 
+              final unlocked =
+                  progress.milestones.isNotEmpty &&
                   progress.unlockedMilestoneCount == progress.milestones.length;
               return AchievementBadge(
                 museumName: progress.museumName,
@@ -105,7 +107,7 @@ class AchievementBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double progressPercent = totalMilestones > 0 
+    final double progressPercent = totalMilestones > 0
         ? (unlockedMilestones / totalMilestones).clamp(0.0, 1.0)
         : 0.0;
 
@@ -119,8 +121,20 @@ class AchievementBadge extends StatelessWidget {
           width: 2,
         ),
         boxShadow: unlocked
-            ? [BoxShadow(color: Colors.amber.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))]
-            : [const BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
+            ? [
+                BoxShadow(
+                  color: Colors.amber.withValues(alpha: 0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ]
+            : [
+                const BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 4,
+                  offset: Offset(0, 2),
+                ),
+              ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(10.0),
@@ -173,14 +187,16 @@ class AchievementBadge extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              museumName,
+              museumName.tr,
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: unlocked ? Colors.brown.shade800 : const Color(0xFF374151),
+                color: unlocked
+                    ? Colors.brown.shade800
+                    : const Color(0xFF374151),
               ),
             ),
             const Spacer(),
@@ -190,7 +206,9 @@ class AchievementBadge extends StatelessWidget {
                 value: progressPercent,
                 backgroundColor: const Color(0xFFF3F4F6),
                 valueColor: AlwaysStoppedAnimation<Color>(
-                  unlocked ? Colors.green : Theme.of(context).colorScheme.primary,
+                  unlocked
+                      ? Colors.green
+                      : Theme.of(context).colorScheme.primary,
                 ),
                 minHeight: 5,
               ),
@@ -201,7 +219,9 @@ class AchievementBadge extends StatelessWidget {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
-                color: unlocked ? Colors.green.shade700 : const Color(0xFF6B7280),
+                color: unlocked
+                    ? Colors.green.shade700
+                    : const Color(0xFF6B7280),
               ),
             ),
           ],

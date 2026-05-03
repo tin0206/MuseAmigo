@@ -1,4 +1,6 @@
 import 'package:museamigo/app_routes.dart';
+import 'package:museamigo/l10n/translations.dart';
+import 'package:museamigo/session.dart';
 import 'package:museamigo/services/audio_assets.dart';
 import 'package:flutter/material.dart';
 
@@ -28,7 +30,6 @@ class _SearchScreenState extends State<SearchScreen> {
   String _selectedFilterExhibition = 'All';
   String _activeFilterMode = 'floor'; // 'floor' or 'exhibition'
   String _sortBy = 'default'; // 'default' or 'a-z'
-
 
   static const _recentSearches = ['Tank', 'Weapons', 'Room', 'Exhibition'];
   static const _trending = ['Garden', 'Tank', 'Weapons', 'Room', 'Exhibition'];
@@ -235,7 +236,9 @@ class _SearchScreenState extends State<SearchScreen> {
                             vertical: 5,
                           ),
                           decoration: BoxDecoration(
-                            color: selected ? Theme.of(context).colorScheme.primary : Colors.white,
+                            color: selected
+                                ? Theme.of(context).colorScheme.primary
+                                : Colors.white,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: selected
@@ -284,7 +287,9 @@ class _SearchScreenState extends State<SearchScreen> {
                             vertical: 5,
                           ),
                           decoration: BoxDecoration(
-                            color: selected ? Theme.of(context).colorScheme.primary : Colors.white,
+                            color: selected
+                                ? Theme.of(context).colorScheme.primary
+                                : Colors.white,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: selected
@@ -513,7 +518,7 @@ class _ResultCard extends StatelessWidget {
         'title': item.title,
         'year': '1947',
         'location': item.floor,
-        'currentLocation': 'Independence Palace',
+        'currentLocation': AppSession.currentMuseumName.value,
         'height': '~2.4 meters',
         'weight': '~39.7 tons',
         'imageAsset': 'assets/images/museum.jpg',

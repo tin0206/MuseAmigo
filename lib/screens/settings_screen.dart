@@ -791,7 +791,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                             SizedBox(height: 2),
                             Text(
-                              'This setting allows the app to save your achievements, discovered artifacts, and museum journey data locally on your device for offline access.',
+                              'This setting allows the app to save your achievements, discovered artifacts, and museum journey data locally on your device for offline access.'
+                                  .tr,
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Color(0xFF3B82F6),

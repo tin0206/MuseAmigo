@@ -281,7 +281,7 @@ class QrPaymentSheet extends StatelessWidget {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          '${ticket.ticketLabel} - ${ticket.museumName}',
+                          '${ticket.ticketLabel} - ${ticket.museumName.tr}',
                           style: const TextStyle(
                             fontSize: 13,
                             color: Color(0xFF4D5562),
@@ -644,7 +644,10 @@ class _TicketResultSheet extends StatelessWidget {
                 const SizedBox(height: 20),
                 const Divider(color: Color(0xFFE0E0E0)),
                 const SizedBox(height: 8),
-                _TicketDetailRow(label: 'Museum', value: ticket.museumName),
+                _TicketDetailRow(
+                  label: 'Museum'.tr,
+                  value: ticket.museumName.tr,
+                ),
                 _TicketDetailRow(
                   label: 'Ticket type'.tr,
                   value: ticket.ticketLabel,

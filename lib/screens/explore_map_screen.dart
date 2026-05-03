@@ -109,126 +109,143 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
             final filteredMuseums = query.isEmpty
                 ? museums
                 : museums
-                      .where((m) => m.name.toLowerCase().contains(query))
+                      .where(
+                        (m) =>
+                            m.name.toLowerCase().contains(query) ||
+                            m.name.tr.toLowerCase().contains(query),
+                      )
                       .toList();
             return Scaffold(
               backgroundColor: Colors.white,
               body: SafeArea(
                 child: Column(
                   children: [
-                Container(
-                  color: Theme.of(context).colorScheme.primary,
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          height: 52,
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.search, color: Colors.black87),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: TextField(
-                                  controller: _searchController,
-                                  onChanged: (_) {
-                                    setState(() {});
-                                    final q = _searchController.text
-                                        .trim()
-                                        .toLowerCase();
-                                    if (q.isEmpty) return;
-                                    final matches = museums
-                                        .where(
-                                          (m) => m.name.toLowerCase().contains(q),
-                                        )
-                                        .toList();
-                                    if (matches.isEmpty) return;
-                                    _mapController.move(matches.first.position, 14);
-                                  },
-                                  decoration: InputDecoration(
-                                    hintText: 'Where do you want to go?'.tr,
-                                    border: InputBorder.none,
-                                  ),
-                                ),
+                    Container(
+                      color: Theme.of(context).colorScheme.primary,
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              height: 52,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
                               ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      GestureDetector(
-                        onTap: () =>
-                            Navigator.of(context).pushNamed(AppRoutes.settings),
-                        child: Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(24),
-                          ),
-                          child: const ClipOval(
-                            child: Image(
-                              image: AssetImage('assets/images/model.png'),
-                              fit: BoxFit.cover,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.search,
+                                    color: Colors.black87,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _searchController,
+                                      onChanged: (_) {
+                                        setState(() {});
+                                        final q = _searchController.text
+                                            .trim()
+                                            .toLowerCase();
+                                        if (q.isEmpty) return;
+                                        final matches = museums
+                                            .where(
+                                              (m) => m.name
+                                                  .toLowerCase()
+                                                  .contains(q),
+                                            )
+                                            .toList();
+                                        if (matches.isEmpty) return;
+                                        _mapController.move(
+                                          matches.first.position,
+                                          14,
+                                        );
+                                      },
+                                      decoration: InputDecoration(
+                                        hintText: 'Where do you want to go?'.tr,
+                                        border: InputBorder.none,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: FlutterMap(
-                    mapController: _mapController,
-                    options: MapOptions(
-                      initialCenter: filteredMuseums.isNotEmpty
-                          ? filteredMuseums.first.position
-                          : const LatLng(10.7769, 106.6980),
-                      initialZoom: 14.0,
-                    ),
-                    children: [
-                      TileLayer(
-                        urlTemplate:
-                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                        userAgentPackageName: 'com.example.museamigo',
-                      ),
-                      MarkerLayer(
-                        markers: filteredMuseums
-                            .map(
-                              (museum) => Marker(
-                                point: museum.position,
-                                width: 84,
-                                height: 84,
-                                child: GestureDetector(
-                                  onTap: () =>
-                                      _showMuseumDetailSheet(context, museum),
-                                  child: const _MuseumMarker(),
+                          const SizedBox(width: 10),
+                          GestureDetector(
+                            onTap: () => Navigator.of(
+                              context,
+                            ).pushNamed(AppRoutes.settings),
+                            child: Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(24),
+                              ),
+                              child: const ClipOval(
+                                child: Image(
+                                  image: AssetImage('assets/images/model.png'),
+                                  fit: BoxFit.cover,
                                 ),
                               ),
-                            )
-                            .toList(),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
-                if (query.isNotEmpty && filteredMuseums.isEmpty)
-                  Container(
-                    width: double.infinity,
-                    color: const Color(0xFFFFF4E5),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 10,
                     ),
-                    child: Text(
-                      'No museum found for "$query"',
-                      style: const TextStyle(color: Color(0xFF8A5A00)),
+                    Expanded(
+                      child: FlutterMap(
+                        mapController: _mapController,
+                        options: MapOptions(
+                          initialCenter: filteredMuseums.isNotEmpty
+                              ? filteredMuseums.first.position
+                              : const LatLng(10.7769, 106.6980),
+                          initialZoom: 14.0,
+                        ),
+                        children: [
+                          TileLayer(
+                            urlTemplate:
+                                'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                            userAgentPackageName: 'com.example.museamigo',
+                          ),
+                          MarkerLayer(
+                            markers: filteredMuseums
+                                .map(
+                                  (museum) => Marker(
+                                    point: museum.position,
+                                    width: 84,
+                                    height: 84,
+                                    child: GestureDetector(
+                                      onTap: () => _showMuseumDetailSheet(
+                                        context,
+                                        museum,
+                                      ),
+                                      child: const _MuseumMarker(),
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+                    if (query.isNotEmpty && filteredMuseums.isEmpty)
+                      Container(
+                        width: double.infinity,
+                        color: const Color(0xFFFFF4E5),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        child: Text(
+                          '${'No museum found for'.tr} "$query"',
+                          style: const TextStyle(color: Color(0xFF8A5A00)),
+                        ),
+                      ),
                   ],
                 ),
               ),
