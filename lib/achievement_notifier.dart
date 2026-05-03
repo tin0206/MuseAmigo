@@ -30,18 +30,20 @@ class AchievementMilestone {
   });
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'description': description,
-        'requiredScans': requiredScans,
-        'points': points,
-        'progress': progress,
-        'isUnlocked': isUnlocked,
-      };
+    'id': id,
+    'name': name,
+    'description': description,
+    'requiredScans': requiredScans,
+    'points': points,
+    'progress': progress,
+    'isUnlocked': isUnlocked,
+  };
 
   factory AchievementMilestone.fromJson(Map<String, dynamic> json) =>
       AchievementMilestone(
-        id: json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 0,
+        id: json['id'] is int
+            ? json['id']
+            : int.tryParse(json['id'].toString()) ?? 0,
         name: json['name'] ?? '',
         description: json['description'] ?? '',
         requiredScans: json['requirement_value'] ?? json['requiredScans'] ?? 0,
@@ -92,7 +94,8 @@ class MuseumProgress {
   int get totalPoints => apiTotalPoints;
 
   /// Number of unlocked milestones.
-  int get unlockedMilestoneCount => apiUnlockedCount;
+  int get unlockedMilestoneCount =>
+      milestones.where((m) => m.isUnlocked).length;
 }
 
 // ============================================================================
@@ -108,6 +111,7 @@ class AchievementNotifier extends ChangeNotifier {
 
   bool _isLoading = true;
   bool _isFetching = false;
+
   /// Track which userId the data was loaded for (detects stale data).
   int? _loadedForUserId;
   bool get isLoading => _isLoading;
@@ -179,36 +183,45 @@ class AchievementNotifier extends ChangeNotifier {
       final userId = AppSession.userId.value;
 
       // Fetch all museum achievements in parallel
-      final results = await Future.wait(museums.map((museum) async {
-        if (userId == null) {
-          return MuseumProgress(
-            museumId: museum.id,
-            museumName: museum.name,
-            milestones: [],
-          );
-        }
-        try {
-          final apiResponse = await BackendApi.instance.fetchUserAchievementsRaw(userId, museum.id);
-          final achievementsList = apiResponse['achievements'] as List<dynamic>? ?? [];
-          final milestones = achievementsList
-              .map((e) => AchievementMilestone.fromJson(e as Map<String, dynamic>))
-              .toList();
-          return MuseumProgress(
-            museumId: museum.id,
-            museumName: museum.name,
-            milestones: milestones,
-            apiTotalPoints: apiResponse['total_points'] as int? ?? 0,
-            apiUnlockedCount: apiResponse['unlocked_count'] as int? ?? 0,
-          );
-        } catch (e) {
-          debugPrint('[ACHIEVEMENTS] Error fetching achievements for museum ${museum.id}: $e');
-          return MuseumProgress(
-            museumId: museum.id,
-            museumName: museum.name,
-            milestones: [],
-          );
-        }
-      }));
+      final results = await Future.wait(
+        museums.map((museum) async {
+          if (userId == null) {
+            return MuseumProgress(
+              museumId: museum.id,
+              museumName: museum.name,
+              milestones: [],
+            );
+          }
+          try {
+            final apiResponse = await BackendApi.instance
+                .fetchUserAchievementsRaw(userId, museum.id);
+            final achievementsList =
+                apiResponse['achievements'] as List<dynamic>? ?? [];
+            final milestones = achievementsList
+                .map(
+                  (e) =>
+                      AchievementMilestone.fromJson(e as Map<String, dynamic>),
+                )
+                .toList();
+            return MuseumProgress(
+              museumId: museum.id,
+              museumName: museum.name,
+              milestones: milestones,
+              apiTotalPoints: apiResponse['total_points'] as int? ?? 0,
+              apiUnlockedCount: apiResponse['unlocked_count'] as int? ?? 0,
+            );
+          } catch (e) {
+            debugPrint(
+              '[ACHIEVEMENTS] Error fetching achievements for museum ${museum.id}: $e',
+            );
+            return MuseumProgress(
+              museumId: museum.id,
+              museumName: museum.name,
+              milestones: [],
+            );
+          }
+        }),
+      );
 
       _progressMap.clear();
       for (final p in results) {
@@ -216,7 +229,9 @@ class AchievementNotifier extends ChangeNotifier {
       }
       _loadedForUserId = userId;
 
-      debugPrint('[ACHIEVEMENTS] Successfully loaded progress for ${_progressMap.length} museums.');
+      debugPrint(
+        '[ACHIEVEMENTS] Successfully loaded progress for ${_progressMap.length} museums.',
+      );
     } catch (e) {
       debugPrint('[ACHIEVEMENTS] Error loading progress: $e');
     } finally {
@@ -238,12 +253,20 @@ class AchievementNotifier extends ChangeNotifier {
   /// Called by BOTH QR scan and manual code input paths.
   ///
   /// Flow: API update → local state patch → notifyListeners() → UI rebuilds.
-  Future<void> recordScan(int museumId, int artifactId, {int increment = 1}) async {
-    debugPrint('[ACHIEVEMENTS] recordScan START: museumId=$museumId, artifactId=$artifactId, inc=$increment');
+  Future<void> recordScan(
+    int museumId,
+    int artifactId, {
+    int increment = 1,
+  }) async {
+    debugPrint(
+      '[ACHIEVEMENTS] recordScan START: museumId=$museumId, artifactId=$artifactId, inc=$increment',
+    );
 
     final progress = _progressMap[museumId];
     if (progress == null) {
-      debugPrint('[ACHIEVEMENTS] Warning: Museum ID $museumId not found in progress map. Keys: ${_progressMap.keys}');
+      debugPrint(
+        '[ACHIEVEMENTS] Warning: Museum ID $museumId not found in progress map. Keys: ${_progressMap.keys}',
+      );
       return;
     }
 
@@ -262,7 +285,9 @@ class AchievementNotifier extends ChangeNotifier {
     }
 
     if (toUpdate.isEmpty) {
-      debugPrint('[ACHIEVEMENTS] No locked milestones to update for museum $museumId.');
+      debugPrint(
+        '[ACHIEVEMENTS] No locked milestones to update for museum $museumId.',
+      );
       return;
     }
 
@@ -275,21 +300,23 @@ class AchievementNotifier extends ChangeNotifier {
     for (final idx in toUpdate) {
       final m = progress.milestones[idx];
       final newProgressValue = m.progress + increment;
-      pendingUpdates.add(_PendingUpdate(
-        index: idx,
-        milestone: m,
-        newProgress: newProgressValue,
-      ));
+      pendingUpdates.add(
+        _PendingUpdate(index: idx, milestone: m, newProgress: newProgressValue),
+      );
     }
 
     // Fire all API calls in parallel
     final futures = pendingUpdates.map((pu) async {
       try {
         await BackendApi.instance.updateAchievementProgress(
-          userId, pu.milestone.id, pu.newProgress,
+          userId,
+          pu.milestone.id,
+          pu.newProgress,
         );
         pu.succeeded = true;
-        debugPrint('[ACHIEVEMENTS] API OK: milestone ${pu.milestone.id} -> ${pu.newProgress}');
+        debugPrint(
+          '[ACHIEVEMENTS] API OK: milestone ${pu.milestone.id} -> ${pu.newProgress}',
+        );
       } catch (e) {
         debugPrint('[ACHIEVEMENTS] API FAIL: milestone ${pu.milestone.id}: $e');
       }
@@ -298,7 +325,9 @@ class AchievementNotifier extends ChangeNotifier {
     await Future.wait(futures);
 
     // Now apply ALL successful updates to local state in one batch
-    final List<AchievementMilestone> newMilestones = List.from(progress.milestones);
+    final List<AchievementMilestone> newMilestones = List.from(
+      progress.milestones,
+    );
     final List<AchievementMilestone> newlyUnlocked = [];
     int addedPoints = 0;
     int addedUnlocks = 0;
@@ -328,7 +357,9 @@ class AchievementNotifier extends ChangeNotifier {
     progress.apiUnlockedCount += addedUnlocks;
     progress.apiTotalPoints += addedPoints;
 
-    debugPrint('[ACHIEVEMENTS] State updated. Scanned: ${progress.scannedCount}, Unlocked: ${progress.unlockedMilestoneCount}/${progress.milestones.length}');
+    debugPrint(
+      '[ACHIEVEMENTS] State updated. Scanned: ${progress.scannedCount}, Unlocked: ${progress.unlockedMilestoneCount}/${progress.milestones.length}',
+    );
 
     // FORCE UI REBUILD — single notification after all state is consistent
     notifyListeners();
@@ -346,7 +377,11 @@ class AchievementNotifier extends ChangeNotifier {
   }
 
   // ── Legacy adapter for old code that calls updateProgress ──
-  Future<void> updateProgress(int museumId, int artifactId, int addedValue) async {
+  Future<void> updateProgress(
+    int museumId,
+    int artifactId,
+    int addedValue,
+  ) async {
     await recordScan(museumId, artifactId, increment: addedValue);
   }
 }
@@ -402,7 +437,7 @@ class BannerQueue {
     }
 
     final key = GlobalKey<_AnimatedBannerState>();
-    
+
     final entry = OverlayEntry(
       builder: (context) => AnimatedBanner(key: key, message: message),
     );
@@ -410,7 +445,7 @@ class BannerQueue {
     overlay.insert(entry);
 
     await Future.delayed(const Duration(seconds: 2));
-    
+
     // Reverse animation before removing
     if (key.currentState != null) {
       await key.currentState!.reverse();
@@ -423,7 +458,7 @@ class BannerQueue {
 
 class AnimatedBanner extends StatefulWidget {
   final String message;
-  
+
   const AnimatedBanner({Key? key, required this.message}) : super(key: key);
 
   @override
@@ -445,10 +480,7 @@ class _AnimatedBannerState extends State<AnimatedBanner>
     _offsetAnimation = Tween<Offset>(
       begin: const Offset(0.0, -1.5),
       end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutBack,
-    ));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
     _controller.forward();
   }
 
@@ -486,7 +518,7 @@ class _AnimatedBannerState extends State<AnimatedBanner>
                   color: Colors.black26,
                   blurRadius: 10,
                   offset: Offset(0, 5),
-                )
+                ),
               ],
             ),
             child: Row(
@@ -501,8 +533,8 @@ class _AnimatedBannerState extends State<AnimatedBanner>
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       shadows: [
-                        Shadow(color: Colors.black26, offset: Offset(1, 1))
-                      ]
+                        Shadow(color: Colors.black26, offset: Offset(1, 1)),
+                      ],
                     ),
                   ),
                 ),

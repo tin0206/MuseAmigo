@@ -47,164 +47,191 @@ class _JourneyScreenState extends State<JourneyScreen> {
       listenable: Listenable.merge([languageNotifier, achievementNotifier]),
       builder: (context, _) {
         // ── STEP 4: REMOVE STALE DATA SOURCES (ONLY READ FROM NOTIFIER) ──
-        final scanned = achievementNotifier.scannedCount;
         final totalPoints = achievementNotifier.totalPoints;
         final milestones = achievementNotifier.milestones;
-        
+        final unlockedMilestones = milestones
+            .where((m) => m.isUnlocked)
+            .toList();
+        final scanned = unlockedMilestones.isEmpty
+            ? 0
+            : unlockedMilestones
+                  .map((m) => m.requiredScans)
+                  .reduce((a, b) => a > b ? a : b);
+        final unlockedCount = achievementNotifier.unlockedMilestoneCount;
+
         print('===========================================================');
         print('[UI_TRACE] JourneyScreen BUILT!');
-        print('[UI_TRACE] Scanned: $scanned, Points: $totalPoints, Milestones: ${milestones.length}');
-        print('[UI_TRACE] achievementNotifier Hash: ${achievementNotifier.hashCode}');
-        print('[UI_TRACE] currentMuseumId in Session: ${AppSession.currentMuseumId.value}');
+        print(
+          '[UI_TRACE] Scanned: $scanned, Points: $totalPoints, Milestones: ${milestones.length}',
+        );
+        print(
+          '[UI_TRACE] achievementNotifier Hash: ${achievementNotifier.hashCode}',
+        );
+        print(
+          '[UI_TRACE] currentMuseumId in Session: ${AppSession.currentMuseumId.value}',
+        );
         if (achievementNotifier.currentProgress != null) {
-           print('[UI_TRACE] Progress in map for museum: ${achievementNotifier.currentProgress!.scannedCount}');
-           for (var m in milestones) {
-             print('  - ${m.name}: Progress=${m.progress}, Unlocked=${m.isUnlocked}');
-           }
+          print(
+            '[UI_TRACE] Progress in map for museum: ${achievementNotifier.currentProgress!.scannedCount}',
+          );
+          for (var m in milestones) {
+            print(
+              '  - ${m.name}: Progress=${m.progress}, Unlocked=${m.isUnlocked}',
+            );
+          }
         } else {
-           print('[UI_TRACE] currentProgress is NULL!');
+          print('[UI_TRACE] currentProgress is NULL!');
         }
         print('===========================================================');
-        
+
         final maxArtifacts = achievementNotifier.maxArtifacts;
 
         return Scaffold(
           backgroundColor: const Color(0xFFF3F4F6),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
-          child: Column(
-            children: [
-              Row(
+          body: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
+              child: Column(
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'My Journey'.tr,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'My Journey'.tr,
+                              style: const TextStyle(
+                                fontSize: 30,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF171A21),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            ValueListenableBuilder<String>(
+                              valueListenable: AppSession.currentMuseumName,
+                              builder: (context, name, _) {
+                                return Text(
+                                  name,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Color(0xFF6B7280),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: () => _showFinishJourneyDialog(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.primary,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(22),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                        ),
+                        icon: const Icon(Icons.logout_rounded, size: 16),
+                        label: Text(
+                          'Finish journey'.tr,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _StatCard(
+                          value: '$scanned',
+                          label: 'Artifacts Discovered'.tr,
+                          active: true,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _StatCard(
+                          value: '$totalPoints',
+                          label: 'Points Earned'.tr,
+                          active: false,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _ProgressCard(
+                    unlockedCount: unlockedCount,
+                    maxArtifacts: maxArtifacts,
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Achievements'.tr,
                           style: const TextStyle(
-                            fontSize: 30,
+                            fontSize: 22,
                             fontWeight: FontWeight.w700,
                             color: Color(0xFF171A21),
                           ),
                         ),
-                        const SizedBox(height: 2),
-                        ValueListenableBuilder<String>(
-                          valueListenable: AppSession.currentMuseumName,
-                          builder: (context, name, _) {
-                            return Text(
-                              name,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Color(0xFF6B7280),
+                      ),
+                      Text(
+                        '${achievementNotifier.unlockedMilestoneCount}/${milestones.length}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF6B7280),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  if (achievementNotifier.isLoading)
+                    const Expanded(
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: milestones.length,
+                        itemBuilder: (context, index) {
+                          final milestone = milestones[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: _AchievementTile(
+                              title: milestone.name.tr,
+                              subtitle: milestone.description.tr,
+                              points: milestone.isUnlocked
+                                  ? '+${milestone.points} ${'points'.tr}'
+                                  : '${milestone.progress}/${milestone.requiredScans}',
+                              icon: _getIconForMilestone(
+                                milestone.requiredScans,
                               ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: () => _showFinishJourneyDialog(context),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(22),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
+                              unlocked: milestone.isUnlocked,
+                              progress: milestone.requiredScans > 0
+                                  ? (milestone.progress /
+                                            milestone.requiredScans)
+                                        .clamp(0.0, 1.0)
+                                  : 0.0,
+                            ),
+                          );
+                        },
                       ),
                     ),
-                    icon: const Icon(Icons.logout_rounded, size: 16),
-                    label: Text(
-                      'Finish journey'.tr,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                  ),
                 ],
               ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _StatCard(
-                      value: '$scanned',
-                      label: 'Artifacts Discovered'.tr,
-                      active: true,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _StatCard(
-                      value: '$totalPoints',
-                      label: 'Points Earned'.tr,
-                      active: false,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              _ProgressCard(
-                scannedCount: scanned,
-                maxArtifacts: maxArtifacts,
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Achievements'.tr,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF171A21),
-                      ),
-                    ),
-                  ),
-                  Text(
-                    '${achievementNotifier.unlockedMilestoneCount}/${milestones.length}',
-                    style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              if (achievementNotifier.isLoading)
-                const Expanded(
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              else
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: milestones.length,
-                    itemBuilder: (context, index) {
-                      final milestone = milestones[index];
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: _AchievementTile(
-                          title: milestone.name.tr,
-                          subtitle: milestone.description.tr,
-                          points: milestone.isUnlocked
-                              ? '+${milestone.points} ${'points'.tr}'
-                              : '${milestone.progress}/${milestone.requiredScans}',
-                          icon: _getIconForMilestone(milestone.requiredScans),
-                          unlocked: milestone.isUnlocked,
-                          progress: milestone.requiredScans > 0 
-                              ? (milestone.progress / milestone.requiredScans).clamp(0.0, 1.0) 
-                              : 0.0,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-            ],
+            ),
           ),
-        ),
-      ),
-    );
+        );
       },
     );
   }
@@ -375,15 +402,15 @@ class _StatCard extends StatelessWidget {
 
 class _ProgressCard extends StatelessWidget {
   const _ProgressCard({
-    required this.scannedCount,
+    required this.unlockedCount,
     required this.maxArtifacts,
   });
 
-  final int scannedCount;
+  final int unlockedCount;
   final int maxArtifacts;
 
   double get _progressValue =>
-      scannedCount >= maxArtifacts ? 1.0 : scannedCount / maxArtifacts;
+      unlockedCount >= maxArtifacts ? 1.0 : unlockedCount / maxArtifacts;
 
   @override
   Widget build(BuildContext context) {
@@ -410,7 +437,7 @@ class _ProgressCard extends StatelessWidget {
                 ),
               ),
               Text(
-                '$scannedCount/$maxArtifacts',
+                '$unlockedCount/$maxArtifacts',
                 style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
               ),
             ],
@@ -438,26 +465,34 @@ class _ProgressCard extends StatelessWidget {
                 const Expanded(flex: 2, child: SizedBox()),
                 _ProgressStep(
                   label: '2',
-                  icon: scannedCount >= 2 ? Icons.emoji_events_outlined : Icons.lock_outline,
-                  active: scannedCount >= 2,
+                  icon: unlockedCount >= 2
+                      ? Icons.emoji_events_outlined
+                      : Icons.lock_outline,
+                  active: unlockedCount >= 2,
                 ),
                 const Expanded(flex: 3, child: SizedBox()),
                 _ProgressStep(
                   label: '5',
-                  icon: scannedCount >= 5 ? Icons.emoji_events_outlined : Icons.lock_outline,
-                  active: scannedCount >= 5,
+                  icon: unlockedCount >= 5
+                      ? Icons.emoji_events_outlined
+                      : Icons.lock_outline,
+                  active: unlockedCount >= 5,
                 ),
                 const Expanded(flex: 5, child: SizedBox()),
                 _ProgressStep(
                   label: '10',
-                  icon: scannedCount >= 10 ? Icons.emoji_events_outlined : Icons.lock_outline,
-                  active: scannedCount >= 10,
+                  icon: unlockedCount >= 10
+                      ? Icons.emoji_events_outlined
+                      : Icons.lock_outline,
+                  active: unlockedCount >= 10,
                 ),
                 const Expanded(flex: 5, child: SizedBox()),
                 _ProgressStep(
                   label: '15',
-                  icon: scannedCount >= 15 ? Icons.emoji_events_outlined : Icons.lock_outline,
-                  active: scannedCount >= 15,
+                  icon: unlockedCount >= 15
+                      ? Icons.emoji_events_outlined
+                      : Icons.lock_outline,
+                  active: unlockedCount >= 15,
                 ),
               ],
             ),
@@ -580,7 +615,9 @@ class _AchievementTile extends StatelessWidget {
                       minHeight: 4,
                       backgroundColor: const Color(0xFFD6D8DD),
                       valueColor: AlwaysStoppedAnimation<Color>(
-                        Theme.of(context).colorScheme.primary.withValues(alpha: 0.6),
+                        Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.6),
                       ),
                     ),
                   ),
