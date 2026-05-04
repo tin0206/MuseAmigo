@@ -3,6 +3,7 @@ import 'package:flutter/gestures.dart';
 import 'package:museamigo/app_routes.dart';
 import 'package:museamigo/l10n/translations.dart';
 import 'package:museamigo/language_notifier.dart';
+import 'package:museamigo/screens/museum_3d_map_screen.dart';
 import 'package:museamigo/services/backend_api.dart';
 import 'package:museamigo/session.dart';
 
@@ -119,11 +120,14 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     }
 
     setState(() {
+      final contextActions = _buildContextActions(text);
       _messages.add(
         _ChatMessage(
           text: reply,
           time: _formatTime(DateTime.now()),
           isUser: false,
+          actions: contextActions,
+          sourceQuestion: text,
         ),
       );
       _isAiTyping = false;
@@ -131,8 +135,103 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     _scrollToBottom();
   }
 
+  List<_ChatAction> _buildContextActions(String text) {
+    final normalized = _normalizeForIntent(text);
+    final actions = <_ChatAction>[];
+
+    if (_isMapIntentQuestion(normalized)) {
+      actions.add(
+        const _ChatAction(
+          type: _ChatActionType.map,
+          label: 'View Map',
+          icon: Icons.near_me_outlined,
+        ),
+      );
+    }
+
+    if (_isTicketIntentQuestion(normalized)) {
+      actions.add(
+        const _ChatAction(
+          type: _ChatActionType.tickets,
+          label: 'View Tickets',
+          icon: Icons.confirmation_number_outlined,
+        ),
+      );
+    }
+
+    if (_isArtifactIntentQuestion(normalized)) {
+      actions.add(
+        const _ChatAction(
+          type: _ChatActionType.artifact,
+          label: 'View Artifact',
+          icon: Icons.account_balance_outlined,
+        ),
+      );
+    }
+
+    return actions;
+  }
+
+  Future<void> _onActionTap(
+    _ChatAction action,
+    _ChatMessage sourceMessage,
+  ) async {
+    switch (action.type) {
+      case _ChatActionType.map:
+        if (!mounted) return;
+        await Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const Museum3DMapScreen()));
+        break;
+      case _ChatActionType.tickets:
+        if (!mounted) return;
+        await Navigator.of(context).pushNamed(AppRoutes.myTickets);
+        break;
+      case _ChatActionType.artifact:
+        await _openArtifactFromText(
+          sourceMessage.sourceQuestion ?? sourceMessage.text,
+        );
+        break;
+    }
+  }
+
+  Future<void> _openArtifactFromText(String text) async {
+    final artifactCode = _extractArtifactCode(text);
+
+    if (artifactCode == null) {
+      if (!mounted) return;
+      await Navigator.of(context).pushNamed(
+        AppRoutes.search,
+        arguments: {'query': text, 'showResults': true},
+      );
+      return;
+    }
+
+    try {
+      final artifact = await BackendApi.instance.fetchArtifact(artifactCode);
+      if (!mounted) return;
+      await Navigator.of(context).pushNamed(
+        AppRoutes.artifactDetail,
+        arguments: {
+          'title': artifact.title,
+          'location': AppSession.currentMuseumName.value,
+          'year': artifact.year,
+          'currentLocation': AppSession.currentMuseumName.value,
+          'audioAsset': artifact.audioAsset,
+        },
+      );
+    } catch (_) {
+      if (!mounted) return;
+      await Navigator.of(context).pushNamed(
+        AppRoutes.search,
+        arguments: {'query': artifactCode, 'showResults': true},
+      );
+    }
+  }
+
   Future<String> _resolveReplyForInput(String text) async {
-    final normalized = text.toLowerCase();
+    final normalized = _normalizeForIntent(text);
+    final isVietnamese = _isLikelyVietnameseQuestion(text, normalized);
     final museum = await _resolveMuseum(text);
 
     final artifactCode = _extractArtifactCode(text);
@@ -145,38 +244,55 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     if (_isExhibitionQuestion(normalized) && museum != null) {
       final exhibitions = await BackendApi.instance.fetchExhibitions(museum.id);
       if (exhibitions.isEmpty) {
-        return 'There are currently no exhibitions listed for ${museum.name}.';
+        return isVietnamese
+            ? 'Hiện chưa có triển lãm nào được liệt kê cho ${museum.name}.'
+            : 'There are currently no exhibitions listed for ${museum.name}.';
       }
       final lines = exhibitions
           .map((e) => '- ${e.name} (Location: ${e.location})')
           .join('\n');
-      return 'Exhibitions at ${museum.name}:\n$lines';
+      return isVietnamese
+          ? 'Các triển lãm tại ${museum.name}:\n$lines'
+          : 'Exhibitions at ${museum.name}:\n$lines';
     }
 
     if (_isRouteQuestion(normalized) && museum != null) {
       final routes = await BackendApi.instance.fetchRoutes(museum.id);
       if (routes.isEmpty) {
-        return 'There are currently no routes listed for ${museum.name}.';
+        return isVietnamese
+            ? 'Hiện chưa có lộ trình tham quan nào cho ${museum.name}.'
+            : 'There are currently no routes listed for ${museum.name}.';
       }
       final lines = routes
           .map((r) => '- ${r.name}: ${r.estimatedTime}, ${r.stopsCount} stops')
           .join('\n');
-      return 'Available routes at ${museum.name}:\n$lines';
+      return isVietnamese
+          ? 'Các lộ trình tại ${museum.name}:\n$lines'
+          : 'Available routes at ${museum.name}:\n$lines';
     }
 
     if (museum != null) {
       if (_isOperatingHoursQuestion(normalized)) {
-        return 'Operating hours of ${museum.name}: ${museum.operatingHours}.';
+        return isVietnamese
+            ? 'Giờ mở cửa của ${museum.name}: ${museum.operatingHours}.'
+            : 'Operating hours of ${museum.name}: ${museum.operatingHours}.';
       }
       if (_isTicketPriceQuestion(normalized)) {
-        return 'Ticket price at ${museum.name}: ${museum.baseTicketPrice} VND.';
+        return isVietnamese
+            ? 'Giá vé tại ${museum.name}: ${museum.baseTicketPrice} VND.'
+            : 'Ticket price at ${museum.name}: ${museum.baseTicketPrice} VND.';
       }
       if (_isLocationQuestion(normalized)) {
-        return 'Location of ${museum.name}: ${museum.latitude}, ${museum.longitude}.';
+        return isVietnamese
+            ? 'Vị trí của ${museum.name}: ${museum.latitude}, ${museum.longitude}.'
+            : 'Location of ${museum.name}: ${museum.latitude}, ${museum.longitude}.';
       }
       if (_isMuseumInfoQuestion(normalized)) {
-        return '${museum.name}: opens ${museum.operatingHours}, '
-            'ticket ${museum.baseTicketPrice} VND.';
+        return isVietnamese
+            ? '${museum.name}: mở cửa ${museum.operatingHours}, '
+                  'giá vé ${museum.baseTicketPrice} VND.'
+            : '${museum.name}: opens ${museum.operatingHours}, '
+                  'ticket ${museum.baseTicketPrice} VND.';
       }
     }
 
@@ -198,10 +314,11 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       return null;
     }
 
-    final normalized = text.toLowerCase();
+    final normalized = _normalizeForIntent(text);
 
     for (final museum in museums) {
-      if (normalized.contains(museum.name.toLowerCase())) {
+      final museumName = _normalizeForIntent(museum.name);
+      if (normalized.contains(museumName)) {
         return museum;
       }
     }
@@ -220,7 +337,10 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     return _containsAny(text, <String>[
       'exhibition',
       'exhibitions',
+      'exhibit',
+      'exhibits',
       'trien lam',
+      'trung bay',
       'show',
     ]);
   }
@@ -233,6 +353,8 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       'itinerary',
       'lo trinh',
       'duong di',
+      'tuyen tham quan',
+      'tham quan',
       'path',
     ]);
   }
@@ -244,9 +366,9 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       'open',
       'close',
       'gio mo cua',
-      'giờ mở cửa',
+      'gio dong cua',
       'dong cua',
-      'đóng cửa',
+      'mo cua',
     ]);
   }
 
@@ -254,10 +376,10 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     return _containsAny(text, <String>[
       'ticket',
       'price',
+      'entry fee',
       'gia ve',
-      'giá vé',
       've bao nhieu',
-      'vé bao nhiêu',
+      've vao cong',
     ]);
   }
 
@@ -266,9 +388,8 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       'location',
       'where is',
       'dia chi',
-      'địa chỉ',
       'o dau',
-      'ở đâu',
+      'nam o dau',
     ]);
   }
 
@@ -280,8 +401,151 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
           'museum info',
           'information',
           'thong tin bao tang',
-          'thông tin bảo tàng',
+          'bao tang',
         ]);
+  }
+
+  static bool _isMapIntentQuestion(String text) {
+    return _containsAny(text, <String>[
+      'map',
+      'route',
+      'navigation',
+      'duong di',
+      'ban do',
+      'chi duong',
+    ]);
+  }
+
+  static bool _isTicketIntentQuestion(String text) {
+    return _containsAny(text, <String>[
+      'ticket',
+      'tickets',
+      've',
+      'mua ve',
+      'my ticket',
+      'booking',
+    ]);
+  }
+
+  static bool _isArtifactIntentQuestion(String text) {
+    return _containsAny(text, <String>[
+          'artifact',
+          'artifacts',
+          'hien vat',
+          'qr',
+          'artifact code',
+        ]) ||
+        RegExp(r'\b[a-z]{2,4}\s?-\s?\d{3}\b').hasMatch(text);
+  }
+
+  static bool _isLikelyVietnameseQuestion(String rawText, String normalized) {
+    final hasVietnameseDiacritics = RegExp(
+      r'[\u00C0-\u1EF9]',
+      caseSensitive: false,
+      unicode: true,
+    ).hasMatch(rawText);
+
+    if (hasVietnameseDiacritics) {
+      return true;
+    }
+
+    return _containsAny(normalized, <String>[
+      'bao tang',
+      'trien lam',
+      'lo trinh',
+      'duong di',
+      'gio mo cua',
+      'gia ve',
+      'dia chi',
+      'o dau',
+      'tham quan',
+      'hien vat',
+    ]);
+  }
+
+  static String _normalizeForIntent(String text) {
+    var normalized = text.toLowerCase().trim();
+
+    const replacements = <String, String>{
+      'à': 'a',
+      'á': 'a',
+      'ạ': 'a',
+      'ả': 'a',
+      'ã': 'a',
+      'â': 'a',
+      'ầ': 'a',
+      'ấ': 'a',
+      'ậ': 'a',
+      'ẩ': 'a',
+      'ẫ': 'a',
+      'ă': 'a',
+      'ằ': 'a',
+      'ắ': 'a',
+      'ặ': 'a',
+      'ẳ': 'a',
+      'ẵ': 'a',
+      'è': 'e',
+      'é': 'e',
+      'ẹ': 'e',
+      'ẻ': 'e',
+      'ẽ': 'e',
+      'ê': 'e',
+      'ề': 'e',
+      'ế': 'e',
+      'ệ': 'e',
+      'ể': 'e',
+      'ễ': 'e',
+      'ì': 'i',
+      'í': 'i',
+      'ị': 'i',
+      'ỉ': 'i',
+      'ĩ': 'i',
+      'ò': 'o',
+      'ó': 'o',
+      'ọ': 'o',
+      'ỏ': 'o',
+      'õ': 'o',
+      'ô': 'o',
+      'ồ': 'o',
+      'ố': 'o',
+      'ộ': 'o',
+      'ổ': 'o',
+      'ỗ': 'o',
+      'ơ': 'o',
+      'ờ': 'o',
+      'ớ': 'o',
+      'ợ': 'o',
+      'ở': 'o',
+      'ỡ': 'o',
+      'ù': 'u',
+      'ú': 'u',
+      'ụ': 'u',
+      'ủ': 'u',
+      'ũ': 'u',
+      'ư': 'u',
+      'ừ': 'u',
+      'ứ': 'u',
+      'ự': 'u',
+      'ử': 'u',
+      'ữ': 'u',
+      'ỳ': 'y',
+      'ý': 'y',
+      'ỵ': 'y',
+      'ỷ': 'y',
+      'ỹ': 'y',
+      'đ': 'd',
+    };
+
+    replacements.forEach((key, value) {
+      normalized = normalized.replaceAll(key, value);
+    });
+
+    normalized = normalized
+        .replaceAll(RegExp(r'[^a-z0-9\s-]'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+
+    return normalized;
   }
 
   static bool _containsAny(String text, List<String> candidates) {
@@ -474,6 +738,23 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                                   : Alignment.centerLeft,
                               child: _MessageBubble(message: msg),
                             ),
+                            if (!(msg.isUser ?? true) &&
+                                (msg.actions?.isNotEmpty ?? false)) ...[
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  for (final action
+                                      in msg.actions ?? const <_ChatAction>[])
+                                    _StarterActionChip(
+                                      icon: action.icon,
+                                      text: action.label.tr,
+                                      onTap: () => _onActionTap(action, msg),
+                                    ),
+                                ],
+                              ),
+                            ],
                             if (isOpeningMessage) ...[
                               const SizedBox(height: 8),
                               Wrap(
@@ -481,17 +762,13 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                                 runSpacing: 8,
                                 children: [
                                   _StarterActionChip(
-                                    icon: Icons.location_on_outlined,
-                                    text: 'Show Nearby'.tr,
-                                    onTap: () => _submitMessage(
-                                      'Show nearby artifacts and highlights.',
-                                    ),
-                                  ),
-                                  _StarterActionChip(
                                     icon: Icons.near_me_outlined,
                                     text: 'View Map'.tr,
-                                    onTap: () => _submitMessage(
-                                      'Open map and guide me from my current location.',
+                                    onTap: () => Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            const Museum3DMapScreen(),
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -610,11 +887,33 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
 }
 
 class _ChatMessage {
-  const _ChatMessage({required this.text, required this.time, this.isUser});
+  const _ChatMessage({
+    required this.text,
+    required this.time,
+    this.isUser,
+    this.actions,
+    this.sourceQuestion,
+  });
 
   final String text;
   final String time;
   final bool? isUser;
+  final List<_ChatAction>? actions;
+  final String? sourceQuestion;
+}
+
+enum _ChatActionType { map, tickets, artifact }
+
+class _ChatAction {
+  const _ChatAction({
+    required this.type,
+    required this.label,
+    required this.icon,
+  });
+
+  final _ChatActionType type;
+  final String label;
+  final IconData icon;
 }
 
 class _MessageBubble extends StatelessWidget {
