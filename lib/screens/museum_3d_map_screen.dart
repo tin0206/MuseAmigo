@@ -3,7 +3,14 @@ import 'package:museamigo/l10n/translations.dart';
 import 'package:museamigo/session.dart';
 
 class Museum3DMapScreen extends StatefulWidget {
-  const Museum3DMapScreen({super.key});
+  const Museum3DMapScreen({
+    super.key,
+    this.initialFromLocationName,
+    this.initialToLocationName,
+  });
+
+  final String? initialFromLocationName;
+  final String? initialToLocationName;
 
   @override
   State<Museum3DMapScreen> createState() => _Museum3DMapScreenState();
@@ -14,6 +21,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
   bool _show3D = true;
   _RouteOption? _activeRoute;
   int _currentStopIndex = 0;
+  bool _isPreviewRoute = false;
 
   static const Color _restroomColor = Color(0xFFF59E0B);
   static const Color _cafeColor = Color(0xFF8B5E3C);
@@ -24,6 +32,20 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
   _MuseumMapConfig get _currentConfig {
     final museumId = AppSession.currentMuseumId.value;
     return _museumConfigs[museumId] ?? _museumConfigs[1]!;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      final route = _buildInitialRoute();
+      if (route != null) {
+        _showPreviewRoute(route);
+      }
+    });
   }
 
   @override
@@ -185,7 +207,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
               ),
             ),
             // ── Legend ──────────────────────────────────────────────────
-            if (_activeRoute != null)
+            if (_activeRoute != null && !_isPreviewRoute)
               _NavigationPanel(
                 route: _activeRoute!,
                 currentStopIndex: _currentStopIndex,
@@ -278,6 +300,19 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
   void _startNavigation(_RouteOption route) {
     final firstFloor = _floorOfStop(route.stops.first.name);
     setState(() {
+      _isPreviewRoute = false;
+      _activeRoute = route;
+      _currentStopIndex = 0;
+      if (firstFloor != null) {
+        _selectedFloor = firstFloor;
+      }
+    });
+  }
+
+  void _showPreviewRoute(_RouteOption route) {
+    final firstFloor = _floorOfStop(route.stops.first.name);
+    setState(() {
+      _isPreviewRoute = true;
       _activeRoute = route;
       _currentStopIndex = 0;
       if (firstFloor != null) {
@@ -288,6 +323,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
 
   void _stopNavigation() {
     setState(() {
+      _isPreviewRoute = false;
       _activeRoute = null;
       _currentStopIndex = 0;
     });
@@ -327,7 +363,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
 
   Set<String> _visitedStopNamesForCurrentFloor() {
     final route = _activeRoute;
-    if (route == null) {
+    if (route == null || _isPreviewRoute) {
       return const <String>{};
     }
     final visited = <String>{};
@@ -343,7 +379,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
 
   String? _currentStopNameForCurrentFloor() {
     final route = _activeRoute;
-    if (route == null || route.stops.isEmpty) {
+    if (route == null || route.stops.isEmpty || _isPreviewRoute) {
       return null;
     }
     final stopName = route.stops[_currentStopIndex].name;
@@ -375,6 +411,68 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
 
   String? _floorOfStop(String stopName) {
     return _findLocationByName(stopName)?.floor;
+  }
+
+  _RouteOption? _buildInitialRoute() {
+    final fromName = widget.initialFromLocationName;
+    final toName = widget.initialToLocationName;
+
+    if (fromName == null || toName == null) {
+      return null;
+    }
+
+    final from = _findLocationByName(fromName);
+    final to = _findLocationByName(toName);
+    if (from == null || to == null) {
+      return null;
+    }
+
+    final stops = <_RouteStop>[];
+
+    void addStop(_MapLocation location) {
+      if (stops.any((stop) => stop.name == location.name)) {
+        return;
+      }
+      stops.add(
+        _RouteStop(
+          name: location.name,
+          subtitle: _subtitleForLocation(location),
+        ),
+      );
+    }
+
+    addStop(from);
+    if (from.floor != to.floor) {
+      final fromStairs = _findLocationByName('Stairs - ${from.floor}');
+      final toStairs = _findLocationByName('Stairs - ${to.floor}');
+      if (fromStairs != null) {
+        addStop(fromStairs);
+      }
+      if (toStairs != null) {
+        addStop(toStairs);
+      }
+    }
+    addStop(to);
+
+    return _RouteOption(
+      emoji: '🧭',
+      name: 'Custom Route',
+      description: 'Guidance from ${from.name} to ${to.name}',
+      duration: from.floor == to.floor ? 'Direct route' : 'Cross-floor route',
+      stopsCount: stops.length,
+      stops: stops,
+    );
+  }
+
+  static String _subtitleForLocation(_MapLocation location) {
+    final hall = location.name.contains('Entrance')
+        ? 'Entrance'
+        : location.name.contains('Restroom')
+        ? 'Facilities'
+        : location.name.contains('Stairs')
+        ? 'Transition Point'
+        : 'Gallery';
+    return '$hall · ${location.floor}';
   }
 }
 

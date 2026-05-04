@@ -22,17 +22,23 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   final List<_ChatMessage> _messages = <_ChatMessage>[];
 
   bool _isAiTyping = false;
+  _PendingRouteRequest? _pendingRouteRequest;
+
+  bool get _useVietnameseReplies =>
+      languageNotifier.currentLanguage == 'Vietnamese';
 
   @override
   void initState() {
     super.initState();
     _seedGreetingForCurrentMuseum();
     AppSession.currentMuseumName.addListener(_onMuseumContextChanged);
+    languageNotifier.addListener(_onLanguageChanged);
   }
 
   @override
   void dispose() {
     AppSession.currentMuseumName.removeListener(_onMuseumContextChanged);
+    languageNotifier.removeListener(_onLanguageChanged);
     _messageController.dispose();
     _scrollController.dispose();
     _quickAccessScrollController.dispose();
@@ -44,9 +50,10 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       return;
     }
     setState(() {
+      _pendingRouteRequest = null;
       final museumName = AppSession.currentMuseumName.value;
       final updatedMessage = _ChatMessage(
-        text: _buildGreetingMessage(museumName),
+        text: _buildGreetingMessage(museumName, _useVietnameseReplies),
         time: _formatTime(DateTime.now()),
         isUser: false,
       );
@@ -64,21 +71,64 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   void _seedGreetingForCurrentMuseum() {
     _messages.add(
       _ChatMessage(
-        text: _buildGreetingMessage(AppSession.currentMuseumName.value),
+        text: _buildGreetingMessage(
+          AppSession.currentMuseumName.value,
+          _useVietnameseReplies,
+        ),
         time: _formatTime(DateTime.now()),
         isUser: false,
       ),
     );
   }
 
-  static String _buildGreetingMessage(String museumName) {
+  void _onLanguageChanged() {
+    if (!mounted || _messages.isEmpty) {
+      return;
+    }
+
+    final firstMessage = _messages.first;
+    if (firstMessage.isUser ?? true) {
+      return;
+    }
+
+    setState(() {
+      _messages[0] = _ChatMessage(
+        text: _buildGreetingMessage(
+          AppSession.currentMuseumName.value,
+          _useVietnameseReplies,
+        ),
+        time: _formatTime(DateTime.now()),
+        isUser: false,
+      );
+    });
+  }
+
+  static String _buildGreetingMessage(String museumName, bool isVietnamese) {
+    if (isVietnamese) {
+      return 'Xin chào! Mình là Ogima, hướng dẫn viên cá nhân của bạn tại $museumName. '
+          'ình có thể giúp bạn khám phá hiện vật, chỉ đường trong museum, '
+          'trả lời câu hỏi và gợi ý các trưng bày thú vị. '
+          'ôm nay mình có thể hỗ trợ bạn điều gì?';
+    }
+
     return 'Hello! I\'m Ogima, your personal guide to $museumName. '
         'I can help you discover artifacts, navigate the museum, '
         'answer questions, and guide you to interesting exhibits. '
         'How can I assist you today?';
   }
 
-  static List<String> _quickAccessQuestionsForMuseum(String museumName) {
+  List<String> _quickAccessQuestionsForMuseum(String museumName) {
+    if (_useVietnameseReplies) {
+      return <String>[
+        'Giờ mở cửa của $museumName là gì?',
+        'Giá vé tại $museumName là bao nhiêu?',
+        'ại $museumName có những triển lãm nào?',
+        'ại $museumName có những lộ trình tham quan nào?',
+        'ãy cho tôi biết về hiện vật mã IP-002.',
+        '$museumName nằm ở đâu?',
+      ];
+    }
+
     return <String>[
       'What are the operating hours of $museumName?',
       'How much is the ticket at $museumName?',
@@ -108,22 +158,24 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     _messageController.clear();
     _scrollToBottom();
 
-    String reply;
+    _ResolvedReply resolved;
     try {
-      reply = await _resolveReplyForInput(text);
+      resolved = await _resolveReplyForInput(text);
     } catch (_) {
       // Keep local fallback so chat still works when backend is unreachable.
-      reply = _buildAiReply(text);
+      resolved = _ResolvedReply(text: _buildAiReply(text));
     }
     if (!mounted) {
       return;
     }
 
     setState(() {
-      final contextActions = _buildContextActions(text);
+      final contextActions = resolved.actions.isNotEmpty
+          ? resolved.actions
+          : _buildContextActions(text);
       _messages.add(
         _ChatMessage(
-          text: reply,
+          text: resolved.text,
           time: _formatTime(DateTime.now()),
           isUser: false,
           actions: contextActions,
@@ -178,10 +230,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   ) async {
     switch (action.type) {
       case _ChatActionType.map:
-        if (!mounted) return;
-        await Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => const Museum3DMapScreen()));
+        await _openMapFromAction(action);
         break;
       case _ChatActionType.tickets:
         if (!mounted) return;
@@ -193,6 +242,20 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         );
         break;
     }
+  }
+
+  Future<void> _openMapFromAction(_ChatAction action) async {
+    if (!mounted) {
+      return;
+    }
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => Museum3DMapScreen(
+          initialFromLocationName: action.fromLocationName,
+          initialToLocationName: action.toLocationName,
+        ),
+      ),
+    );
   }
 
   Future<void> _openArtifactFromText(String text) async {
@@ -229,74 +292,370 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     }
   }
 
-  Future<String> _resolveReplyForInput(String text) async {
+  Future<_ResolvedReply> _resolveReplyForInput(String text) async {
     final normalized = _normalizeForIntent(text);
-    final isVietnamese = _isLikelyVietnameseQuestion(text, normalized);
+    final isVietnamese = _useVietnameseReplies;
     final museum = await _resolveMuseum(text);
+
+    final pendingRouteRequest = _pendingRouteRequest;
+    if (pendingRouteRequest != null) {
+      return _resolvePendingRouteRequest(
+        text: text,
+        isVietnamese: _useVietnameseReplies,
+        museum: museum,
+        request: pendingRouteRequest,
+      );
+    }
+
+    if (museum != null && _isLocationQuestion(normalized)) {
+      final locationInfo = _museumLocationInfo(museum.name);
+      if (locationInfo != null) {
+        return _ResolvedReply(
+          text: isVietnamese
+              ? 'Theo Google Maps, ${museum.name} nằm tại ${locationInfo.addressVi}.'
+              : 'According to Google Maps, ${museum.name} is located at ${locationInfo.addressEn}.',
+        );
+      }
+      return _ResolvedReply(
+        text: isVietnamese
+            ? 'Vị trí của ${museum.name}: ${museum.latitude}, ${museum.longitude}.'
+            : 'Location of ${museum.name}: ${museum.latitude}, ${museum.longitude}.',
+      );
+    }
+
+    if (_isDirectionsToPlaceQuestion(normalized) && museum != null) {
+      final destination = _extractNavigationSpot(text, museum.id);
+      if (destination == null) {
+        return _ResolvedReply(
+          text: isVietnamese
+              ? '${museum.name} hiện không có địa điểm đó trên bản đồ.'
+              : '${museum.name} does not have that place on the current map.',
+        );
+      }
+      _pendingRouteRequest = _PendingRouteRequest(
+        destination: destination,
+        isVietnamese: isVietnamese,
+      );
+      return _ResolvedReply(
+        text: isVietnamese
+            ? 'Mình tìm thấy ${destination.name} ở ${destination.floor}. Hiện tại bạn đang ở tầng nào?'
+            : 'I found ${destination.name} on ${destination.floor}. Which floor are you on right now?',
+      );
+    }
 
     final artifactCode = _extractArtifactCode(text);
     if (artifactCode != null) {
       final artifact = await BackendApi.instance.fetchArtifact(artifactCode);
-      return 'Artifact: ${artifact.title} (${artifact.artifactCode}). '
-          'Year: ${artifact.year}. ${artifact.description}';
+      return _ResolvedReply(
+        text:
+            'Artifact: ${artifact.title} (${artifact.artifactCode}). '
+            'Year: ${artifact.year}. ${artifact.description}',
+      );
     }
 
     if (_isExhibitionQuestion(normalized) && museum != null) {
       final exhibitions = await BackendApi.instance.fetchExhibitions(museum.id);
       if (exhibitions.isEmpty) {
-        return isVietnamese
-            ? 'Hiện chưa có triển lãm nào được liệt kê cho ${museum.name}.'
-            : 'There are currently no exhibitions listed for ${museum.name}.';
+        return _ResolvedReply(
+          text: isVietnamese
+              ? 'Hiện chưa có triển lãm nào được liệt kê cho ${museum.name}.'
+              : 'There are currently no exhibitions listed for ${museum.name}.',
+        );
       }
       final lines = exhibitions
           .map((e) => '- ${e.name} (Location: ${e.location})')
           .join('\n');
-      return isVietnamese
-          ? 'Các triển lãm tại ${museum.name}:\n$lines'
-          : 'Exhibitions at ${museum.name}:\n$lines';
+      return _ResolvedReply(
+        text: isVietnamese
+            ? 'Các triển lãm tại ${museum.name}:\n$lines'
+            : 'Exhibitions at ${museum.name}:\n$lines',
+      );
     }
 
     if (_isRouteQuestion(normalized) && museum != null) {
       final routes = await BackendApi.instance.fetchRoutes(museum.id);
       if (routes.isEmpty) {
-        return isVietnamese
-            ? 'Hiện chưa có lộ trình tham quan nào cho ${museum.name}.'
-            : 'There are currently no routes listed for ${museum.name}.';
+        return _ResolvedReply(
+          text: isVietnamese
+              ? 'Hiện chưa có lộ trình tham quan nào cho ${museum.name}.'
+              : 'There are currently no routes listed for ${museum.name}.',
+        );
       }
       final lines = routes
           .map((r) => '- ${r.name}: ${r.estimatedTime}, ${r.stopsCount} stops')
           .join('\n');
-      return isVietnamese
-          ? 'Các lộ trình tại ${museum.name}:\n$lines'
-          : 'Available routes at ${museum.name}:\n$lines';
+      return _ResolvedReply(
+        text: isVietnamese
+            ? 'Các lộ trình tại ${museum.name}:\n$lines'
+            : 'Available routes at ${museum.name}:\n$lines',
+      );
     }
 
     if (museum != null) {
       if (_isOperatingHoursQuestion(normalized)) {
-        return isVietnamese
-            ? 'Giờ mở cửa của ${museum.name}: ${museum.operatingHours}.'
-            : 'Operating hours of ${museum.name}: ${museum.operatingHours}.';
+        return _ResolvedReply(
+          text: isVietnamese
+              ? 'Giờ mở cửa của ${museum.name}: ${museum.operatingHours}.'
+              : 'Operating hours of ${museum.name}: ${museum.operatingHours}.',
+        );
       }
       if (_isTicketPriceQuestion(normalized)) {
-        return isVietnamese
-            ? 'Giá vé tại ${museum.name}: ${museum.baseTicketPrice} VND.'
-            : 'Ticket price at ${museum.name}: ${museum.baseTicketPrice} VND.';
-      }
-      if (_isLocationQuestion(normalized)) {
-        return isVietnamese
-            ? 'Vị trí của ${museum.name}: ${museum.latitude}, ${museum.longitude}.'
-            : 'Location of ${museum.name}: ${museum.latitude}, ${museum.longitude}.';
+        return _ResolvedReply(
+          text: isVietnamese
+              ? 'Giá vé tại ${museum.name}: ${museum.baseTicketPrice} VND.'
+              : 'Ticket price at ${museum.name}: ${museum.baseTicketPrice} VND.',
+        );
       }
       if (_isMuseumInfoQuestion(normalized)) {
-        return isVietnamese
-            ? '${museum.name}: mở cửa ${museum.operatingHours}, '
-                  'giá vé ${museum.baseTicketPrice} VND.'
-            : '${museum.name}: opens ${museum.operatingHours}, '
-                  'ticket ${museum.baseTicketPrice} VND.';
+        return _ResolvedReply(
+          text: isVietnamese
+              ? '${museum.name}: mở cửa ${museum.operatingHours}, '
+                    'giá vé ${museum.baseTicketPrice} VND.'
+              : '${museum.name}: opens ${museum.operatingHours}, '
+                    'ticket ${museum.baseTicketPrice} VND.',
+        );
       }
     }
 
-    return BackendApi.instance.askAi(text);
+    return _ResolvedReply(text: await BackendApi.instance.askAi(text));
+  }
+
+  _ResolvedReply _resolvePendingRouteRequest({
+    required String text,
+    required bool isVietnamese,
+    required MuseumDto? museum,
+    required _PendingRouteRequest request,
+  }) {
+    final currentMuseumId = museum?.id ?? AppSession.currentMuseumId.value;
+
+    if (request.currentFloor == null) {
+      final currentFloor = _extractFloorLabel(text);
+      if (currentFloor == null) {
+        return _ResolvedReply(
+          text: isVietnamese
+              ? 'Mình chưa xác định được bạn đang ở tầng nào. Bạn hãy trả lời như Floor 1, Floor 2, tầng 1 hoặc tầng 2.'
+              : 'I could not identify your current floor. Reply with Floor 1, Floor 2, level 1, or level 2.',
+        );
+      }
+
+      if (currentFloor != request.destination.floor) {
+        _pendingRouteRequest = null;
+        final floorInstruction = _buildCrossFloorInstruction(
+          fromFloor: currentFloor,
+          toFloor: request.destination.floor,
+          isVietnamese: isVietnamese,
+        );
+        final destinationFloorStairs = _findNavigationSpotByName(
+          currentMuseumId,
+          'Stairs - ${request.destination.floor}',
+        );
+        final routeStartSpot = destinationFloorStairs ?? request.destination;
+        final crossFloorMapAction = _ChatAction(
+          type: _ChatActionType.map,
+          label: 'View Map',
+          icon: Icons.near_me_outlined,
+          fromLocationName: routeStartSpot.name,
+          toLocationName: request.destination.name,
+        );
+
+        return _ResolvedReply(
+          text: isVietnamese
+              ? '$floorInstruction Sau khi tới ${request.destination.floor}, bạn đi từ ${routeStartSpot.name} đến ${request.destination.name}. Mình đã chuẩn bị sẵn bản đồ 3D với route từ ${routeStartSpot.name} đến ${request.destination.name} ở nút bên dưới.'
+              : '$floorInstruction After you reach ${request.destination.floor}, continue from ${routeStartSpot.name} to ${request.destination.name}. I prepared the 3D map with a route from ${routeStartSpot.name} to ${request.destination.name} in the button below.',
+          actions: <_ChatAction>[crossFloorMapAction],
+          mapAction: crossFloorMapAction,
+        );
+      }
+
+      _pendingRouteRequest = request.copyWith(currentFloor: currentFloor);
+      return _ResolvedReply(
+        text: isVietnamese
+            ? 'Bạn đang ở $currentFloor. Bạn đang đứng ở điểm nào trên $currentFloor? Ví dụ: Main Entrance, Restroom - $currentFloor hoặc Stairs - $currentFloor.'
+            : 'You are on $currentFloor. Which point are you currently standing at on $currentFloor? For example: Main Entrance, Restroom - $currentFloor, or Stairs - $currentFloor.',
+      );
+    }
+
+    final fromSpot = _extractNavigationSpot(text, currentMuseumId);
+
+    if (fromSpot == null) {
+      return _ResolvedReply(
+        text: isVietnamese
+            ? 'Mình chưa xác định được vị trí hiện tại của bạn trong museum này. Bạn hãy trả lời bằng đúng tên điểm trên map, ví dụ Main Entrance hoặc Restroom - Floor 1.'
+            : 'I could not identify your current location in this museum. Reply with an exact place name from the map, for example Main Entrance or Restroom - Floor 1.',
+      );
+    }
+
+    if (fromSpot.floor != request.currentFloor) {
+      return _ResolvedReply(
+        text: isVietnamese
+            ? '${fromSpot.name} nằm ở ${fromSpot.floor}, chưa khớp với tầng bạn vừa chọn là ${request.currentFloor}. Bạn hãy chọn lại một điểm nằm trên ${request.currentFloor}.'
+            : '${fromSpot.name} is on ${fromSpot.floor}, which does not match your selected floor ${request.currentFloor}. Please choose a point on ${request.currentFloor}.',
+      );
+    }
+
+    _pendingRouteRequest = null;
+
+    if (fromSpot.name == request.destination.name) {
+      return _ResolvedReply(
+        text: isVietnamese
+            ? 'Bạn đang ở ngay ${request.destination.name} rồi.'
+            : 'You are already at ${request.destination.name}.',
+      );
+    }
+
+    final sameFloorMapAction = _ChatAction(
+      type: _ChatActionType.map,
+      label: 'View Map',
+      icon: Icons.near_me_outlined,
+      fromLocationName: fromSpot.name,
+      toLocationName: request.destination.name,
+    );
+
+    if (fromSpot.floor == request.destination.floor) {
+      return _ResolvedReply(
+        text: isVietnamese
+            ? 'Bạn đang ở cùng tầng với ${request.destination.name}. Mình đã chuẩn bị bản đồ 3D với đường đi rõ ràng từ ${fromSpot.name} đến ${request.destination.name} ở nút bên dưới.'
+            : 'You are on the same floor as ${request.destination.name}. I prepared the 3D map with a clear route from ${fromSpot.name} to ${request.destination.name} in the button below.',
+        actions: <_ChatAction>[sameFloorMapAction],
+        mapAction: sameFloorMapAction,
+      );
+    }
+
+    final floorInstruction = _buildCrossFloorInstruction(
+      fromFloor: fromSpot.floor,
+      toFloor: request.destination.floor,
+      isVietnamese: isVietnamese,
+    );
+
+    final destinationFloorStairs = _findNavigationSpotByName(
+      currentMuseumId,
+      'Stairs - ${request.destination.floor}',
+    );
+    final routeStartSpot = destinationFloorStairs ?? request.destination;
+    final mapAction = _ChatAction(
+      type: _ChatActionType.map,
+      label: 'View Map',
+      icon: Icons.near_me_outlined,
+      fromLocationName: routeStartSpot.name,
+      toLocationName: request.destination.name,
+    );
+
+    return _ResolvedReply(
+      text: isVietnamese
+          ? '$floorInstruction Sau khi tới ${request.destination.floor}, bạn đi từ ${routeStartSpot.name} đến ${request.destination.name}. Mình đã chuẩn bị sẵn bản đồ 3D với route từ ${routeStartSpot.name} đến ${request.destination.name} ở nút bên dưới.'
+          : '$floorInstruction After you reach ${request.destination.floor}, continue from ${routeStartSpot.name} to ${request.destination.name}. I prepared the 3D map with a route from ${routeStartSpot.name} to ${request.destination.name} in the button below.',
+      actions: <_ChatAction>[mapAction],
+      mapAction: mapAction,
+    );
+  }
+
+  static String _buildCrossFloorInstruction({
+    required String fromFloor,
+    required String toFloor,
+    required bool isVietnamese,
+  }) {
+    final fromLevel = _floorNumber(fromFloor);
+    final toLevel = _floorNumber(toFloor);
+
+    if (fromLevel != null && toLevel != null) {
+      if (fromLevel < toLevel) {
+        return isVietnamese
+            ? 'Bạn hãy đi lên $toFloor bằng cầu thang.'
+            : 'Please go up to $toFloor using the stairs.';
+      }
+      if (fromLevel > toLevel) {
+        return isVietnamese
+            ? 'Bạn hãy đi xuống $toFloor bằng cầu thang.'
+            : 'Please go down to $toFloor using the stairs.';
+      }
+    }
+
+    return isVietnamese
+        ? 'Bạn hãy di chuyển giữa các tầng bằng cầu thang.'
+        : 'Please move between floors using the stairs.';
+  }
+
+  static int? _floorNumber(String floorLabel) {
+    final match = RegExp(r'(\d+)').firstMatch(floorLabel);
+    return match == null ? null : int.tryParse(match.group(1)!);
+  }
+
+  static String? _extractFloorLabel(String text) {
+    final normalized = _normalizeForIntent(text);
+    if (_containsAny(normalized, <String>[
+      'floor 1',
+      'tang 1',
+      'level 1',
+      '1st floor',
+    ])) {
+      return 'Floor 1';
+    }
+    if (_containsAny(normalized, <String>[
+      'floor 2',
+      'tang 2',
+      'level 2',
+      '2nd floor',
+    ])) {
+      return 'Floor 2';
+    }
+    return null;
+  }
+
+  static bool _isDirectionsToPlaceQuestion(String text) {
+    return _containsAny(text, <String>[
+      'how can i get to',
+      'how do i get to',
+      'how can i go to',
+      'how do i go to',
+      'where can i find',
+      'way to',
+      'navigate to',
+      'take me to',
+      'go to',
+      'get to',
+      'chi duong',
+      'duong di den',
+      'lam sao de toi',
+      'lam sao den',
+      'toi muon den',
+      'dan toi',
+      'den',
+    ]);
+  }
+
+  _NavigationSpot? _extractNavigationSpot(String text, int museumId) {
+    final normalized = _normalizeForIntent(text);
+    final spots = _museumNavigationSpots[museumId] ?? const <_NavigationSpot>[];
+
+    _NavigationSpot? bestMatch;
+    var bestScore = 0;
+
+    for (final spot in spots) {
+      for (final alias in spot.aliases) {
+        if (!normalized.contains(alias)) {
+          continue;
+        }
+        if (alias.length > bestScore) {
+          bestScore = alias.length;
+          bestMatch = spot;
+        }
+      }
+    }
+
+    return bestMatch;
+  }
+
+  _NavigationSpot? _findNavigationSpotByName(int museumId, String name) {
+    final normalizedName = _normalizeForIntent(name);
+    final spots = _museumNavigationSpots[museumId] ?? const <_NavigationSpot>[];
+
+    for (final spot in spots) {
+      if (_normalizeForIntent(spot.name) == normalizedName) {
+        return spot;
+      }
+    }
+
+    return null;
   }
 
   String? _extractArtifactCode(String text) {
@@ -438,31 +797,6 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         RegExp(r'\b[a-z]{2,4}\s?-\s?\d{3}\b').hasMatch(text);
   }
 
-  static bool _isLikelyVietnameseQuestion(String rawText, String normalized) {
-    final hasVietnameseDiacritics = RegExp(
-      r'[\u00C0-\u1EF9]',
-      caseSensitive: false,
-      unicode: true,
-    ).hasMatch(rawText);
-
-    if (hasVietnameseDiacritics) {
-      return true;
-    }
-
-    return _containsAny(normalized, <String>[
-      'bao tang',
-      'trien lam',
-      'lo trinh',
-      'duong di',
-      'gio mo cua',
-      'gia ve',
-      'dia chi',
-      'o dau',
-      'tham quan',
-      'hien vat',
-    ]);
-  }
-
   static String _normalizeForIntent(String text) {
     var normalized = text.toLowerCase().trim();
 
@@ -557,21 +891,63 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     return false;
   }
 
+  static _MuseumLocationInfo? _museumLocationInfo(String museumName) {
+    const locations = <String, _MuseumLocationInfo>{
+      'Independence Palace': _MuseumLocationInfo(
+        addressEn:
+            '135 Nam Ky Khoi Nghia Street, Ben Thanh Ward, Ho Chi Minh City, Vietnam',
+        addressVi:
+            '135 Nam Ky Khoi Nghia, phuong Ben Thanh, Thanh pho Ho Chi Minh, Viet Nam',
+      ),
+      'War Remnants Museum': _MuseumLocationInfo(
+        addressEn:
+            '28 Vo Van Tan Street, Xuan Hoa Ward, Ho Chi Minh City, Vietnam',
+        addressVi:
+            '28 Vo Van Tan, phuong Xuan Hoa, Thanh pho Ho Chi Minh, Viet Nam',
+      ),
+      'HCMC Museum of Fine Arts': _MuseumLocationInfo(
+        addressEn:
+            '97-97A Pho Duc Chinh Street, Ben Thanh Ward, District 1, Ho Chi Minh City, Vietnam',
+        addressVi:
+            '97-97A Pho Duc Chinh, phuong Ben Thanh, Quan 1, Thanh pho Ho Chi Minh, Viet Nam',
+      ),
+      'Ho Chi Minh City Museum': _MuseumLocationInfo(
+        addressEn:
+            'at the corner of Ly Tu Trong Street and Nam Ky Khoi Nghia Street, near Independence Palace, Ho Chi Minh City, Vietnam',
+        addressVi:
+            'tai goc duong Ly Tu Trong va Nam Ky Khoi Nghia, gan Independence Palace, Thanh pho Ho Chi Minh, Viet Nam',
+      ),
+    };
+
+    return locations[museumName];
+  }
+
   String _buildAiReply(String question) {
     final q = question.toLowerCase();
+    final isVietnamese = _useVietnameseReplies;
     if (q.contains('toilet') || q.contains('restroom')) {
-      return 'The nearest restroom is near Hall C on Floor 1. I can guide you there if you want.';
+      return isVietnamese
+          ? 'Nha ve sinh gan nhat nam gan Hall C o Floor 1. Neu ban muon, minh co the chi duong cho ban.'
+          : 'The nearest restroom is near Hall C on Floor 1. I can guide you there if you want.';
     }
     if (q.contains('tank') || q.contains('t-54')) {
-      return 'Tank T-54 is in Hall C, Floor 1. Follow the map route and I can navigate step-by-step for you.';
+      return isVietnamese
+          ? 'Tank T-54 nam o Hall C, Floor 1. Ban co the theo route tren ban do va minh se huong dan tung buoc cho ban.'
+          : 'Tank T-54 is in Hall C, Floor 1. Follow the map route and I can navigate step-by-step for you.';
     }
     if (q.contains('floor 2')) {
-      return 'On Floor 2, popular stops include Photography Gallery, Peace Memorial, Diplomatic Room, and Rooftop Cafe.';
+      return isVietnamese
+          ? 'O Floor 2, cac diem pho bien gom Photography Gallery, Peace Memorial, Diplomatic Room va Rooftop Cafe.'
+          : 'On Floor 2, popular stops include Photography Gallery, Peace Memorial, Diplomatic Room, and Rooftop Cafe.';
     }
     if (q.contains('coffee') || q.contains('cafe')) {
-      return 'You can take a break at Cafe Nile on Floor 1 or Rooftop Cafe on Floor 2.';
+      return isVietnamese
+          ? 'Ban co the nghi chan tai Cafe Nile o Floor 1 hoac Rooftop Cafe o Floor 2.'
+          : 'You can take a break at Cafe Nile on Floor 1 or Rooftop Cafe on Floor 2.';
     }
-    return 'Great question. I can help you explore artifacts, find facilities, and navigate to any room in the museum.';
+    return isVietnamese
+        ? 'Cau hoi rat hay. Minh co the giup ban kham pha hien vat, tim tien ich va chi duong den bat ky khu vuc nao trong museum.'
+        : 'Great question. I can help you explore artifacts, find facilities, and navigate to any room in the museum.';
   }
 
   void _scrollToBottom() {
@@ -909,11 +1285,303 @@ class _ChatAction {
     required this.type,
     required this.label,
     required this.icon,
+    this.fromLocationName,
+    this.toLocationName,
   });
 
   final _ChatActionType type;
   final String label;
   final IconData icon;
+  final String? fromLocationName;
+  final String? toLocationName;
+}
+
+class _ResolvedReply {
+  const _ResolvedReply({
+    required this.text,
+    this.actions = const <_ChatAction>[],
+    this.mapAction,
+  });
+
+  final String text;
+  final List<_ChatAction> actions;
+  final _ChatAction? mapAction;
+}
+
+class _MuseumLocationInfo {
+  const _MuseumLocationInfo({required this.addressEn, required this.addressVi});
+
+  final String addressEn;
+  final String addressVi;
+}
+
+class _PendingRouteRequest {
+  const _PendingRouteRequest({
+    required this.destination,
+    required this.isVietnamese,
+    this.currentFloor,
+  });
+
+  final _NavigationSpot destination;
+  final bool isVietnamese;
+  final String? currentFloor;
+
+  _PendingRouteRequest copyWith({
+    _NavigationSpot? destination,
+    bool? isVietnamese,
+    String? currentFloor,
+  }) {
+    return _PendingRouteRequest(
+      destination: destination ?? this.destination,
+      isVietnamese: isVietnamese ?? this.isVietnamese,
+      currentFloor: currentFloor ?? this.currentFloor,
+    );
+  }
+}
+
+class _NavigationSpot {
+  const _NavigationSpot({
+    required this.name,
+    required this.floor,
+    required this.aliases,
+  });
+
+  final String name;
+  final String floor;
+  final List<String> aliases;
+}
+
+final Map<int, List<_NavigationSpot>>
+_museumNavigationSpots = <int, List<_NavigationSpot>>{
+  1: <_NavigationSpot>[
+    _spot('Main Entrance', 'Floor 1', <String>[
+      'main entrance',
+      'entrance',
+      'cua chinh',
+    ]),
+    _spot('War History Gallery', 'Floor 1', <String>['war history gallery']),
+    _spot('Presidential Throne', 'Floor 1', <String>[
+      'presidential throne',
+      'throne',
+    ]),
+    _spot('T-54 Tank', 'Floor 1', <String>['t-54 tank', 'tank t-54', 'tank']),
+    _spot('Diplomatic Reception Hall', 'Floor 1', <String>[
+      'diplomatic reception hall',
+      'reception hall',
+    ]),
+    _spot('Restroom - Floor 1', 'Floor 1', <String>[
+      'restroom floor 1',
+      'toilet floor 1',
+      'wc floor 1',
+      'restroom',
+      'toilet',
+      'wc',
+      'nha ve sinh',
+    ]),
+    _spot('Stairs - Floor 1', 'Floor 1', <String>[
+      'stairs floor 1',
+      'stair floor 1',
+      'cau thang floor 1',
+      'stairs',
+      'stair',
+      'cau thang',
+    ]),
+    _spot('Presidential Office Tour', 'Floor 2', <String>[
+      'presidential office tour',
+      'presidential office',
+    ]),
+    _spot('Historical Documents Room', 'Floor 2', <String>[
+      'historical documents room',
+      'documents room',
+    ]),
+    _spot('Independence Archive', 'Floor 2', <String>[
+      'independence archive',
+      'archive',
+    ]),
+    _spot('Command Communication Room', 'Floor 2', <String>[
+      'command communication room',
+      'communication room',
+    ]),
+    _spot('Souvenir Shop', 'Floor 2', <String>['souvenir shop', 'shop']),
+    _spot('Rooftop Cafe', 'Floor 2', <String>[
+      'rooftop cafe',
+      'cafe',
+      'coffee',
+    ]),
+    _spot('Restroom - Floor 2', 'Floor 2', <String>[
+      'restroom floor 2',
+      'toilet floor 2',
+      'wc floor 2',
+    ]),
+    _spot('Stairs - Floor 2', 'Floor 2', <String>[
+      'stairs floor 2',
+      'stair floor 2',
+      'cau thang floor 2',
+    ]),
+  ],
+  2: <_NavigationSpot>[
+    _spot('Main Entrance', 'Floor 1', <String>[
+      'main entrance',
+      'entrance',
+      'cua chinh',
+    ]),
+    _spot('War Crimes Exhibition', 'Floor 1', <String>[
+      'war crimes exhibition',
+    ]),
+    _spot('Guillotine', 'Floor 1', <String>['guillotine']),
+    _spot('Tiger Cages', 'Floor 1', <String>['tiger cages']),
+    _spot('Restroom - Floor 1', 'Floor 1', <String>[
+      'restroom floor 1',
+      'toilet floor 1',
+      'wc floor 1',
+      'restroom',
+      'toilet',
+      'wc',
+      'nha ve sinh',
+    ]),
+    _spot('Stairs - Floor 1', 'Floor 1', <String>[
+      'stairs floor 1',
+      'stair floor 1',
+      'cau thang floor 1',
+      'stairs',
+      'stair',
+      'cau thang',
+    ]),
+    _spot('International Support Gallery', 'Floor 2', <String>[
+      'international support gallery',
+    ]),
+    _spot('Peace and Reconciliation Display', 'Floor 2', <String>[
+      'peace and reconciliation display',
+      'reconciliation display',
+    ]),
+    _spot('Documentary Corner', 'Floor 2', <String>['documentary corner']),
+    _spot('Souvenir Shop', 'Floor 2', <String>['souvenir shop', 'shop']),
+    _spot('Cafe Break', 'Floor 2', <String>['cafe break', 'cafe', 'coffee']),
+    _spot('Restroom - Floor 2', 'Floor 2', <String>[
+      'restroom floor 2',
+      'toilet floor 2',
+      'wc floor 2',
+    ]),
+    _spot('Stairs - Floor 2', 'Floor 2', <String>[
+      'stairs floor 2',
+      'stair floor 2',
+      'cau thang floor 2',
+    ]),
+  ],
+  3: <_NavigationSpot>[
+    _spot('Main Entrance', 'Floor 1', <String>[
+      'main entrance',
+      'entrance',
+      'cua chinh',
+    ]),
+    _spot('Contemporary Vietnamese Art', 'Floor 1', <String>[
+      'contemporary vietnamese art',
+    ]),
+    _spot('Lacquer Painting Rural Life', 'Floor 1', <String>[
+      'lacquer painting rural life',
+      'lacquer painting',
+    ]),
+    _spot('Restroom - Floor 1', 'Floor 1', <String>[
+      'restroom floor 1',
+      'toilet floor 1',
+      'wc floor 1',
+      'restroom',
+      'toilet',
+      'wc',
+      'nha ve sinh',
+    ]),
+    _spot('Stairs - Floor 1', 'Floor 1', <String>[
+      'stairs floor 1',
+      'stair floor 1',
+      'cau thang floor 1',
+      'stairs',
+      'stair',
+      'cau thang',
+    ]),
+    _spot('Traditional Crafts Exhibition', 'Floor 2', <String>[
+      'traditional crafts exhibition',
+      'crafts exhibition',
+    ]),
+    _spot('Buddhist Statue', 'Floor 2', <String>['buddhist statue', 'statue']),
+    _spot('International Art Collection', 'Floor 2', <String>[
+      'international art collection',
+    ]),
+    _spot('Museum Cafe', 'Floor 2', <String>['museum cafe', 'cafe', 'coffee']),
+    _spot('Restroom - Floor 2', 'Floor 2', <String>[
+      'restroom floor 2',
+      'toilet floor 2',
+      'wc floor 2',
+    ]),
+    _spot('Stairs - Floor 2', 'Floor 2', <String>[
+      'stairs floor 2',
+      'stair floor 2',
+      'cau thang floor 2',
+    ]),
+  ],
+  4: <_NavigationSpot>[
+    _spot('Main Entrance', 'Floor 1', <String>[
+      'main entrance',
+      'entrance',
+      'cua chinh',
+    ]),
+    _spot('City History Journey Hall', 'Floor 1', <String>[
+      'city history journey hall',
+    ]),
+    _spot('Traditional Ao Dai', 'Floor 1', <String>[
+      'traditional ao dai',
+      'ao dai',
+    ]),
+    _spot('Restroom - Floor 1', 'Floor 1', <String>[
+      'restroom floor 1',
+      'toilet floor 1',
+      'wc floor 1',
+      'restroom',
+      'toilet',
+      'wc',
+      'nha ve sinh',
+    ]),
+    _spot('Stairs - Floor 1', 'Floor 1', <String>[
+      'stairs floor 1',
+      'stair floor 1',
+      'cau thang floor 1',
+      'stairs',
+      'stair',
+      'cau thang',
+    ]),
+    _spot('Cultural Heritage Trail Hall', 'Floor 2', <String>[
+      'cultural heritage trail hall',
+      'heritage trail hall',
+    ]),
+    _spot('Saigon Map 1930', 'Floor 2', <String>[
+      'saigon map 1930',
+      'saigon map',
+    ]),
+    _spot('Urban Planning Gallery', 'Floor 2', <String>[
+      'urban planning gallery',
+    ]),
+    _spot('Museum Cafe', 'Floor 2', <String>['museum cafe', 'cafe', 'coffee']),
+    _spot('Restroom - Floor 2', 'Floor 2', <String>[
+      'restroom floor 2',
+      'toilet floor 2',
+      'wc floor 2',
+    ]),
+    _spot('Stairs - Floor 2', 'Floor 2', <String>[
+      'stairs floor 2',
+      'stair floor 2',
+      'cau thang floor 2',
+    ]),
+  ],
+};
+
+_NavigationSpot _spot(String name, String floor, List<String> aliases) {
+  return _NavigationSpot(
+    name: name,
+    floor: floor,
+    aliases: <String>{
+      _AIAssistantScreenState._normalizeForIntent(name),
+      ...aliases.map(_AIAssistantScreenState._normalizeForIntent),
+    }.toList(),
+  );
 }
 
 class _MessageBubble extends StatelessWidget {
