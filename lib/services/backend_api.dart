@@ -88,6 +88,51 @@ class ArtifactDto {
   );
 }
 
+class ExhibitionDto {
+  const ExhibitionDto({
+    required this.id,
+    required this.name,
+    required this.location,
+    required this.museumId,
+  });
+
+  final int id;
+  final String name;
+  final String location;
+  final int museumId;
+
+  factory ExhibitionDto.fromJson(Map<String, dynamic> json) => ExhibitionDto(
+    id: json['id'] as int,
+    name: json['name'] as String,
+    location: json['location'] as String,
+    museumId: json['museum_id'] as int,
+  );
+}
+
+class RouteDto {
+  const RouteDto({
+    required this.id,
+    required this.name,
+    required this.estimatedTime,
+    required this.stopsCount,
+    required this.museumId,
+  });
+
+  final int id;
+  final String name;
+  final String estimatedTime;
+  final int stopsCount;
+  final int museumId;
+
+  factory RouteDto.fromJson(Map<String, dynamic> json) => RouteDto(
+    id: json['id'] as int,
+    name: json['name'] as String,
+    estimatedTime: json['estimated_time'] as String,
+    stopsCount: json['stops_count'] as int,
+    museumId: json['museum_id'] as int,
+  );
+}
+
 class TicketDto {
   const TicketDto({
     required this.id,
@@ -247,6 +292,36 @@ class BackendApi {
       _throwForResponse(response, json);
     }
     return json['reply'] as String? ?? '';
+  }
+
+  Future<List<ExhibitionDto>> fetchExhibitions(int museumId) async {
+    final response = await http.get(_uri('/museums/$museumId/exhibitions'));
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final json = await _readJson(response);
+      _throwForResponse(response, json);
+    }
+    final decoded = jsonDecode(response.body);
+    if (decoded is! List) {
+      throw ApiException('Unexpected exhibition list format');
+    }
+    return decoded
+        .map((e) => ExhibitionDto.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<RouteDto>> fetchRoutes(int museumId) async {
+    final response = await http.get(_uri('/museums/$museumId/routes'));
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final json = await _readJson(response);
+      _throwForResponse(response, json);
+    }
+    final decoded = jsonDecode(response.body);
+    if (decoded is! List) {
+      throw ApiException('Unexpected route list format');
+    }
+    return decoded
+        .map((e) => RouteDto.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<ArtifactDto> fetchArtifact(String artifactCode) async {

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:museamigo/app_routes.dart';
 import 'package:museamigo/l10n/translations.dart';
 import 'package:museamigo/language_notifier.dart';
 import 'package:museamigo/services/backend_api.dart';
+import 'package:museamigo/session.dart';
 
 class AIAssistantScreen extends StatefulWidget {
   const AIAssistantScreen({super.key});
@@ -14,33 +16,76 @@ class AIAssistantScreen extends StatefulWidget {
 class _AIAssistantScreenState extends State<AIAssistantScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final ScrollController _quickAccessScrollController = ScrollController();
 
-  final List<_ChatMessage> _messages = <_ChatMessage>[
-    _ChatMessage(
-      text:
-          'Hello! I\'m Ogima, your personal guide to the Independence Palace. I can help you discover artifacts, navigate the museum, answer questions, and guide you to interesting exhibits. How can I assist you today?',
-      time: '09:15 AM',
-      isUser: false,
-    ),
-  ];
+  final List<_ChatMessage> _messages = <_ChatMessage>[];
 
   bool _isAiTyping = false;
 
-  static const _quickAccessQuestions = <String>[
-    'What artifacts are nearby?',
-    'Where is the nearest toilet?',
-    'Show me highlights for 30 minutes',
-    'How do I get to Tank T-54?',
-    'Which exhibits are on Floor 2?',
-    'Any kid-friendly exhibits?',
-    'Where can I take a coffee break?',
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _seedGreetingForCurrentMuseum();
+    AppSession.currentMuseumName.addListener(_onMuseumContextChanged);
+  }
 
   @override
   void dispose() {
+    AppSession.currentMuseumName.removeListener(_onMuseumContextChanged);
     _messageController.dispose();
     _scrollController.dispose();
+    _quickAccessScrollController.dispose();
     super.dispose();
+  }
+
+  void _onMuseumContextChanged() {
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      final museumName = AppSession.currentMuseumName.value;
+      final updatedMessage = _ChatMessage(
+        text: _buildGreetingMessage(museumName),
+        time: _formatTime(DateTime.now()),
+        isUser: false,
+      );
+
+      if (_messages.isEmpty) {
+        _messages.add(updatedMessage);
+      } else if (!(_messages.first.isUser ?? true)) {
+        _messages[0] = updatedMessage;
+      } else {
+        _messages.insert(0, updatedMessage);
+      }
+    });
+  }
+
+  void _seedGreetingForCurrentMuseum() {
+    _messages.add(
+      _ChatMessage(
+        text: _buildGreetingMessage(AppSession.currentMuseumName.value),
+        time: _formatTime(DateTime.now()),
+        isUser: false,
+      ),
+    );
+  }
+
+  static String _buildGreetingMessage(String museumName) {
+    return 'Hello! I\'m Ogima, your personal guide to $museumName. '
+        'I can help you discover artifacts, navigate the museum, '
+        'answer questions, and guide you to interesting exhibits. '
+        'How can I assist you today?';
+  }
+
+  static List<String> _quickAccessQuestionsForMuseum(String museumName) {
+    return <String>[
+      'What are the operating hours of $museumName?',
+      'How much is the ticket at $museumName?',
+      'What exhibitions are available at $museumName?',
+      'What routes are available at $museumName?',
+      'Tell me about artifact code IP-002.',
+      'Where is $museumName located?',
+    ];
   }
 
   Future<void> _submitMessage([String? preset]) async {
@@ -64,7 +109,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
 
     String reply;
     try {
-      reply = await BackendApi.instance.askAi(text);
+      reply = await _resolveReplyForInput(text);
     } catch (_) {
       // Keep local fallback so chat still works when backend is unreachable.
       reply = _buildAiReply(text);
@@ -84,6 +129,168 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       _isAiTyping = false;
     });
     _scrollToBottom();
+  }
+
+  Future<String> _resolveReplyForInput(String text) async {
+    final normalized = text.toLowerCase();
+    final museum = await _resolveMuseum(text);
+
+    final artifactCode = _extractArtifactCode(text);
+    if (artifactCode != null) {
+      final artifact = await BackendApi.instance.fetchArtifact(artifactCode);
+      return 'Artifact: ${artifact.title} (${artifact.artifactCode}). '
+          'Year: ${artifact.year}. ${artifact.description}';
+    }
+
+    if (_isExhibitionQuestion(normalized) && museum != null) {
+      final exhibitions = await BackendApi.instance.fetchExhibitions(museum.id);
+      if (exhibitions.isEmpty) {
+        return 'There are currently no exhibitions listed for ${museum.name}.';
+      }
+      final lines = exhibitions
+          .map((e) => '- ${e.name} (Location: ${e.location})')
+          .join('\n');
+      return 'Exhibitions at ${museum.name}:\n$lines';
+    }
+
+    if (_isRouteQuestion(normalized) && museum != null) {
+      final routes = await BackendApi.instance.fetchRoutes(museum.id);
+      if (routes.isEmpty) {
+        return 'There are currently no routes listed for ${museum.name}.';
+      }
+      final lines = routes
+          .map((r) => '- ${r.name}: ${r.estimatedTime}, ${r.stopsCount} stops')
+          .join('\n');
+      return 'Available routes at ${museum.name}:\n$lines';
+    }
+
+    if (museum != null) {
+      if (_isOperatingHoursQuestion(normalized)) {
+        return 'Operating hours of ${museum.name}: ${museum.operatingHours}.';
+      }
+      if (_isTicketPriceQuestion(normalized)) {
+        return 'Ticket price at ${museum.name}: ${museum.baseTicketPrice} VND.';
+      }
+      if (_isLocationQuestion(normalized)) {
+        return 'Location of ${museum.name}: ${museum.latitude}, ${museum.longitude}.';
+      }
+      if (_isMuseumInfoQuestion(normalized)) {
+        return '${museum.name}: opens ${museum.operatingHours}, '
+            'ticket ${museum.baseTicketPrice} VND.';
+      }
+    }
+
+    return BackendApi.instance.askAi(text);
+  }
+
+  String? _extractArtifactCode(String text) {
+    final codeRegex = RegExp(r'\b[A-Za-z]{2,4}\s?-\s?\d{3}\b');
+    final match = codeRegex.firstMatch(text);
+    if (match == null) {
+      return null;
+    }
+    return match.group(0)?.replaceAll(' ', '').toUpperCase();
+  }
+
+  Future<MuseumDto?> _resolveMuseum(String text) async {
+    final museums = await BackendApi.instance.fetchMuseums();
+    if (museums.isEmpty) {
+      return null;
+    }
+
+    final normalized = text.toLowerCase();
+
+    for (final museum in museums) {
+      if (normalized.contains(museum.name.toLowerCase())) {
+        return museum;
+      }
+    }
+
+    final currentMuseumId = AppSession.currentMuseumId.value;
+    for (final museum in museums) {
+      if (museum.id == currentMuseumId) {
+        return museum;
+      }
+    }
+
+    return museums.first;
+  }
+
+  static bool _isExhibitionQuestion(String text) {
+    return _containsAny(text, <String>[
+      'exhibition',
+      'exhibitions',
+      'trien lam',
+      'show',
+    ]);
+  }
+
+  static bool _isRouteQuestion(String text) {
+    return _containsAny(text, <String>[
+      'route',
+      'routes',
+      'navigation',
+      'itinerary',
+      'lo trinh',
+      'duong di',
+      'path',
+    ]);
+  }
+
+  static bool _isOperatingHoursQuestion(String text) {
+    return _containsAny(text, <String>[
+      'operating hour',
+      'opening hour',
+      'open',
+      'close',
+      'gio mo cua',
+      'giờ mở cửa',
+      'dong cua',
+      'đóng cửa',
+    ]);
+  }
+
+  static bool _isTicketPriceQuestion(String text) {
+    return _containsAny(text, <String>[
+      'ticket',
+      'price',
+      'gia ve',
+      'giá vé',
+      've bao nhieu',
+      'vé bao nhiêu',
+    ]);
+  }
+
+  static bool _isLocationQuestion(String text) {
+    return _containsAny(text, <String>[
+      'location',
+      'where is',
+      'dia chi',
+      'địa chỉ',
+      'o dau',
+      'ở đâu',
+    ]);
+  }
+
+  static bool _isMuseumInfoQuestion(String text) {
+    return _isOperatingHoursQuestion(text) ||
+        _isTicketPriceQuestion(text) ||
+        _isLocationQuestion(text) ||
+        _containsAny(text, <String>[
+          'museum info',
+          'information',
+          'thong tin bao tang',
+          'thông tin bảo tàng',
+        ]);
+  }
+
+  static bool _containsAny(String text, List<String> candidates) {
+    for (final keyword in candidates) {
+      if (text.contains(keyword)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   String _buildAiReply(String question) {
@@ -117,7 +324,9 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   }
 
   static String _formatTime(DateTime now) {
-    final hour = now.hour > 12 ? now.hour - 12 : (now.hour == 0 ? 12 : now.hour);
+    final hour = now.hour > 12
+        ? now.hour - 12
+        : (now.hour == 0 ? 12 : now.hour);
     final minute = now.minute.toString().padLeft(2, '0');
     final period = now.hour >= 12 ? 'PM' : 'AM';
     return '$hour:$minute $period';
@@ -126,8 +335,15 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: languageNotifier,
+      listenable: Listenable.merge([
+        languageNotifier,
+        AppSession.currentMuseumId,
+        AppSession.currentMuseumName,
+      ]),
       builder: (context, _) {
+        final quickAccessQuestions = _quickAccessQuestionsForMuseum(
+          AppSession.currentMuseumName.value,
+        );
         return Scaffold(
           backgroundColor: const Color(0xFFF3F4F6),
           body: SafeArea(
@@ -140,7 +356,9 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                     children: [
                       GestureDetector(
                         onTap: () {
-                          Navigator.of(context).pushReplacementNamed(AppRoutes.home);
+                          Navigator.of(
+                            context,
+                          ).pushReplacementNamed(AppRoutes.home);
                         },
                         child: const Icon(
                           Icons.arrow_back_ios_new,
@@ -229,6 +447,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                 Expanded(
                   child: ListView.builder(
                     controller: _scrollController,
+                    primary: false,
                     padding: const EdgeInsets.fromLTRB(14, 4, 14, 8),
                     itemCount: _messages.length + (_isAiTyping ? 1 : 0),
                     itemBuilder: (context, index) {
@@ -242,7 +461,8 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                         );
                       }
                       final msg = _messages[index];
-                      final isOpeningMessage = index == 0 && !(msg.isUser ?? true);
+                      final isOpeningMessage =
+                          index == 0 && !(msg.isUser ?? true);
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: Column(
@@ -288,23 +508,38 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                   margin: const EdgeInsets.fromLTRB(14, 0, 14, 8),
                   child: Text(
                     'Quick access buttons:'.tr,
-                    style: const TextStyle(fontSize: 13, color: Color(0xFF374151)),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF374151),
+                    ),
                   ),
                 ),
                 SizedBox(
-                  height: 36,
-                  child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _quickAccessQuestions.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 8),
-                    itemBuilder: (_, index) {
-                      final q = _quickAccessQuestions[index];
-                      return _QuickQuestionChip(
-                        text: q.tr,
-                        onTap: () => _submitMessage(q),
-                      );
-                    },
+                  height: 40,
+                  child: ScrollConfiguration(
+                    behavior: const MaterialScrollBehavior().copyWith(
+                      dragDevices: {
+                        PointerDeviceKind.touch,
+                        PointerDeviceKind.mouse,
+                        PointerDeviceKind.trackpad,
+                        PointerDeviceKind.stylus,
+                        PointerDeviceKind.invertedStylus,
+                      },
+                    ),
+                    child: ListView.separated(
+                      controller: _quickAccessScrollController,
+                      primary: false,
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      itemCount: quickAccessQuestions.length,
+                      separatorBuilder: (_, _) => const SizedBox(width: 8),
+                      itemBuilder: (_, index) => _QuickQuestionChip(
+                        text: quickAccessQuestions[index].tr,
+                        onTap: () =>
+                            _submitMessage(quickAccessQuestions[index]),
+                      ),
+                    ),
                   ),
                 ),
                 Container(
@@ -394,7 +629,9 @@ class _MessageBubble extends StatelessWidget {
       constraints: const BoxConstraints(maxWidth: 250),
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
       decoration: BoxDecoration(
-        color: isUser ? Theme.of(context).colorScheme.primary : const Color(0xFFE5E7EB),
+        color: isUser
+            ? Theme.of(context).colorScheme.primary
+            : const Color(0xFFE5E7EB),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -413,7 +650,9 @@ class _MessageBubble extends StatelessWidget {
             message.time,
             style: TextStyle(
               fontSize: 11,
-              color: isUser ? Colors.white.withValues(alpha: 0.85) : const Color(0xFF6B7280),
+              color: isUser
+                  ? Colors.white.withValues(alpha: 0.85)
+                  : const Color(0xFF6B7280),
             ),
           ),
         ],
@@ -454,21 +693,25 @@ class _QuickQuestionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF3F4F6),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: const Color(0xFFD1D5DB)),
-        ),
-        child: Text(
-          text.tr,
-          style: const TextStyle(
-            fontSize: 13,
-            color: Color(0xFF111827),
-            fontWeight: FontWeight.w500,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF3F4F6),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: const Color(0xFFD1D5DB)),
+          ),
+          child: Text(
+            text.tr,
+            style: const TextStyle(
+              fontSize: 13,
+              color: Color(0xFF111827),
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
       ),
