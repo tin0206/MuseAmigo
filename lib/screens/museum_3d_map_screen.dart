@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:museamigo/l10n/translations.dart';
+import 'package:museamigo/session.dart';
 
 class Museum3DMapScreen extends StatefulWidget {
   const Museum3DMapScreen({super.key});
@@ -16,64 +17,14 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
 
   static const Color _restroomColor = Color(0xFFF59E0B);
   static const Color _cafeColor = Color(0xFF8B5E3C);
+  static const Color _stairsColor = Color(0xFF60A5FA);
 
   static const _floors = ['Floor 1', 'Floor 2'];
 
-  static const _locations = <_MapLocation>[
-    _MapLocation(name: 'Room of War', floor: 'Floor 1', x: 0.2, y: 0.25),
-    _MapLocation(name: 'President Room', floor: 'Floor 1', x: 0.65, y: 0.35),
-    _MapLocation(name: 'Tank T-54', floor: 'Floor 1', x: 0.4, y: 0.55),
-    _MapLocation(name: 'Classroom', floor: 'Floor 1', x: 0.75, y: 0.55),
-    _MapLocation(
-      name: 'Main Entrance',
-      floor: 'Floor 1',
-      x: 0.35,
-      y: 0.8,
-      color: Color(0xFF22C55E),
-    ),
-    // ── Floor 2 ──────────────────────────────────────────────────────
-    _MapLocation(name: 'Art Gallery', floor: 'Floor 2', x: 0.2, y: 0.25),
-    _MapLocation(
-      name: 'Photography Gallery',
-      floor: 'Floor 2',
-      x: 0.18,
-      y: 0.2,
-    ),
-    _MapLocation(name: 'Conference Hall', floor: 'Floor 2', x: 0.65, y: 0.3),
-    _MapLocation(name: 'Peace Memorial', floor: 'Floor 2', x: 0.55, y: 0.44),
-    _MapLocation(name: 'Diplomatic Room', floor: 'Floor 2', x: 0.78, y: 0.42),
-    _MapLocation(name: 'Media Room', floor: 'Floor 2', x: 0.74, y: 0.6),
-    _MapLocation(name: 'Library', floor: 'Floor 2', x: 0.75, y: 0.55),
-    _MapLocation(
-      name: 'Souvenir Shop',
-      floor: 'Floor 2',
-      x: 0.4,
-      y: 0.55,
-      color: Color(0xFFF59E0B),
-    ),
-    _MapLocation(
-      name: 'Rooftop Cafe',
-      floor: 'Floor 2',
-      x: 0.3,
-      y: 0.78,
-      color: Color(0xFF8B5E3C),
-    ),
-  ];
-
-  static const _stopDescriptions = <String, String>{
-    'Main Entrance':
-        'Start from the main entrance, then follow the route markers to your next stop.',
-    'Tank T-54':
-        'T-54 tank No. 843 is a legendary Vietnam People\'s Army tank linked to April 30, 1975 history.',
-    'Room of War':
-        'Explore archival photos and artifacts that document key wartime events.',
-    'President Room':
-        'The President Room preserves original furniture and command equipment.',
-    'Peace Memorial':
-        'This area highlights the transition from conflict to peace and reunification.',
-    'Rooftop Cafe':
-        'Take a break with a panoramic rooftop view before continuing your visit.',
-  };
+  _MuseumMapConfig get _currentConfig {
+    final museumId = AppSession.currentMuseumId.value;
+    return _museumConfigs[museumId] ?? _museumConfigs[1]!;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -190,7 +141,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                     color: const Color(0xFF1A1A1A),
                     child: CustomPaint(
                       painter: Museum3DPainter(
-                        locations: _locations
+                        locations: _currentConfig.locations
                             .where((loc) => loc.floor == _selectedFloor)
                             .toList(),
                         routePoints: _routePointsForCurrentFloor(),
@@ -250,10 +201,12 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                   children: [
                     _LegendItem(
                       color: Theme.of(context).colorScheme.primary,
-                      label: 'Artifacts'.tr,
+                      label: _currentConfig.artifactLegendLabel.tr,
                     ),
                     const SizedBox(width: 16),
                     _LegendItem(color: _restroomColor, label: 'Restrooms'.tr),
+                    const SizedBox(width: 16),
+                    _LegendItem(color: _stairsColor, label: 'Stairs'.tr),
                     const SizedBox(width: 16),
                     _LegendItem(color: _cafeColor, label: 'Cafes'.tr),
                   ],
@@ -286,7 +239,8 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => const _LocationPickerSheet(),
+      builder: (_) =>
+          _LocationPickerSheet(options: _currentConfig.locationOptions),
     );
     if (loc == null || !mounted) return;
     _showRoutePicker(loc);
@@ -300,7 +254,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => const _RoutePickerSheet(),
+      builder: (_) => _RoutePickerSheet(routes: _currentConfig.routes),
     );
     if (route == null || !mounted) return;
     _showRouteReady(route);
@@ -406,12 +360,12 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
       return '';
     }
     final stopName = route.stops[_currentStopIndex].name;
-    return _stopDescriptions[stopName] ??
+    return _currentConfig.stopDescriptions[stopName] ??
         'Follow the highlighted path to continue your museum journey.';
   }
 
   _MapLocation? _findLocationByName(String name) {
-    for (final loc in _locations) {
+    for (final loc in _currentConfig.locations) {
       if (loc.name == name) {
         return loc;
       }
@@ -422,6 +376,22 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
   String? _floorOfStop(String stopName) {
     return _findLocationByName(stopName)?.floor;
   }
+}
+
+class _MuseumMapConfig {
+  const _MuseumMapConfig({
+    required this.artifactLegendLabel,
+    required this.locations,
+    required this.stopDescriptions,
+    required this.locationOptions,
+    required this.routes,
+  });
+
+  final String artifactLegendLabel;
+  final List<_MapLocation> locations;
+  final Map<String, String> stopDescriptions;
+  final List<_LocationOption> locationOptions;
+  final List<_RouteOption> routes;
 }
 
 // ── Route data ────────────────────────────────────────────────────────────
@@ -462,31 +432,417 @@ class _RouteOption {
   });
 }
 
-List<_LocationOption> _getAllLocationOptions(Color primary) =>
+Map<int, _MuseumMapConfig> _museumConfigs = <int, _MuseumMapConfig>{
+  1: _MuseumMapConfig(
+    artifactLegendLabel: 'Artifacts',
+    locations: <_MapLocation>[
+      _MapLocation(
+        name: 'War History Gallery',
+        floor: 'Floor 1',
+        x: 0.2,
+        y: 0.25,
+      ),
+      _MapLocation(
+        name: 'Presidential Throne',
+        floor: 'Floor 1',
+        x: 0.65,
+        y: 0.35,
+      ),
+      _MapLocation(name: 'T-54 Tank', floor: 'Floor 1', x: 0.4, y: 0.55),
+      _MapLocation(
+        name: 'Diplomatic Reception Hall',
+        floor: 'Floor 1',
+        x: 0.75,
+        y: 0.55,
+      ),
+      _MapLocation(
+        name: 'Main Entrance',
+        floor: 'Floor 1',
+        x: 0.35,
+        y: 0.8,
+        color: Color(0xFF22C55E),
+      ),
+      _MapLocation(
+        name: 'Restroom - Floor 1',
+        floor: 'Floor 1',
+        x: 0.14,
+        y: 0.72,
+        color: _Museum3DMapScreenState._restroomColor,
+      ),
+      _MapLocation(
+        name: 'Stairs - Floor 1',
+        floor: 'Floor 1',
+        x: 0.88,
+        y: 0.76,
+        color: _Museum3DMapScreenState._stairsColor,
+      ),
+      _MapLocation(
+        name: 'Presidential Office Tour',
+        floor: 'Floor 2',
+        x: 0.18,
+        y: 0.2,
+      ),
+      _MapLocation(
+        name: 'Historical Documents Room',
+        floor: 'Floor 2',
+        x: 0.65,
+        y: 0.3,
+      ),
+      _MapLocation(
+        name: 'Independence Archive',
+        floor: 'Floor 2',
+        x: 0.55,
+        y: 0.44,
+      ),
+      _MapLocation(
+        name: 'Command Communication Room',
+        floor: 'Floor 2',
+        x: 0.78,
+        y: 0.42,
+      ),
+      _MapLocation(
+        name: 'Souvenir Shop',
+        floor: 'Floor 2',
+        x: 0.4,
+        y: 0.55,
+        color: Color(0xFFF59E0B),
+      ),
+      _MapLocation(
+        name: 'Rooftop Cafe',
+        floor: 'Floor 2',
+        x: 0.3,
+        y: 0.78,
+        color: Color(0xFF8B5E3C),
+      ),
+      _MapLocation(
+        name: 'Restroom - Floor 2',
+        floor: 'Floor 2',
+        x: 0.12,
+        y: 0.7,
+        color: _Museum3DMapScreenState._restroomColor,
+      ),
+      _MapLocation(
+        name: 'Stairs - Floor 2',
+        floor: 'Floor 2',
+        x: 0.88,
+        y: 0.72,
+        color: _Museum3DMapScreenState._stairsColor,
+      ),
+    ],
+    stopDescriptions: <String, String>{
+      'Main Entrance':
+          'Start from the main entrance, then follow the route markers to your next stop.',
+      'T-54 Tank':
+          'T-54 tank No. 843 is a legendary Vietnam People\'s Army tank linked to April 30, 1975 history.',
+      'War History Gallery':
+          'Explore archival photographs, documents, and wartime artifacts connected to the final days of the Republic of Vietnam.',
+      'Presidential Throne':
+          'This ceremonial throne was used in formal receptions and represents the political symbolism of the palace.',
+      'Diplomatic Reception Hall':
+          'This hall hosted official diplomatic meetings and ceremonial welcomes for state visitors.',
+      'Presidential Office Tour':
+          'Walk through the preserved presidential working area and see the original office setting.',
+      'Independence Archive':
+          'This area presents curated documents and visual records related to the palace and the reunification period.',
+      'Rooftop Cafe':
+          'Take a break with a panoramic rooftop view before continuing your visit.',
+    },
+    locationOptions: _buildIndependencePalaceLocationOptions(),
+    routes: _independencePalaceRoutes,
+  ),
+  2: _MuseumMapConfig(
+    artifactLegendLabel: 'War Exhibits',
+    locations: <_MapLocation>[
+      _MapLocation(
+        name: 'War Crimes Exhibition',
+        floor: 'Floor 1',
+        x: 0.22,
+        y: 0.22,
+      ),
+      _MapLocation(name: 'Guillotine', floor: 'Floor 1', x: 0.62, y: 0.28),
+      _MapLocation(name: 'Tiger Cages', floor: 'Floor 1', x: 0.78, y: 0.56),
+      _MapLocation(
+        name: 'Main Entrance',
+        floor: 'Floor 1',
+        x: 0.32,
+        y: 0.82,
+        color: Color(0xFF22C55E),
+      ),
+      _MapLocation(
+        name: 'Restroom - Floor 1',
+        floor: 'Floor 1',
+        x: 0.12,
+        y: 0.7,
+        color: _Museum3DMapScreenState._restroomColor,
+      ),
+      _MapLocation(
+        name: 'Stairs - Floor 1',
+        floor: 'Floor 1',
+        x: 0.88,
+        y: 0.78,
+        color: _Museum3DMapScreenState._stairsColor,
+      ),
+      _MapLocation(
+        name: 'International Support Gallery',
+        floor: 'Floor 2',
+        x: 0.2,
+        y: 0.22,
+      ),
+      _MapLocation(
+        name: 'Peace and Reconciliation Display',
+        floor: 'Floor 2',
+        x: 0.62,
+        y: 0.34,
+      ),
+      _MapLocation(
+        name: 'Documentary Corner',
+        floor: 'Floor 2',
+        x: 0.78,
+        y: 0.56,
+      ),
+      _MapLocation(
+        name: 'Souvenir Shop',
+        floor: 'Floor 2',
+        x: 0.42,
+        y: 0.56,
+        color: Color(0xFFF59E0B),
+      ),
+      _MapLocation(
+        name: 'Cafe Break',
+        floor: 'Floor 2',
+        x: 0.3,
+        y: 0.78,
+        color: Color(0xFF8B5E3C),
+      ),
+      _MapLocation(
+        name: 'Restroom - Floor 2',
+        floor: 'Floor 2',
+        x: 0.12,
+        y: 0.72,
+        color: _Museum3DMapScreenState._restroomColor,
+      ),
+      _MapLocation(
+        name: 'Stairs - Floor 2',
+        floor: 'Floor 2',
+        x: 0.88,
+        y: 0.75,
+        color: _Museum3DMapScreenState._stairsColor,
+      ),
+    ],
+    stopDescriptions: <String, String>{
+      'War Crimes Exhibition':
+          'A central gallery documenting wartime devastation and eyewitness evidence.',
+      'Guillotine':
+          'A preserved execution device from the colonial era, reflecting a dark chapter in resistance history.',
+      'Tiger Cages':
+          'A reconstruction of prison cells used to detain political prisoners in brutal conditions.',
+      'International Support Gallery':
+          'This gallery highlights anti-war solidarity from around the world.',
+      'Peace and Reconciliation Display':
+          'An exhibit focused on recovery, remembrance, and reconciliation after conflict.',
+    },
+    locationOptions: _buildWarRemnantsLocationOptions(),
+    routes: _warRemnantsRoutes,
+  ),
+  3: _MuseumMapConfig(
+    artifactLegendLabel: 'Artworks',
+    locations: <_MapLocation>[
+      _MapLocation(
+        name: 'Contemporary Vietnamese Art',
+        floor: 'Floor 1',
+        x: 0.2,
+        y: 0.24,
+      ),
+      _MapLocation(
+        name: 'Lacquer Painting Rural Life',
+        floor: 'Floor 1',
+        x: 0.58,
+        y: 0.34,
+      ),
+      _MapLocation(
+        name: 'Main Entrance',
+        floor: 'Floor 1',
+        x: 0.34,
+        y: 0.82,
+        color: Color(0xFF22C55E),
+      ),
+      _MapLocation(
+        name: 'Restroom - Floor 1',
+        floor: 'Floor 1',
+        x: 0.12,
+        y: 0.72,
+        color: _Museum3DMapScreenState._restroomColor,
+      ),
+      _MapLocation(
+        name: 'Stairs - Floor 1',
+        floor: 'Floor 1',
+        x: 0.88,
+        y: 0.78,
+        color: _Museum3DMapScreenState._stairsColor,
+      ),
+      _MapLocation(
+        name: 'Traditional Crafts Exhibition',
+        floor: 'Floor 2',
+        x: 0.2,
+        y: 0.22,
+      ),
+      _MapLocation(name: 'Buddhist Statue', floor: 'Floor 2', x: 0.6, y: 0.36),
+      _MapLocation(
+        name: 'International Art Collection',
+        floor: 'Floor 2',
+        x: 0.8,
+        y: 0.56,
+      ),
+      _MapLocation(
+        name: 'Museum Cafe',
+        floor: 'Floor 2',
+        x: 0.32,
+        y: 0.78,
+        color: Color(0xFF8B5E3C),
+      ),
+      _MapLocation(
+        name: 'Restroom - Floor 2',
+        floor: 'Floor 2',
+        x: 0.12,
+        y: 0.72,
+        color: _Museum3DMapScreenState._restroomColor,
+      ),
+      _MapLocation(
+        name: 'Stairs - Floor 2',
+        floor: 'Floor 2',
+        x: 0.88,
+        y: 0.76,
+        color: _Museum3DMapScreenState._stairsColor,
+      ),
+    ],
+    stopDescriptions: <String, String>{
+      'Contemporary Vietnamese Art':
+          'A curated display of modern Vietnamese artistic expression and cultural themes.',
+      'Lacquer Painting Rural Life':
+          'A lacquer masterpiece that captures the rhythm and beauty of rural Vietnamese life.',
+      'Traditional Crafts Exhibition':
+          'An exhibit showcasing handcrafted objects and decorative arts from across Vietnam.',
+      'Buddhist Statue':
+          'A 17th-century bronze statue highlighting the spiritual and sculptural heritage of Vietnam.',
+      'International Art Collection':
+          'A mixed collection of international works presented alongside Vietnamese fine arts.',
+    },
+    locationOptions: _buildFineArtsLocationOptions(),
+    routes: _fineArtsRoutes,
+  ),
+  4: _MuseumMapConfig(
+    artifactLegendLabel: 'City Heritage',
+    locations: <_MapLocation>[
+      _MapLocation(
+        name: 'City History Journey Hall',
+        floor: 'Floor 1',
+        x: 0.22,
+        y: 0.24,
+      ),
+      _MapLocation(
+        name: 'Traditional Ao Dai',
+        floor: 'Floor 1',
+        x: 0.62,
+        y: 0.34,
+      ),
+      _MapLocation(
+        name: 'Main Entrance',
+        floor: 'Floor 1',
+        x: 0.35,
+        y: 0.82,
+        color: Color(0xFF22C55E),
+      ),
+      _MapLocation(
+        name: 'Restroom - Floor 1',
+        floor: 'Floor 1',
+        x: 0.12,
+        y: 0.72,
+        color: _Museum3DMapScreenState._restroomColor,
+      ),
+      _MapLocation(
+        name: 'Stairs - Floor 1',
+        floor: 'Floor 1',
+        x: 0.88,
+        y: 0.78,
+        color: _Museum3DMapScreenState._stairsColor,
+      ),
+      _MapLocation(
+        name: 'Cultural Heritage Trail Hall',
+        floor: 'Floor 2',
+        x: 0.22,
+        y: 0.22,
+      ),
+      _MapLocation(name: 'Saigon Map 1930', floor: 'Floor 2', x: 0.62, y: 0.38),
+      _MapLocation(
+        name: 'Archive Reading Corner',
+        floor: 'Floor 2',
+        x: 0.78,
+        y: 0.56,
+      ),
+      _MapLocation(
+        name: 'Museum Cafe',
+        floor: 'Floor 2',
+        x: 0.3,
+        y: 0.78,
+        color: Color(0xFF8B5E3C),
+      ),
+      _MapLocation(
+        name: 'Restroom - Floor 2',
+        floor: 'Floor 2',
+        x: 0.12,
+        y: 0.72,
+        color: _Museum3DMapScreenState._restroomColor,
+      ),
+      _MapLocation(
+        name: 'Stairs - Floor 2',
+        floor: 'Floor 2',
+        x: 0.88,
+        y: 0.75,
+        color: _Museum3DMapScreenState._stairsColor,
+      ),
+    ],
+    stopDescriptions: <String, String>{
+      'City History Journey Hall':
+          'A gallery introducing the transformation of Ho Chi Minh City across major historical eras.',
+      'Traditional Ao Dai':
+          'A classic Ao Dai garment illustrating cultural identity and changing urban fashion.',
+      'Cultural Heritage Trail Hall':
+          'An exhibit about the city\'s architecture, communities, and cultural continuity.',
+      'Saigon Map 1930':
+          'A historical map that reveals the colonial-era layout and expansion of Saigon.',
+      'Archive Reading Corner':
+          'A quiet corner where curated archive reproductions and city records are displayed.',
+    },
+    locationOptions: _buildCityMuseumLocationOptions(),
+    routes: _cityMuseumRoutes,
+  ),
+};
+
+List<_LocationOption> _buildIndependencePalaceLocationOptions() =>
     <_LocationOption>[
-      _LocationOption(
-        name: 'Room of War',
+      const _LocationOption(
+        name: 'War History Gallery',
         subtitle: 'Hall A — Floor 1',
         icon: Icons.location_on,
-        iconColor: primary,
+        iconColor: Colors.redAccent,
       ),
       _LocationOption(
-        name: 'President Room',
+        name: 'Presidential Throne',
         subtitle: 'Hall B — Floor 1',
         icon: Icons.location_on,
-        iconColor: primary,
+        iconColor: Colors.redAccent,
       ),
       _LocationOption(
-        name: 'Tank T-54',
+        name: 'T-54 Tank',
         subtitle: 'Hall C — Floor 1',
         icon: Icons.location_on,
-        iconColor: primary,
+        iconColor: Colors.redAccent,
       ),
       _LocationOption(
-        name: 'Classroom',
-        subtitle: 'Hall D — Floor 1',
+        name: 'Diplomatic Reception Hall',
+        subtitle: 'Central Hall — Floor 1',
         icon: Icons.visibility_outlined,
-        iconColor: primary,
+        iconColor: Colors.redAccent,
       ),
       _LocationOption(
         name: 'Main Entrance',
@@ -495,44 +851,275 @@ List<_LocationOption> _getAllLocationOptions(Color primary) =>
         iconColor: Color(0xFF6B7280),
       ),
       _LocationOption(
-        name: 'Cafe Nile',
-        subtitle: 'Central — Floor 1',
-        icon: Icons.coffee_outlined,
+        name: 'Restroom - Floor 1',
+        subtitle: 'South Wing — Floor 1',
+        icon: Icons.wc_outlined,
         iconColor: Color(0xFFF59E0B),
       ),
       _LocationOption(
-        name: 'Photography Gallery',
-        subtitle: 'Hall E — Floor 2',
+        name: 'Stairs - Floor 1',
+        subtitle: 'East Wing — Floor 1',
+        icon: Icons.stairs_outlined,
+        iconColor: Color(0xFF60A5FA),
+      ),
+      _LocationOption(
+        name: 'Presidential Office Tour',
+        subtitle: 'Upper Gallery — Floor 2',
         icon: Icons.visibility_outlined,
-        iconColor: primary,
+        iconColor: Colors.redAccent,
       ),
       _LocationOption(
-        name: 'Peace Memorial',
-        subtitle: 'Hall F — Floor 2',
+        name: 'Independence Archive',
+        subtitle: 'Archive Wing — Floor 2',
         icon: Icons.location_on,
-        iconColor: primary,
+        iconColor: Colors.redAccent,
       ),
       _LocationOption(
-        name: 'Diplomatic Room',
-        subtitle: 'Hall G — Floor 2',
+        name: 'Historical Documents Room',
+        subtitle: 'Gallery Hall — Floor 2',
         icon: Icons.location_on,
-        iconColor: primary,
+        iconColor: Colors.redAccent,
       ),
       _LocationOption(
-        name: 'Media Room',
-        subtitle: 'Hall H — Floor 2',
+        name: 'Command Communication Room',
+        subtitle: 'Command Wing — Floor 2',
         icon: Icons.visibility_outlined,
-        iconColor: primary,
+        iconColor: Colors.redAccent,
+      ),
+      _LocationOption(
+        name: 'Restroom - Floor 2',
+        subtitle: 'South Wing — Floor 2',
+        icon: Icons.wc_outlined,
+        iconColor: Color(0xFFF59E0B),
+      ),
+      _LocationOption(
+        name: 'Stairs - Floor 2',
+        subtitle: 'East Wing — Floor 2',
+        icon: Icons.stairs_outlined,
+        iconColor: Color(0xFF60A5FA),
       ),
       _LocationOption(
         name: 'Rooftop Cafe',
         subtitle: 'Rooftop — Floor 2',
         icon: Icons.coffee_outlined,
-        iconColor: Color(0xFFF59E0B),
+        iconColor: Color(0xFF8B5E3C),
       ),
     ];
 
-const _recommendedRoutes = <_RouteOption>[
+List<_LocationOption> _buildWarRemnantsLocationOptions() => <_LocationOption>[
+  const _LocationOption(
+    name: 'War Crimes Exhibition',
+    subtitle: 'Building A — Floor 1',
+    icon: Icons.location_on,
+    iconColor: Colors.red,
+  ),
+  const _LocationOption(
+    name: 'Guillotine',
+    subtitle: 'Historical Hall — Floor 1',
+    icon: Icons.account_balance_outlined,
+    iconColor: Colors.red,
+  ),
+  const _LocationOption(
+    name: 'Tiger Cages',
+    subtitle: 'Outdoor Area — Floor 1',
+    icon: Icons.grid_view_outlined,
+    iconColor: Colors.red,
+  ),
+  const _LocationOption(
+    name: 'Main Entrance',
+    subtitle: 'Entrance — Floor 1',
+    icon: Icons.meeting_room_outlined,
+    iconColor: Color(0xFF6B7280),
+  ),
+  const _LocationOption(
+    name: 'Restroom - Floor 1',
+    subtitle: 'South Wing — Floor 1',
+    icon: Icons.wc_outlined,
+    iconColor: Color(0xFFF59E0B),
+  ),
+  const _LocationOption(
+    name: 'Stairs - Floor 1',
+    subtitle: 'East Wing — Floor 1',
+    icon: Icons.stairs_outlined,
+    iconColor: Color(0xFF60A5FA),
+  ),
+  const _LocationOption(
+    name: 'International Support Gallery',
+    subtitle: 'Building B — Floor 2',
+    icon: Icons.location_on,
+    iconColor: Colors.red,
+  ),
+  const _LocationOption(
+    name: 'Peace and Reconciliation Display',
+    subtitle: 'Memorial Wing — Floor 2',
+    icon: Icons.location_on,
+    iconColor: Colors.red,
+  ),
+  const _LocationOption(
+    name: 'Documentary Corner',
+    subtitle: 'Archive Hall — Floor 2',
+    icon: Icons.visibility_outlined,
+    iconColor: Colors.red,
+  ),
+  const _LocationOption(
+    name: 'Restroom - Floor 2',
+    subtitle: 'South Wing — Floor 2',
+    icon: Icons.wc_outlined,
+    iconColor: Color(0xFFF59E0B),
+  ),
+  const _LocationOption(
+    name: 'Stairs - Floor 2',
+    subtitle: 'East Wing — Floor 2',
+    icon: Icons.stairs_outlined,
+    iconColor: Color(0xFF60A5FA),
+  ),
+  const _LocationOption(
+    name: 'Cafe Break',
+    subtitle: 'Upper Lobby — Floor 2',
+    icon: Icons.coffee_outlined,
+    iconColor: Color(0xFF8B5E3C),
+  ),
+];
+
+List<_LocationOption> _buildFineArtsLocationOptions() => <_LocationOption>[
+  const _LocationOption(
+    name: 'Contemporary Vietnamese Art',
+    subtitle: 'Main Gallery — Floor 1',
+    icon: Icons.palette_outlined,
+    iconColor: Colors.deepPurple,
+  ),
+  const _LocationOption(
+    name: 'Lacquer Painting Rural Life',
+    subtitle: 'Main Gallery — Floor 1',
+    icon: Icons.brush_outlined,
+    iconColor: Colors.deepPurple,
+  ),
+  const _LocationOption(
+    name: 'Main Entrance',
+    subtitle: 'Entrance — Floor 1',
+    icon: Icons.meeting_room_outlined,
+    iconColor: Color(0xFF6B7280),
+  ),
+  const _LocationOption(
+    name: 'Restroom - Floor 1',
+    subtitle: 'South Wing — Floor 1',
+    icon: Icons.wc_outlined,
+    iconColor: Color(0xFFF59E0B),
+  ),
+  const _LocationOption(
+    name: 'Stairs - Floor 1',
+    subtitle: 'East Wing — Floor 1',
+    icon: Icons.stairs_outlined,
+    iconColor: Color(0xFF60A5FA),
+  ),
+  const _LocationOption(
+    name: 'Traditional Crafts Exhibition',
+    subtitle: 'Heritage Wing — Floor 2',
+    icon: Icons.palette_outlined,
+    iconColor: Colors.deepPurple,
+  ),
+  const _LocationOption(
+    name: 'Buddhist Statue',
+    subtitle: 'Sculpture Hall — Floor 2',
+    icon: Icons.account_balance_outlined,
+    iconColor: Colors.deepPurple,
+  ),
+  const _LocationOption(
+    name: 'International Art Collection',
+    subtitle: 'International Gallery — Floor 2',
+    icon: Icons.image_outlined,
+    iconColor: Colors.deepPurple,
+  ),
+  const _LocationOption(
+    name: 'Restroom - Floor 2',
+    subtitle: 'South Wing — Floor 2',
+    icon: Icons.wc_outlined,
+    iconColor: Color(0xFFF59E0B),
+  ),
+  const _LocationOption(
+    name: 'Stairs - Floor 2',
+    subtitle: 'East Wing — Floor 2',
+    icon: Icons.stairs_outlined,
+    iconColor: Color(0xFF60A5FA),
+  ),
+  const _LocationOption(
+    name: 'Museum Cafe',
+    subtitle: 'Upper Lobby — Floor 2',
+    icon: Icons.coffee_outlined,
+    iconColor: Color(0xFF8B5E3C),
+  ),
+];
+
+List<_LocationOption> _buildCityMuseumLocationOptions() => <_LocationOption>[
+  const _LocationOption(
+    name: 'City History Journey Hall',
+    subtitle: 'Main Gallery — Floor 1',
+    icon: Icons.history_edu_outlined,
+    iconColor: Colors.teal,
+  ),
+  const _LocationOption(
+    name: 'Traditional Ao Dai',
+    subtitle: 'Textile Hall — Floor 1',
+    icon: Icons.checkroom_outlined,
+    iconColor: Colors.teal,
+  ),
+  const _LocationOption(
+    name: 'Main Entrance',
+    subtitle: 'Entrance — Floor 1',
+    icon: Icons.meeting_room_outlined,
+    iconColor: Color(0xFF6B7280),
+  ),
+  const _LocationOption(
+    name: 'Restroom - Floor 1',
+    subtitle: 'South Wing — Floor 1',
+    icon: Icons.wc_outlined,
+    iconColor: Color(0xFFF59E0B),
+  ),
+  const _LocationOption(
+    name: 'Stairs - Floor 1',
+    subtitle: 'East Wing — Floor 1',
+    icon: Icons.stairs_outlined,
+    iconColor: Color(0xFF60A5FA),
+  ),
+  const _LocationOption(
+    name: 'Cultural Heritage Trail Hall',
+    subtitle: 'Heritage Wing — Floor 2',
+    icon: Icons.history_edu_outlined,
+    iconColor: Colors.teal,
+  ),
+  const _LocationOption(
+    name: 'Saigon Map 1930',
+    subtitle: 'Archive Hall — Floor 2',
+    icon: Icons.map_outlined,
+    iconColor: Colors.teal,
+  ),
+  const _LocationOption(
+    name: 'Archive Reading Corner',
+    subtitle: 'Research Corner — Floor 2',
+    icon: Icons.menu_book_outlined,
+    iconColor: Colors.teal,
+  ),
+  const _LocationOption(
+    name: 'Restroom - Floor 2',
+    subtitle: 'South Wing — Floor 2',
+    icon: Icons.wc_outlined,
+    iconColor: Color(0xFFF59E0B),
+  ),
+  const _LocationOption(
+    name: 'Stairs - Floor 2',
+    subtitle: 'East Wing — Floor 2',
+    icon: Icons.stairs_outlined,
+    iconColor: Color(0xFF60A5FA),
+  ),
+  const _LocationOption(
+    name: 'Museum Cafe',
+    subtitle: 'Upper Lobby — Floor 2',
+    icon: Icons.coffee_outlined,
+    iconColor: Color(0xFF8B5E3C),
+  ),
+];
+
+const _independencePalaceRoutes = <_RouteOption>[
   _RouteOption(
     emoji: '⭐',
     name: 'Museum Highlights',
@@ -541,9 +1128,9 @@ const _recommendedRoutes = <_RouteOption>[
     stopsCount: 4,
     stops: [
       _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
-      _RouteStop(name: 'Tank T-54', subtitle: 'Hall C · Floor 1'),
-      _RouteStop(name: 'Room of War', subtitle: 'Hall A · Floor 1'),
-      _RouteStop(name: 'President Room', subtitle: 'Hall B · Floor 1'),
+      _RouteStop(name: 'T-54 Tank', subtitle: 'Hall C · Floor 1'),
+      _RouteStop(name: 'War History Gallery', subtitle: 'Hall A · Floor 1'),
+      _RouteStop(name: 'Presidential Throne', subtitle: 'Hall B · Floor 1'),
     ],
   ),
   _RouteOption(
@@ -554,13 +1141,25 @@ const _recommendedRoutes = <_RouteOption>[
     stopsCount: 9,
     stops: [
       _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
-      _RouteStop(name: 'Room of War', subtitle: 'Hall A · Floor 1'),
-      _RouteStop(name: 'President Room', subtitle: 'Hall B · Floor 1'),
-      _RouteStop(name: 'Tank T-54', subtitle: 'Hall C · Floor 1'),
-      _RouteStop(name: 'Classroom', subtitle: 'Hall D · Floor 1'),
-      _RouteStop(name: 'Photography Gallery', subtitle: 'Hall E · Floor 2'),
-      _RouteStop(name: 'Peace Memorial', subtitle: 'Hall F · Floor 2'),
-      _RouteStop(name: 'Diplomatic Room', subtitle: 'Hall G · Floor 2'),
+      _RouteStop(name: 'War History Gallery', subtitle: 'Hall A · Floor 1'),
+      _RouteStop(name: 'Presidential Throne', subtitle: 'Hall B · Floor 1'),
+      _RouteStop(name: 'T-54 Tank', subtitle: 'Hall C · Floor 1'),
+      _RouteStop(
+        name: 'Diplomatic Reception Hall',
+        subtitle: 'Central Hall · Floor 1',
+      ),
+      _RouteStop(
+        name: 'Presidential Office Tour',
+        subtitle: 'Upper Gallery · Floor 2',
+      ),
+      _RouteStop(
+        name: 'Historical Documents Room',
+        subtitle: 'Gallery Hall · Floor 2',
+      ),
+      _RouteStop(
+        name: 'Independence Archive',
+        subtitle: 'Archive Wing · Floor 2',
+      ),
       _RouteStop(name: 'Rooftop Cafe', subtitle: 'Rooftop · Floor 2'),
     ],
   ),
@@ -572,10 +1171,13 @@ const _recommendedRoutes = <_RouteOption>[
     stopsCount: 5,
     stops: [
       _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
-      _RouteStop(name: 'Room of War', subtitle: 'Hall A · Floor 1'),
-      _RouteStop(name: 'Tank T-54', subtitle: 'Hall C · Floor 1'),
-      _RouteStop(name: 'President Room', subtitle: 'Hall B · Floor 1'),
-      _RouteStop(name: 'Peace Memorial', subtitle: 'Hall F · Floor 2'),
+      _RouteStop(name: 'War History Gallery', subtitle: 'Hall A · Floor 1'),
+      _RouteStop(name: 'T-54 Tank', subtitle: 'Hall C · Floor 1'),
+      _RouteStop(name: 'Presidential Throne', subtitle: 'Hall B · Floor 1'),
+      _RouteStop(
+        name: 'Independence Archive',
+        subtitle: 'Archive Wing · Floor 2',
+      ),
     ],
   ),
   _RouteOption(
@@ -586,8 +1188,127 @@ const _recommendedRoutes = <_RouteOption>[
     stopsCount: 3,
     stops: [
       _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
-      _RouteStop(name: 'Tank T-54', subtitle: 'Hall C · Floor 1'),
-      _RouteStop(name: 'President Room', subtitle: 'Hall B · Floor 1'),
+      _RouteStop(name: 'T-54 Tank', subtitle: 'Hall C · Floor 1'),
+      _RouteStop(name: 'Presidential Throne', subtitle: 'Hall B · Floor 1'),
+    ],
+  ),
+];
+
+const _warRemnantsRoutes = <_RouteOption>[
+  _RouteOption(
+    emoji: '🔥',
+    name: 'War History Path',
+    description: 'Key wartime exhibits and evidence galleries',
+    duration: '90 min',
+    stopsCount: 5,
+    stops: [
+      _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
+      _RouteStop(
+        name: 'War Crimes Exhibition',
+        subtitle: 'Building A · Floor 1',
+      ),
+      _RouteStop(name: 'Guillotine', subtitle: 'Historical Hall · Floor 1'),
+      _RouteStop(name: 'Tiger Cages', subtitle: 'Outdoor Area · Floor 1'),
+      _RouteStop(
+        name: 'Peace and Reconciliation Display',
+        subtitle: 'Memorial Wing · Floor 2',
+      ),
+    ],
+  ),
+  _RouteOption(
+    emoji: '⚡',
+    name: 'Quick Overview',
+    description: 'A short route through the core museum highlights',
+    duration: '30 min',
+    stopsCount: 3,
+    stops: [
+      _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
+      _RouteStop(
+        name: 'War Crimes Exhibition',
+        subtitle: 'Building A · Floor 1',
+      ),
+      _RouteStop(
+        name: 'International Support Gallery',
+        subtitle: 'Building B · Floor 2',
+      ),
+    ],
+  ),
+];
+
+const _fineArtsRoutes = <_RouteOption>[
+  _RouteOption(
+    emoji: '🎨',
+    name: 'Masterpieces Collection',
+    description: 'A curated route through signature fine art works',
+    duration: '60 min',
+    stopsCount: 4,
+    stops: [
+      _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
+      _RouteStop(
+        name: 'Contemporary Vietnamese Art',
+        subtitle: 'Main Gallery · Floor 1',
+      ),
+      _RouteStop(
+        name: 'Lacquer Painting Rural Life',
+        subtitle: 'Main Gallery · Floor 1',
+      ),
+      _RouteStop(name: 'Buddhist Statue', subtitle: 'Sculpture Hall · Floor 2'),
+    ],
+  ),
+  _RouteOption(
+    emoji: '🪷',
+    name: 'Traditional Arts Walk',
+    description: 'Explore traditional Vietnamese craft and sculpture',
+    duration: '40 min',
+    stopsCount: 3,
+    stops: [
+      _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
+      _RouteStop(
+        name: 'Traditional Crafts Exhibition',
+        subtitle: 'Heritage Wing · Floor 2',
+      ),
+      _RouteStop(name: 'Buddhist Statue', subtitle: 'Sculpture Hall · Floor 2'),
+    ],
+  ),
+];
+
+const _cityMuseumRoutes = <_RouteOption>[
+  _RouteOption(
+    emoji: '🏙',
+    name: 'City History Journey',
+    description:
+        'A route through key exhibits on the history of Saigon and Ho Chi Minh City',
+    duration: '75 min',
+    stopsCount: 4,
+    stops: [
+      _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
+      _RouteStop(
+        name: 'City History Journey Hall',
+        subtitle: 'Main Gallery · Floor 1',
+      ),
+      _RouteStop(
+        name: 'Traditional Ao Dai',
+        subtitle: 'Textile Hall · Floor 1',
+      ),
+      _RouteStop(name: 'Saigon Map 1930', subtitle: 'Archive Hall · Floor 2'),
+    ],
+  ),
+  _RouteOption(
+    emoji: '📜',
+    name: 'Cultural Heritage Trail',
+    description: 'Highlights of local heritage, archives, and urban memory',
+    duration: '50 min',
+    stopsCount: 3,
+    stops: [
+      _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
+      _RouteStop(
+        name: 'Cultural Heritage Trail Hall',
+        subtitle: 'Heritage Wing · Floor 2',
+      ),
+      _RouteStop(
+        name: 'Archive Reading Corner',
+        subtitle: 'Research Corner · Floor 2',
+      ),
     ],
   ),
 ];
@@ -671,7 +1392,9 @@ class _DetectingScreenState extends State<_DetectingScreen>
 // ── Location Picker Sheet ─────────────────────────────────────────────────
 
 class _LocationPickerSheet extends StatelessWidget {
-  const _LocationPickerSheet();
+  const _LocationPickerSheet({required this.options});
+
+  final List<_LocationOption> options;
 
   @override
   Widget build(BuildContext context) {
@@ -719,56 +1442,50 @@ class _LocationPickerSheet extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
               child: Text(
-                'Indoor positioning unavailable. Select your nearest location.'.tr,
+                'Indoor positioning unavailable. Select your nearest location.'
+                    .tr,
                 style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
               ),
             ),
             const Divider(height: 1),
             Expanded(
-              child: Builder(
-                builder: (context) {
-                  final options = _getAllLocationOptions(
-                    Theme.of(context).colorScheme.primary,
-                  );
-                  return ListView.separated(
-                    controller: scrollController,
-                    itemCount: options.length,
-                    separatorBuilder: (_, _) =>
-                        const Divider(height: 1, indent: 72),
-                    itemBuilder: (context, i) {
-                      final loc = options[i];
-                      return ListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 4,
-                        ),
-                        leading: Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: loc.iconColor.withValues(alpha: 0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(loc.icon, color: loc.iconColor, size: 18),
-                        ),
-                        title: Text(
-                          loc.name.tr,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF111827),
-                          ),
-                        ),
-                        subtitle: Text(
-                          loc.subtitle.tr,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF6B7280),
-                          ),
-                        ),
-                        onTap: () => Navigator.of(context).pop(loc),
-                      );
-                    },
+              child: ListView.separated(
+                controller: scrollController,
+                itemCount: options.length,
+                separatorBuilder: (_, _) =>
+                    const Divider(height: 1, indent: 72),
+                itemBuilder: (context, i) {
+                  final loc = options[i];
+                  return ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 4,
+                    ),
+                    leading: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: loc.iconColor.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(loc.icon, color: loc.iconColor, size: 18),
+                    ),
+                    title: Text(
+                      loc.name.tr,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF111827),
+                      ),
+                    ),
+                    subtitle: Text(
+                      loc.subtitle.tr,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF6B7280),
+                      ),
+                    ),
+                    onTap: () => Navigator.of(context).pop(loc),
                   );
                 },
               ),
@@ -783,7 +1500,9 @@ class _LocationPickerSheet extends StatelessWidget {
 // ── Route Picker Sheet ────────────────────────────────────────────────────
 
 class _RoutePickerSheet extends StatelessWidget {
-  const _RoutePickerSheet();
+  const _RoutePickerSheet({required this.routes});
+
+  final List<_RouteOption> routes;
 
   @override
   Widget build(BuildContext context) {
@@ -839,10 +1558,10 @@ class _RoutePickerSheet extends StatelessWidget {
               child: ListView.separated(
                 controller: scrollController,
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-                itemCount: _recommendedRoutes.length,
+                itemCount: routes.length,
                 separatorBuilder: (_, _) => const SizedBox(height: 12),
                 itemBuilder: (context, i) {
-                  final route = _recommendedRoutes[i];
+                  final route = routes[i];
                   final preview = route.stops
                       .take(3)
                       .map((s) => s.name.tr)
