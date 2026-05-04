@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:device_preview/device_preview.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -15,6 +17,7 @@ import 'package:museamigo/screens/edit_profile_screen.dart';
 import 'package:museamigo/screens/achievements_screen.dart';
 import 'package:museamigo/screens/onboarding_flow_screen.dart';
 import 'package:museamigo/screens/sign_up_screen.dart';
+import 'package:museamigo/services/backend_api.dart';
 import 'package:museamigo/services/audio_assets.dart';
 
 import 'package:museamigo/language_notifier.dart';
@@ -24,7 +27,8 @@ import 'package:museamigo/achievement_notifier.dart';
 
 import 'package:museamigo/session.dart';
 
-final GlobalKey<NavigatorState> globalNavigatorKey = GlobalKey<NavigatorState>();
+final GlobalKey<NavigatorState> globalNavigatorKey =
+    GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -59,8 +63,13 @@ class MuseAmigoApp extends StatelessWidget {
           builder: (context, child) {
             final appChild = DevicePreview.appBuilder(context, child);
             return ListenableBuilder(
-              listenable: Listenable.merge(
-                  [languageNotifier, profileNotifier, themeNotifier, fontSizeNotifier, achievementNotifier]),
+              listenable: Listenable.merge([
+                languageNotifier,
+                profileNotifier,
+                themeNotifier,
+                fontSizeNotifier,
+                achievementNotifier,
+              ]),
               builder: (context, child) {
                 return MediaQuery(
                   data: MediaQuery.of(context).copyWith(
@@ -118,7 +127,9 @@ class MuseAmigoApp extends StatelessWidget {
                   imageAsset:
                       args?['imageAsset'] as String? ??
                       'assets/images/museum.jpg',
-                  audioAsset: args?['audioAsset'] as String? ?? AudioAssets.standardPath,
+                  audioAsset:
+                      args?['audioAsset'] as String? ??
+                      AudioAssets.standardPath,
                   // modelAsset: args?['modelAsset'] as String? ?? '', // Temporarily commented
                 ),
               );
@@ -143,6 +154,10 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
+
+    // Pre-warm backend while splash is visible to reduce cold-start delay.
+    unawaited(BackendApi.instance.warmUp());
+
     Future<void>.delayed(const Duration(seconds: 2), () {
       if (!mounted) {
         return;

@@ -69,6 +69,39 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  Future<AuthLoginResult> _loginWithRetryOnColdStart({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      return await BackendApi.instance.login(email: email, password: password);
+    } on TimeoutException {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Server is waking up. Retrying login once, please wait...',
+            ),
+          ),
+        );
+      }
+      await BackendApi.instance.warmUp();
+      return BackendApi.instance.login(email: email, password: password);
+    } on SocketException {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Network is unstable. Retrying login once, please wait...',
+            ),
+          ),
+        );
+      }
+      await BackendApi.instance.warmUp();
+      return BackendApi.instance.login(email: email, password: password);
+    }
+  }
+
   Future<void> _submitLogin() async {
     if (_isSubmitting) return;
 
@@ -85,14 +118,17 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isSubmitting = true);
     try {
-      final result = await BackendApi.instance.login(
+      final result = await _loginWithRetryOnColdStart(
         email: email,
         password: password,
       );
       await _saveCredentials();
       AppSession.userId.value = result.userId;
       AppSession.fullName.value = result.fullName;
-      profileNotifier.setUser(name: result.fullName, email: _emailController.text.trim());
+      profileNotifier.setUser(
+        name: result.fullName,
+        email: _emailController.text.trim(),
+      );
       // Start preloading achievements right after login
       achievementNotifier.ensureLoaded();
     } on SocketException catch (e) {
@@ -103,9 +139,9 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     } on TimeoutException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Login timeout. Please try again.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Login timeout. Please try again.')),
+      );
       return;
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -115,9 +151,9 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unable to login: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Unable to login: $e')));
       return;
     } finally {
       if (mounted) {
@@ -262,7 +298,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
-                      ),
+                    ),
                   ),
                   const SizedBox(height: 20),
                   Center(

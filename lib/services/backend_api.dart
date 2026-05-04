@@ -266,6 +266,14 @@ class BackendApi {
     );
   }
 
+  Future<void> warmUp() async {
+    try {
+      await http.get(_uri('/museums')).timeout(const Duration(seconds: 12));
+    } catch (_) {
+      // Best-effort warm-up only; login flow handles real failures.
+    }
+  }
+
   Future<List<MuseumDto>> fetchMuseums() async {
     final response = await http.get(_uri('/museums'));
     if (response.statusCode < 200 || response.statusCode >= 300) {
