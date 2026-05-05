@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:museamigo/app_routes.dart';
@@ -249,7 +250,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       return;
     }
     await Navigator.of(context).push(
-      MaterialPageRoute(
+      _SlidePageRoute<void>(
         builder: (_) => Museum3DMapScreen(
           initialFromLocationName: action.fromLocationName,
           initialToLocationName: action.toLocationName,
@@ -553,7 +554,26 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     }
 
     // ── Case 3: Floor known, waiting for current spot ─────────────────────────
-    final fromSpot = _extractNavigationSpot(text, currentMuseumId);
+    // If user says an ambiguous spot type (stairs/restroom) without a floor,
+    // resolve it to the floor we already know they're on.
+    final normalized3 = _normalizeForIntent(text);
+    final _NavigationSpot? floorQualifiedSpot = () {
+      for (final label in ['Restroom', 'Stairs']) {
+        final aliases = label == 'Stairs'
+            ? <String>['stairs', 'staircase', 'stair', 'cầu thang', 'thang bộ']
+            : <String>['restroom', 'toilet', 'wc', 'nhà vệ sinh', 'wc'];
+        final matched = aliases.any((a) => normalized3.contains(a));
+        if (matched && !normalized3.contains('floor')) {
+          return _findNavigationSpotByName(
+            currentMuseumId,
+            '$label - ${request.currentFloor}',
+          );
+        }
+      }
+      return null;
+    }();
+    final fromSpot =
+        floorQualifiedSpot ?? _extractNavigationSpot(text, currentMuseumId);
 
     if (fromSpot == null) {
       return _ResolvedReply(
@@ -1307,7 +1327,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                                     icon: Icons.near_me_outlined,
                                     text: 'View Map'.tr,
                                     onTap: () => Navigator.of(context).push(
-                                      MaterialPageRoute(
+                                      _SlidePageRoute<void>(
                                         builder: (_) =>
                                             const Museum3DMapScreen(),
                                       ),
@@ -1898,4 +1918,24 @@ class _StarterActionChip extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Custom route: Cupertino slide animation (both screens move) without swipe-back gesture.
+class _SlidePageRoute<T> extends PageRoute<T>
+    with CupertinoRouteTransitionMixin<T> {
+  _SlidePageRoute({required this.builder});
+
+  final WidgetBuilder builder;
+
+  @override
+  Widget buildContent(BuildContext context) => builder(context);
+
+  @override
+  bool get popGestureEnabled => false;
+
+  @override
+  bool get maintainState => true;
+
+  @override
+  String? get title => null;
 }

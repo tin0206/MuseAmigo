@@ -7,10 +7,12 @@ class Museum3DMapScreen extends StatefulWidget {
     super.key,
     this.initialFromLocationName,
     this.initialToLocationName,
+    this.onBack,
   });
 
   final String? initialFromLocationName;
   final String? initialToLocationName;
+  final VoidCallback? onBack;
 
   @override
   State<Museum3DMapScreen> createState() => _Museum3DMapScreenState();
@@ -59,15 +61,35 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
             Container(
               color: Colors.white,
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-              child: Center(
-                child: Text(
-                  'Map'.tr,
-                  style: const TextStyle(
-                    color: Color(0xFF171A21),
-                    fontSize: 30,
-                    fontWeight: FontWeight.w700,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: GestureDetector(
+                      onTap: () {
+                        if (widget.onBack != null) {
+                          widget.onBack!();
+                        } else {
+                          Navigator.of(context).pop();
+                        }
+                      },
+                      child: const Icon(
+                        Icons.arrow_back_ios_new,
+                        color: Color(0xFF171A21),
+                        size: 20,
+                      ),
+                    ),
                   ),
-                ),
+                  Text(
+                    'Map'.tr,
+                    style: const TextStyle(
+                      color: Color(0xFF171A21),
+                      fontSize: 30,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
             ),
             // ── Floor filters + 3D toggle ──────────────────────────────
