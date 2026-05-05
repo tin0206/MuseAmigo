@@ -297,49 +297,76 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     final isVietnamese = _useVietnameseReplies;
     final museum = await _resolveMuseum(text);
 
-    final pendingRouteRequest = _pendingRouteRequest;
-    if (pendingRouteRequest != null) {
-      return _resolvePendingRouteRequest(
-        text: text,
-        isVietnamese: _useVietnameseReplies,
-        museum: museum,
-        request: pendingRouteRequest,
-      );
-    }
-
-    if (museum != null && _isLocationQuestion(normalized)) {
-      final locationInfo = _museumLocationInfo(museum.name);
-      if (locationInfo != null) {
-        return _ResolvedReply(
-          text: isVietnamese
-              ? 'Theo Google Maps, ${museum.name} nằm tại ${locationInfo.addressVi}.'
-              : 'According to Google Maps, ${museum.name} is located at ${locationInfo.addressEn}.',
+    // If the user is clearly asking a new question, reset any stale pending state.
+    if (_pendingRouteRequest != null) {
+      if (_isNewTopicQuestion(normalized, text, museum)) {
+        _pendingRouteRequest = null;
+        // fall through to normal handling below
+      } else {
+        return _resolvePendingRouteRequest(
+          text: text,
+          isVietnamese: _useVietnameseReplies,
+          museum: museum,
+          request: _pendingRouteRequest!,
         );
       }
-      return _ResolvedReply(
-        text: isVietnamese
-            ? 'Vị trí của ${museum.name}: ${museum.latitude}, ${museum.longitude}.'
-            : 'Location of ${museum.name}: ${museum.latitude}, ${museum.longitude}.',
-      );
     }
 
-    if (_isDirectionsToPlaceQuestion(normalized) && museum != null) {
+    if (museum != null &&
+        (_isAmbiguousMultiFloorQuery(normalized) ||
+            _isLocationQuestion(normalized) ||
+            _isDirectionsToPlaceQuestion(normalized))) {
+      // Ambiguous restroom/stairs (no floor specified) → resolve destination after user gives floor
+      if (_isAmbiguousMultiFloorQuery(normalized)) {
+        final spotType = _extractAmbiguousSpotType(normalized);
+        _pendingRouteRequest = _PendingRouteRequest(
+          isVietnamese: isVietnamese,
+          ambiguousSpotType: spotType,
+        );
+        return _ResolvedReply(
+          text: isVietnamese
+              ? 'Bạn đang ở tầng nào vậy? Bạn có thể trả lời là tầng 1 hoặc tầng 2!'
+              : 'Which floor are you on? You can just say Floor 1 or Floor 2 😊',
+        );
+      }
+
+      // Known in-museum spot → ask floor first
       final destination = _extractNavigationSpot(text, museum.id);
-      if (destination == null) {
+      if (destination != null) {
+        _pendingRouteRequest = _PendingRouteRequest(
+          destination: destination,
+          isVietnamese: isVietnamese,
+        );
         return _ResolvedReply(
           text: isVietnamese
-              ? '${museum.name} hiện không có địa điểm đó trên bản đồ.'
-              : '${museum.name} does not have that place on the current map.',
+              ? 'Bạn đang ở tầng nào vậy? Bạn có thể trả lời là tầng 1 hoặc tầng 2!'
+              : 'Which floor are you on? You can just say Floor 1 or Floor 2 😊',
         );
       }
-      _pendingRouteRequest = _PendingRouteRequest(
-        destination: destination,
-        isVietnamese: isVietnamese,
-      );
+
+      // 2. Location question about the museum itself → return real-world address
+      if (_isLocationQuestion(normalized) &&
+          _isAskingAboutMuseumSelf(normalized, museum.name)) {
+        final locationInfo = _museumLocationInfo(museum.name);
+        if (locationInfo != null) {
+          return _ResolvedReply(
+            text: isVietnamese
+                ? 'Theo Google Maps, ${museum.name} nằm tại ${locationInfo.addressVi}.'
+                : 'According to Google Maps, ${museum.name} is located at ${locationInfo.addressEn}.',
+          );
+        }
+        return _ResolvedReply(
+          text: isVietnamese
+              ? 'Vị trí của ${museum.name}: ${museum.latitude}, ${museum.longitude}.'
+              : 'Location of ${museum.name}: ${museum.latitude}, ${museum.longitude}.',
+        );
+      }
+
+      // 3. Place not found in museum
       return _ResolvedReply(
         text: isVietnamese
-            ? 'Mình tìm thấy ${destination.name} ở ${destination.floor}. Hiện tại bạn đang ở tầng nào?'
-            : 'I found ${destination.name} on ${destination.floor}. Which floor are you on right now?',
+            ? 'Địa điểm đó không có trong bản đồ của ${museum.name}.'
+            : 'That place is not found on the map of ${museum.name}.',
       );
     }
 
@@ -428,122 +455,143 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   }) {
     final currentMuseumId = museum?.id ?? AppSession.currentMuseumId.value;
 
+    // ── Case 1: Ambiguous spot (restroom/stairs), waiting for floor ────────────
+    // destination is null; resolve to same-floor spot once user gives their floor.
+    if (request.destination == null) {
+      final floor = _extractFloorLabel(text);
+      if (floor == null) {
+        return _ResolvedReply(
+          text: isVietnamese
+              ? 'Bạn đang ở tầng nào vậy? Bạn có thể trả lời là tầng 1 hoặc tầng 2!'
+              : 'Which floor are you on? You can just say Floor 1 or Floor 2 😊',
+        );
+      }
+
+      final spotLabel = request.ambiguousSpotType == 'restroom'
+          ? 'Restroom'
+          : 'Stairs';
+      final destination = _findNavigationSpotByName(
+        currentMuseumId,
+        '$spotLabel - $floor',
+      );
+
+      if (destination == null) {
+        _pendingRouteRequest = null;
+        final viLabel = request.ambiguousSpotType == 'restroom'
+            ? 'nhà vệ sinh'
+            : 'cầu thang';
+        return _ResolvedReply(
+          text: isVietnamese
+              ? 'Không tìm thấy $viLabel trên $floor.'
+              : 'Could not find ${request.ambiguousSpotType} on $floor.',
+        );
+      }
+
+      // Restroom/Stairs are always on the same floor as the user → ask current position
+      _pendingRouteRequest = _PendingRouteRequest(
+        destination: destination,
+        isVietnamese: isVietnamese,
+        currentFloor: floor,
+      );
+      return _ResolvedReply(
+        text: isVietnamese
+            ? 'Bạn đang ở $floor. Bạn đang đứng ở điểm nào trên $floor? Ví dụ: Main Entrance, Stairs - $floor.'
+            : 'You are on $floor. Which spot are you currently at on $floor? For example: Main Entrance, Stairs - $floor.',
+      );
+    }
+
+    // From here destination is always non-null.
+    final destination = request.destination!;
+
+    // ── Case 2: Destination known, waiting for user's floor ───────────────────
     if (request.currentFloor == null) {
       final currentFloor = _extractFloorLabel(text);
       if (currentFloor == null) {
         return _ResolvedReply(
           text: isVietnamese
-              ? 'Mình chưa xác định được bạn đang ở tầng nào. Bạn hãy trả lời như Floor 1, Floor 2, tầng 1 hoặc tầng 2.'
-              : 'I could not identify your current floor. Reply with Floor 1, Floor 2, level 1, or level 2.',
+              ? 'Bạn đang ở tầng nào vậy? Bạn có thể trả lời là tầng 1 hoặc tầng 2!'
+              : 'Which floor are you on? You can just say Floor 1 or Floor 2 😊',
         );
       }
 
-      if (currentFloor != request.destination.floor) {
+      if (currentFloor != destination.floor) {
+        // Different floor → give cross-floor instructions + View Map (Stairs → dest)
         _pendingRouteRequest = null;
         final floorInstruction = _buildCrossFloorInstruction(
           fromFloor: currentFloor,
-          toFloor: request.destination.floor,
+          toFloor: destination.floor,
           isVietnamese: isVietnamese,
         );
-        final destinationFloorStairs = _findNavigationSpotByName(
+        final destFloorStairs = _findNavigationSpotByName(
           currentMuseumId,
-          'Stairs - ${request.destination.floor}',
+          'Stairs - ${destination.floor}',
         );
-        final routeStartSpot = destinationFloorStairs ?? request.destination;
-        final crossFloorMapAction = _ChatAction(
+        final routeFrom = destFloorStairs ?? destination;
+        final mapAction = _ChatAction(
           type: _ChatActionType.map,
           label: 'View Map',
           icon: Icons.near_me_outlined,
-          fromLocationName: routeStartSpot.name,
-          toLocationName: request.destination.name,
+          fromLocationName: routeFrom.name,
+          toLocationName: destination.name,
         );
-
         return _ResolvedReply(
           text: isVietnamese
-              ? '$floorInstruction Sau khi tới ${request.destination.floor}, bạn đi từ ${routeStartSpot.name} đến ${request.destination.name}. Mình đã chuẩn bị sẵn bản đồ 3D với route từ ${routeStartSpot.name} đến ${request.destination.name} ở nút bên dưới.'
-              : '$floorInstruction After you reach ${request.destination.floor}, continue from ${routeStartSpot.name} to ${request.destination.name}. I prepared the 3D map with a route from ${routeStartSpot.name} to ${request.destination.name} in the button below.',
-          actions: <_ChatAction>[crossFloorMapAction],
-          mapAction: crossFloorMapAction,
+              ? '$floorInstruction ${destination.name} nằm ở ${destination.floor}. Bạn sẽ đi từ cầu thang đến ${destination.name}. Nhấn View Map bên dưới để xem đường đi!'
+              : '$floorInstruction ${destination.name} is on ${destination.floor}. You\'ll head from the stairs to ${destination.name}. Tap View Map below to see the route!',
+          actions: <_ChatAction>[mapAction],
+          mapAction: mapAction,
         );
       }
 
+      // Same floor → ask current position
       _pendingRouteRequest = request.copyWith(currentFloor: currentFloor);
       return _ResolvedReply(
         text: isVietnamese
             ? 'Bạn đang ở $currentFloor. Bạn đang đứng ở điểm nào trên $currentFloor? Ví dụ: Main Entrance, Restroom - $currentFloor hoặc Stairs - $currentFloor.'
-            : 'You are on $currentFloor. Which point are you currently standing at on $currentFloor? For example: Main Entrance, Restroom - $currentFloor, or Stairs - $currentFloor.',
+            : 'You are on $currentFloor. Which spot are you currently at on $currentFloor? For example: Main Entrance, Restroom - $currentFloor, or Stairs - $currentFloor.',
       );
     }
 
+    // ── Case 3: Floor known, waiting for current spot ─────────────────────────
     final fromSpot = _extractNavigationSpot(text, currentMuseumId);
 
     if (fromSpot == null) {
       return _ResolvedReply(
         text: isVietnamese
-            ? 'Mình chưa xác định được vị trí hiện tại của bạn trong museum này. Bạn hãy trả lời bằng đúng tên điểm trên map, ví dụ Main Entrance hoặc Restroom - Floor 1.'
-            : 'I could not identify your current location in this museum. Reply with an exact place name from the map, for example Main Entrance or Restroom - Floor 1.',
+            ? 'Mình chưa xác định được vị trí của bạn. Hãy nói tên điểm trên map, ví dụ Main Entrance hoặc Restroom - Floor 1 nhé!'
+            : 'I could not find that spot. Please say an exact place name from the map, e.g. Main Entrance or Restroom - Floor 1.',
       );
     }
 
     if (fromSpot.floor != request.currentFloor) {
       return _ResolvedReply(
         text: isVietnamese
-            ? '${fromSpot.name} nằm ở ${fromSpot.floor}, chưa khớp với tầng bạn vừa chọn là ${request.currentFloor}. Bạn hãy chọn lại một điểm nằm trên ${request.currentFloor}.'
-            : '${fromSpot.name} is on ${fromSpot.floor}, which does not match your selected floor ${request.currentFloor}. Please choose a point on ${request.currentFloor}.',
+            ? '${fromSpot.name} ở ${fromSpot.floor}, nhưng bạn nói bạn đang ở ${request.currentFloor}. Hãy chọn một điểm trên ${request.currentFloor} nhé!'
+            : '${fromSpot.name} is on ${fromSpot.floor}, but you said you\'re on ${request.currentFloor}. Please pick a spot on ${request.currentFloor}.',
       );
     }
 
     _pendingRouteRequest = null;
 
-    if (fromSpot.name == request.destination.name) {
+    if (fromSpot.name == destination.name) {
       return _ResolvedReply(
         text: isVietnamese
-            ? 'Bạn đang ở ngay ${request.destination.name} rồi.'
-            : 'You are already at ${request.destination.name}.',
+            ? 'Bạn đang ở ngay ${destination.name} rồi!'
+            : 'You\'re already at ${destination.name}!',
       );
     }
 
-    final sameFloorMapAction = _ChatAction(
-      type: _ChatActionType.map,
-      label: 'View Map',
-      icon: Icons.near_me_outlined,
-      fromLocationName: fromSpot.name,
-      toLocationName: request.destination.name,
-    );
-
-    if (fromSpot.floor == request.destination.floor) {
-      return _ResolvedReply(
-        text: isVietnamese
-            ? 'Bạn đang ở cùng tầng với ${request.destination.name}. Mình đã chuẩn bị bản đồ 3D với đường đi rõ ràng từ ${fromSpot.name} đến ${request.destination.name} ở nút bên dưới.'
-            : 'You are on the same floor as ${request.destination.name}. I prepared the 3D map with a clear route from ${fromSpot.name} to ${request.destination.name} in the button below.',
-        actions: <_ChatAction>[sameFloorMapAction],
-        mapAction: sameFloorMapAction,
-      );
-    }
-
-    final floorInstruction = _buildCrossFloorInstruction(
-      fromFloor: fromSpot.floor,
-      toFloor: request.destination.floor,
-      isVietnamese: isVietnamese,
-    );
-
-    final destinationFloorStairs = _findNavigationSpotByName(
-      currentMuseumId,
-      'Stairs - ${request.destination.floor}',
-    );
-    final routeStartSpot = destinationFloorStairs ?? request.destination;
     final mapAction = _ChatAction(
       type: _ChatActionType.map,
       label: 'View Map',
       icon: Icons.near_me_outlined,
-      fromLocationName: routeStartSpot.name,
-      toLocationName: request.destination.name,
+      fromLocationName: fromSpot.name,
+      toLocationName: destination.name,
     );
-
     return _ResolvedReply(
       text: isVietnamese
-          ? '$floorInstruction Sau khi tới ${request.destination.floor}, bạn đi từ ${routeStartSpot.name} đến ${request.destination.name}. Mình đã chuẩn bị sẵn bản đồ 3D với route từ ${routeStartSpot.name} đến ${request.destination.name} ở nút bên dưới.'
-          : '$floorInstruction After you reach ${request.destination.floor}, continue from ${routeStartSpot.name} to ${request.destination.name}. I prepared the 3D map with a route from ${routeStartSpot.name} to ${request.destination.name} in the button below.',
+          ? '${destination.name} nằm trên ${destination.floor}. Mình đã chuẩn bị đường đi từ ${fromSpot.name} đến ${destination.name} trên bản đồ bên dưới!'
+          : '${destination.name} is on ${destination.floor}. I\'ve prepared a route from ${fromSpot.name} to ${destination.name} on the map below!',
       actions: <_ChatAction>[mapAction],
       mapAction: mapAction,
     );
@@ -607,17 +655,30 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       'how do i get to',
       'how can i go to',
       'how do i go to',
+      'how to get to',
+      'how to reach',
+      'how do i reach',
+      'directions to',
       'where can i find',
-      'way to',
-      'navigate to',
+      'help me find',
+      'show me',
+      'lead me to',
       'take me to',
+      'navigate to',
+      'way to',
       'go to',
       'get to',
       'chi duong',
+      'huong dan den',
+      'chi toi den',
+      'cho toi den',
+      'di den',
+      'duong den',
       'duong di den',
       'lam sao de toi',
       'lam sao den',
       'toi muon den',
+      'dan toi den',
       'dan toi',
       'den',
     ]);
@@ -742,13 +803,118 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     ]);
   }
 
+  static bool _isAmbiguousMultiFloorQuery(String normalized) {
+    final hasFloor = _containsAny(normalized, <String>[
+      'floor 1',
+      'floor 2',
+      'tang 1',
+      'tang 2',
+      'level 1',
+      'level 2',
+    ]);
+    if (hasFloor) return false;
+    return _containsAny(normalized, <String>[
+      'restroom',
+      'toilet',
+      'wc',
+      'nha ve sinh',
+      'stairs',
+      'stair',
+      'cau thang',
+    ]);
+  }
+
+  static String _extractAmbiguousSpotType(String normalized) {
+    if (_containsAny(normalized, <String>[
+      'restroom',
+      'toilet',
+      'wc',
+      'nha ve sinh',
+    ])) {
+      return 'restroom';
+    }
+    return 'stairs';
+  }
+
+  /// Returns true when the user's message is clearly a new question/topic
+  /// unrelated to any pending navigation state (e.g. asking about a different
+  /// spot, museum info, exhibitions, tickets, or an artifact code).
+  bool _isNewTopicQuestion(
+    String normalized,
+    String rawText,
+    MuseumDto? museum,
+  ) {
+    // If we're waiting for the user's current position (Case 3), any spot name
+    // they give is their answer — not a new navigation intent.
+    if (_pendingRouteRequest?.currentFloor != null) {
+      // Only treat as new topic for clearly unrelated questions (museum info, artifacts, etc.)
+      if (_isExhibitionQuestion(normalized) ||
+          _isRouteQuestion(normalized) ||
+          _isOperatingHoursQuestion(normalized) ||
+          _isTicketPriceQuestion(normalized) ||
+          _extractArtifactCode(rawText) != null) {
+        return true;
+      }
+      return false;
+    }
+
+    // Asking about a named spot in the museum → new navigation intent
+    if (museum != null) {
+      final spot = _extractNavigationSpot(rawText, museum.id);
+      if (spot != null) {
+        // Only treat as new if the spot differs from the current pending destination
+        final pendingDest = _pendingRouteRequest?.destination?.name;
+        if (pendingDest == null || spot.name != pendingDest) return true;
+      }
+    }
+    // Asking about museum-level info
+    if (_isLocationQuestion(normalized) ||
+        _isExhibitionQuestion(normalized) ||
+        _isRouteQuestion(normalized) ||
+        _isOperatingHoursQuestion(normalized) ||
+        _isTicketPriceQuestion(normalized)) {
+      return true;
+    }
+    // Contains an artifact code
+    if (_extractArtifactCode(rawText) != null) return true;
+    return false;
+  }
+
   static bool _isLocationQuestion(String text) {
     return _containsAny(text, <String>[
       'location',
+      'located',
       'where is',
+      'where are',
+      'where can i find',
+      'find the',
       'dia chi',
+      'vi tri',
       'o dau',
       'nam o dau',
+      'nam o',
+      'tim o dau',
+      'co o dau',
+      'o cho nao',
+      'tai dau',
+    ]);
+  }
+
+  static bool _isAskingAboutMuseumSelf(
+    String normalizedText,
+    String museumName,
+  ) {
+    final normalizedMuseumName = _normalizeForIntent(museumName);
+    if (normalizedText.contains(normalizedMuseumName)) return true;
+    return _containsAny(normalizedText, <String>[
+      'this museum',
+      'the museum',
+      'museum located',
+      'museum o dau',
+      'bao tang o dau',
+      'bao tang nay',
+      'bao tang nay o dau',
+      'dia chi bao tang',
     ]);
   }
 
@@ -1317,24 +1483,31 @@ class _MuseumLocationInfo {
 
 class _PendingRouteRequest {
   const _PendingRouteRequest({
-    required this.destination,
+    this.destination,
     required this.isVietnamese,
     this.currentFloor,
+    this.ambiguousSpotType,
   });
 
-  final _NavigationSpot destination;
+  /// null when ambiguousSpotType is set (destination resolved after user gives floor)
+  final _NavigationSpot? destination;
   final bool isVietnamese;
   final String? currentFloor;
+
+  /// 'restroom' or 'stairs' — destination resolved once user gives their floor
+  final String? ambiguousSpotType;
 
   _PendingRouteRequest copyWith({
     _NavigationSpot? destination,
     bool? isVietnamese,
     String? currentFloor,
+    String? ambiguousSpotType,
   }) {
     return _PendingRouteRequest(
       destination: destination ?? this.destination,
       isVietnamese: isVietnamese ?? this.isVietnamese,
       currentFloor: currentFloor ?? this.currentFloor,
+      ambiguousSpotType: ambiguousSpotType ?? this.ambiguousSpotType,
     );
   }
 }
