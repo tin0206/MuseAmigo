@@ -1022,18 +1022,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Settings'.tr,
-                      style: const TextStyle(
-                        fontSize: 38,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF171A21),
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Customize your museum experience'.tr,
-                      style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Settings'.tr,
+                                style: const TextStyle(
+                                  fontSize: 38,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFF171A21),
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Customize your museum experience'.tr,
+                                style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.of(context).maybePop(),
+                          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                          color: Theme.of(context).colorScheme.primary,
+                          tooltip: 'Back',
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 12),
                     Material(
