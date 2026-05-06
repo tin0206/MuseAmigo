@@ -729,11 +729,7 @@ class _TicketResultSheet extends StatelessWidget {
                     const SizedBox(width: 12),
                     Expanded(
                       child: FilledButton(
-                        onPressed: () =>
-                            Navigator.of(context).pushNamedAndRemoveUntil(
-                              AppRoutes.home,
-                              (route) => false,
-                            ),
+                        onPressed: () => Navigator.of(context).pop(),
                         style: FilledButton.styleFrom(
                           backgroundColor: Theme.of(
                             context,
