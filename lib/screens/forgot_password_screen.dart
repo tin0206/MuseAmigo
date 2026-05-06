@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:museamigo/app_routes.dart';
 import 'package:museamigo/services/backend_api.dart';
 import 'package:museamigo/widgets/auth_form_widgets.dart';
+import 'package:museamigo/theme_notifier.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -131,18 +132,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
+          padding: EdgeInsets.symmetric(horizontal: 20),
           child: Center(
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   Text(
                     _showResetForm ? 'Reset Password' : 'Forgot Password',
-                    style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w700),
+                    style: TextStyle(fontSize: 30, fontWeight: FontWeight.w700),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   Text(
                     _showResetForm
                         ? 'Enter the token and your new password.'
@@ -153,7 +154,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       height: 1.35,
                     ),
                   ),
-                  const SizedBox(height: 18),
+                  SizedBox(height: 18),
                   const FieldLabel(
                     text: 'Email',
                     fontSize: 19,
@@ -164,13 +165,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     hintText: 'Enter your email',
                     fontSize: 17,
                     hintFontSize: 17,
-                    contentPadding: const EdgeInsets.symmetric(
+                    contentPadding: EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 13,
                     ),
                   ),
                   if (_showResetForm) ...[
-                    const SizedBox(height: 14),
+                    SizedBox(height: 14),
                     const FieldLabel(
                       text: 'Reset Token',
                       fontSize: 19,
@@ -181,12 +182,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       hintText: 'Paste your reset token',
                       fontSize: 17,
                       hintFontSize: 17,
-                      contentPadding: const EdgeInsets.symmetric(
+                      contentPadding: EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 13,
                       ),
                     ),
-                    const SizedBox(height: 14),
+                    SizedBox(height: 14),
                     const FieldLabel(
                       text: 'New Password',
                       fontSize: 19,
@@ -198,7 +199,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       obscureText: _obscurePassword,
                       fontSize: 17,
                       hintFontSize: 17,
-                      contentPadding: const EdgeInsets.symmetric(
+                      contentPadding: EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 13,
                       ),
@@ -216,7 +217,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 14),
+                    SizedBox(height: 14),
                     const FieldLabel(
                       text: 'Confirm Password',
                       fontSize: 19,
@@ -228,7 +229,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       obscureText: _obscureConfirmPassword,
                       fontSize: 17,
                       hintFontSize: 17,
-                      contentPadding: const EdgeInsets.symmetric(
+                      contentPadding: EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 13,
                       ),
@@ -247,7 +248,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       ),
                     ),
                   ],
-                  const SizedBox(height: 18),
+                  SizedBox(height: 18),
                   SizedBox(
                     width: double.infinity,
                     height: 58,
@@ -262,33 +263,33 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         ),
                       ),
                       child: _isSubmitting
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 22,
                               height: 22,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2.5,
-                                color: Colors.white,
+                                color: themeNotifier.surfaceColor,
                               ),
                             )
                           : Text(
                               _showResetForm ? 'Reset Password' : 'Send Reset Token',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 21,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
                     ),
                   ),
-                  const SizedBox(height: 14),
+                  SizedBox(height: 14),
                   Center(
                     child: Wrap(
                       spacing: 4,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        const Text('Back to', style: TextStyle(fontSize: 15)),
+                        Text('Back to', style: TextStyle(fontSize: 15)),
                         InkWell(
                           onTap: _backToLogin,
-                          child: const Text(
+                          child: Text(
                             'Log In',
                             style: TextStyle(
                               fontSize: 15,
@@ -300,7 +301,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  SizedBox(height: 6),
                 ],
               ),
             ),

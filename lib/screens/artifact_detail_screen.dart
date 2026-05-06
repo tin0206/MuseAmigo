@@ -3,6 +3,7 @@ import 'package:museamigo/l10n/translations.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:museamigo/services/audio_assets.dart';
 import 'package:museamigo/language_notifier.dart';
+import 'package:museamigo/theme_notifier.dart';
 // import 'package:flutter_3d_controller/flutter_3d_controller.dart'; // Temporarily commented
 
 class ArtifactDetailScreen extends StatefulWidget {
@@ -51,7 +52,7 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
                     width: double.infinity,
                     height: 370,
                     child: ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
+                      borderRadius: BorderRadius.vertical(
                         bottom: Radius.circular(24),
                       ),
                       child: Image.asset(
@@ -59,7 +60,7 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
                         fit: BoxFit.cover,
                         errorBuilder: (_, _, _) => Container(
                           color: Colors.grey.shade300,
-                          child: const Icon(Icons.image, size: 56),
+                          child: Icon(Icons.image, size: 56),
                         ),
                       ),
                     ),
@@ -73,11 +74,11 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
                       child: Container(
                         width: 44,
                         height: 44,
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
+                        decoration: BoxDecoration(
+                          color: themeNotifier.surfaceColor,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.arrow_back_ios_new_rounded),
+                        child: Icon(Icons.arrow_back_ios_new_rounded),
                       ),
                     ),
                   ),
@@ -85,34 +86,34 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
                     right: 18,
                     bottom: 18,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
+                      padding: EdgeInsets.symmetric(
                         horizontal: 10,
                         vertical: 5,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: themeNotifier.surfaceColor,
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Text(
                         'Navigate'.tr,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF171A21),
+                          color: themeNotifier.textPrimaryColor,
                         ),
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               // Old Audio Player Section removed
-              const SizedBox(height: 14),
+              SizedBox(height: 14),
               // 3D Model View Section - Temporarily commented out
               /*
               if (modelAsset.isNotEmpty)
                 Container(
                   height: 300,
-                  margin: const EdgeInsets.symmetric(horizontal: 12),
+                  margin: EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF3F3F3),
                     borderRadius: BorderRadius.circular(20),
@@ -120,15 +121,15 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
                   child: Column(
                     children: [
                       Padding(
-                        padding: const EdgeInsets.all(16),
+                        padding: EdgeInsets.all(16),
                         child: Row(
                           children: [
                             Text(
                               '3D Model View'.tr,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,
-                                color: Color(0xFF171A21),
+                                color: themeNotifier.textPrimaryColor,
                               ),
                             ),
                             const Spacer(),
@@ -136,8 +137,8 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
                               onPressed: () {
                                 // Toggle 3D view controls
                               },
-                              icon: const Icon(Icons.view_in_ar),
-                              color: Color(0xFF171A21),
+                              icon: Icon(Icons.view_in_ar),
+                              color: themeNotifier.textPrimaryColor,
                             ),
                           ],
                         ),
@@ -152,13 +153,13 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
                   ),
                 ),
               */
-              const SizedBox(height: 14),
+              SizedBox(height: 14),
               Transform.translate(
                 offset: const Offset(0, -22),
                 child: Container(
                   width: double.infinity,
-                  margin: const EdgeInsets.symmetric(horizontal: 12),
-                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 18),
+                  margin: EdgeInsets.symmetric(horizontal: 12),
+                  padding: EdgeInsets.fromLTRB(14, 14, 14, 18),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF3F3F3),
                     borderRadius: BorderRadius.circular(20),
@@ -170,54 +171,54 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
                         audioAsset: widget.audioAsset,
                         title: widget.title.tr,
                       ),
-                      const SizedBox(height: 12),
+                      SizedBox(height: 12),
                       _infoRow('Title:'.tr, widget.title.tr),
                       _infoRow('Year:'.tr, widget.year.tr),
                       _infoRow('Current Location:'.tr, widget.currentLocation.tr),
                       _infoRow('Height:'.tr, widget.height.tr),
                       _infoRow('Weight:'.tr, widget.weight.tr),
-                      const SizedBox(height: 18),
+                      SizedBox(height: 18),
                       Text(
                         'Detailed Description'.tr,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 30,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF171A21),
+                          color: themeNotifier.textPrimaryColor,
                         ),
                       ),
-                      const SizedBox(height: 10),
+                      SizedBox(height: 10),
                       Text(
                         "T-54B tank No. 843 is a legendary Vietnam People's Army tank that famously breached the Independence Palace gate in Saigon on April 30, 1975, marking the end of the Vietnam War. Led by Captain Bui Quang Than, this Soviet-made tank is celebrated as a National Treasure and symbolizes Vietnam's liberation and reunification."
                             .tr,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           color: Color(0xFF2E2E2E),
                           height: 1.45,
                         ),
                       ),
-                      const SizedBox(height: 14),
+                      SizedBox(height: 14),
                       Text(
                         'Enhanced Part'.tr,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF171A21),
+                          color: themeNotifier.textPrimaryColor,
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      SizedBox(height: 6),
                       Text(
                         'The First That Was not First'.tr,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF171A21),
+                          color: themeNotifier.textPrimaryColor,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4),
                       Text(
                         'While tank 843 is often pictured alongside tank 390, there is a lingering historical race. Tank 843, commanded by Bui Quang Than, reached the Palace gates first. However, after becoming momentarily wedged in the smaller side gate, tank 390 crashed through the main central gate.'
                             .tr,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           color: Color(0xFF2E2E2E),
                           height: 1.45,
@@ -238,7 +239,7 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
 
   Widget _infoRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: EdgeInsets.only(bottom: 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -246,13 +247,13 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
             width: 125,
             child: Text(
               label,
-              style: const TextStyle(fontSize: 15, color: Color(0xFF171A21)),
+              style: TextStyle(fontSize: 15, color: themeNotifier.textPrimaryColor),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(fontSize: 15, color: Color(0xFF171A21)),
+              style: TextStyle(fontSize: 15, color: themeNotifier.textPrimaryColor),
             ),
           ),
         ],
@@ -342,10 +343,10 @@ class _InlineAudioPlayerState extends State<InlineAudioPlayer> {
             Expanded(
               child: Text(
                 widget.title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 30,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF171A21),
+                  color: themeNotifier.textPrimaryColor,
                 ),
               ),
             ),
@@ -360,14 +361,14 @@ class _InlineAudioPlayerState extends State<InlineAudioPlayer> {
                 ),
                 child: Icon(
                   _isPlaying ? Icons.pause : Icons.play_arrow,
-                  color: Colors.white,
+                  color: themeNotifier.surfaceColor,
                   size: 20,
                 ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: 10),
         SliderTheme(
           data: SliderTheme.of(context).copyWith(
             trackHeight: 3,
@@ -388,17 +389,17 @@ class _InlineAudioPlayerState extends State<InlineAudioPlayer> {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2),
+          padding: EdgeInsets.symmetric(horizontal: 2),
           child: Row(
             children: [
               Text(
                 _formatDuration(_position),
-                style: const TextStyle(color: Color(0xFF6D7785), fontSize: 11),
+                style: TextStyle(color: themeNotifier.textSecondaryColor, fontSize: 11),
               ),
               const Spacer(),
               Text(
                 _formatDuration(_duration),
-                style: const TextStyle(color: Color(0xFF6D7785), fontSize: 11),
+                style: TextStyle(color: themeNotifier.textSecondaryColor, fontSize: 11),
               ),
             ],
           ),

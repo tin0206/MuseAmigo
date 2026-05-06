@@ -10,6 +10,7 @@ import 'package:museamigo/profile_notifier.dart';
 import 'package:museamigo/widgets/auth_form_widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:museamigo/achievement_notifier.dart';
+import 'package:museamigo/theme_notifier.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -137,7 +138,7 @@ class _LoginScreenState extends State<LoginScreen> {
         context,
       ).showSnackBar(SnackBar(content: Text('Network error: ${e.message}')));
       return;
-    } on TimeoutException catch (e) {
+    } on TimeoutException {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Login timeout. Please try again.')),
@@ -178,7 +179,39 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: Text('Login', style: TextStyle(color: colorScheme.onPrimary)),
+        backgroundColor: colorScheme.primary,
+        actions: [
+          IconButton(
+            icon: Icon(
+              themeNotifier.isDarkMode ? Icons.wb_sunny : Icons.nightlight_round,
+              color: colorScheme.onPrimary,
+            ),
+            onPressed: () {
+              themeNotifier.setThemeMode(
+                themeNotifier.isDarkMode ? ThemeMode.light : ThemeMode.dark,
+              );
+            },
+          ),
+          IconButton(
+            icon: Icon(Icons.color_lens, color: colorScheme.onPrimary),
+            onPressed: () {
+              themeNotifier.setPrimaryColor(
+                themeNotifier.primaryColor == AppTheme.redPrimary 
+                    ? AppTheme.yellowPrimary 
+                    : AppTheme.redPrimary,
+              );
+            },
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 22),
@@ -188,9 +221,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 14),
-                  const Text(
+                  Text(
                     'Welcome Back',
-                    style: TextStyle(
+                    style: textTheme.titleLarge?.copyWith(
                       fontSize: 38,
                       fontWeight: FontWeight.w700,
                       height: 1.2,
@@ -199,9 +232,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 12),
                   Text(
                     'Log in to continue your journey through museum'.tr,
-                    style: TextStyle(
+                    style: textTheme.bodyMedium?.copyWith(
                       fontSize: 22,
-                      color: Colors.blueGrey.shade700,
+                      color: colorScheme.onSurface.withValues(alpha: 0.7),
                       height: 1.45,
                     ),
                   ),
@@ -227,7 +260,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         _obscurePassword
                             ? Icons.visibility_outlined
                             : Icons.visibility_off_outlined,
-                        color: Colors.blueGrey.shade300,
+                        color: colorScheme.onSurface.withValues(alpha: 0.5),
                       ),
                     ),
                   ),
@@ -245,15 +278,16 @@ class _LoginScreenState extends State<LoginScreen> {
                             });
                           },
                           visualDensity: VisualDensity.compact,
-                          activeColor: Theme.of(context).colorScheme.primary,
+                          activeColor: colorScheme.primary,
                         ),
                       ),
                       const SizedBox(width: 10),
-                      const Text(
+                      Text(
                         'Remember me',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
+                          color: colorScheme.onSurface,
                         ),
                       ),
                       const Spacer(),
@@ -262,7 +296,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: Text(
                           'Forgot Password?',
                           style: TextStyle(
-                            color: Theme.of(context).colorScheme.primary,
+                            color: colorScheme.primary,
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
                           ),
@@ -277,18 +311,19 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: FilledButton(
                       onPressed: _isSubmitting ? null : _submitLogin,
                       style: FilledButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: colorScheme.onPrimary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
                       child: _isSubmitting
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 24,
                               height: 24,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2.5,
-                                color: Colors.white,
+                                color: colorScheme.onPrimary,
                               ),
                             )
                           : const Text(
@@ -306,17 +341,18 @@ class _LoginScreenState extends State<LoginScreen> {
                       crossAxisAlignment: WrapCrossAlignment.center,
                       spacing: 4,
                       children: [
-                        const Text(
+                        Text(
                           'Don\'t have an account?',
-                          style: TextStyle(fontSize: 17),
+                          style: TextStyle(fontSize: 17, color: colorScheme.onSurface),
                         ),
                         InkWell(
                           onTap: _openSignUp,
-                          child: const Text(
+                          child: Text(
                             'Sign Up',
                             style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w700,
+                              color: colorScheme.onSurface,
                               decoration: TextDecoration.underline,
                             ),
                           ),

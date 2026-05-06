@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:museamigo/l10n/translations.dart';
 import 'package:museamigo/session.dart';
+import 'package:museamigo/theme_notifier.dart';
 
 class Museum3DMapScreen extends StatefulWidget {
   const Museum3DMapScreen({
@@ -51,19 +52,19 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: themeNotifier.surfaceColor,
       body: SafeArea(
         child: Column(
           children: [
             // ── Top bar ────────────────────────────────────────────────
             Container(
-              color: Colors.white,
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+              color: themeNotifier.surfaceColor,
+              padding: EdgeInsets.fromLTRB(16, 14, 16, 16),
               child: Center(
                 child: Text(
                   'Map'.tr,
-                  style: const TextStyle(
-                    color: Color(0xFF171A21),
+                  style: TextStyle(
+                    color: themeNotifier.textPrimaryColor,
                     fontSize: 30,
                     fontWeight: FontWeight.w700,
                   ),
@@ -75,7 +76,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
               height: 50,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(
+                padding: EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 8,
                 ),
@@ -88,28 +89,28 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                     return GestureDetector(
                       onTap: () => setState(() => _show3D = !_show3D),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
+                        padding: EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 5,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: themeNotifier.surfaceColor,
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: const Color(0xFFDDDDDD)),
+                          border: Border.all(color: themeNotifier.borderColor),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
                               Icons.layers_outlined,
                               size: 16,
-                              color: Color(0xFF6D7785),
+                              color: themeNotifier.textSecondaryColor,
                             ),
                             SizedBox(width: 4),
                             Text(
                               '3D',
                               style: TextStyle(
-                                color: Color(0xFF6D7785),
+                                color: themeNotifier.textSecondaryColor,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -125,27 +126,27 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                   return GestureDetector(
                     onTap: () => setState(() => _selectedFloor = floor),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
+                      padding: EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 5,
                       ),
                       decoration: BoxDecoration(
                         color: selected
                             ? Theme.of(context).colorScheme.primary
-                            : Colors.white,
+                            : themeNotifier.surfaceColor,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color: selected
                               ? Theme.of(context).colorScheme.primary
-                              : const Color(0xFFDDDDDD),
+                              : themeNotifier.borderColor,
                         ),
                       ),
                       child: Text(
                         floor.tr,
                         style: TextStyle(
                           color: selected
-                              ? Colors.white
-                              : const Color(0xFF171A21),
+                              ? themeNotifier.surfaceColor
+                              : themeNotifier.textPrimaryColor,
                           fontWeight: FontWeight.w600,
                           fontSize: 13,
                         ),
@@ -195,9 +196,9 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                             ),
                           ],
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.route,
-                          color: Colors.white,
+                          color: themeNotifier.surfaceColor,
                           size: 22,
                         ),
                       ),
@@ -217,19 +218,19 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
               )
             else
               Container(
-                color: Colors.white,
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                color: themeNotifier.surfaceColor,
+                padding: EdgeInsets.fromLTRB(16, 12, 16, 16),
                 child: Row(
                   children: [
                     _LegendItem(
                       color: Theme.of(context).colorScheme.primary,
                       label: _currentConfig.artifactLegendLabel.tr,
                     ),
-                    const SizedBox(width: 16),
+                    SizedBox(width: 16),
                     _LegendItem(color: _restroomColor, label: 'Restrooms'.tr),
-                    const SizedBox(width: 16),
+                    SizedBox(width: 16),
                     _LegendItem(color: _stairsColor, label: 'Stairs'.tr),
-                    const SizedBox(width: 16),
+                    SizedBox(width: 16),
                     _LegendItem(color: _cafeColor, label: 'Cafes'.tr),
                   ],
                 ),
@@ -257,7 +258,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
     final loc = await showModalBottomSheet<_LocationOption>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: themeNotifier.surfaceColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -272,7 +273,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
     final route = await showModalBottomSheet<_RouteOption>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: themeNotifier.surfaceColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -286,7 +287,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
     final started = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: themeNotifier.surfaceColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -499,7 +500,7 @@ class _LocationOption {
   final String subtitle;
   final IconData icon;
   final Color iconColor;
-  const _LocationOption({
+  _LocationOption({
     required this.name,
     required this.subtitle,
     required this.icon,
@@ -918,7 +919,7 @@ Map<int, _MuseumMapConfig> _museumConfigs = <int, _MuseumMapConfig>{
 
 List<_LocationOption> _buildIndependencePalaceLocationOptions() =>
     <_LocationOption>[
-      const _LocationOption(
+      _LocationOption(
         name: 'War History Gallery',
         subtitle: 'Hall A — Floor 1',
         icon: Icons.location_on,
@@ -946,7 +947,7 @@ List<_LocationOption> _buildIndependencePalaceLocationOptions() =>
         name: 'Main Entrance',
         subtitle: 'Entrance — Floor 1',
         icon: Icons.meeting_room_outlined,
-        iconColor: Color(0xFF6B7280),
+        iconColor: themeNotifier.textSecondaryColor,
       ),
       _LocationOption(
         name: 'Restroom - Floor 1',
@@ -1005,73 +1006,73 @@ List<_LocationOption> _buildIndependencePalaceLocationOptions() =>
     ];
 
 List<_LocationOption> _buildWarRemnantsLocationOptions() => <_LocationOption>[
-  const _LocationOption(
+  _LocationOption(
     name: 'War Crimes Exhibition',
     subtitle: 'Building A — Floor 1',
     icon: Icons.location_on,
     iconColor: Colors.red,
   ),
-  const _LocationOption(
+  _LocationOption(
     name: 'Guillotine',
     subtitle: 'Historical Hall — Floor 1',
     icon: Icons.account_balance_outlined,
     iconColor: Colors.red,
   ),
-  const _LocationOption(
+  _LocationOption(
     name: 'Tiger Cages',
     subtitle: 'Outdoor Area — Floor 1',
     icon: Icons.grid_view_outlined,
     iconColor: Colors.red,
   ),
-  const _LocationOption(
+  _LocationOption(
     name: 'Main Entrance',
     subtitle: 'Entrance — Floor 1',
     icon: Icons.meeting_room_outlined,
-    iconColor: Color(0xFF6B7280),
+    iconColor: themeNotifier.textSecondaryColor,
   ),
-  const _LocationOption(
+  _LocationOption(
     name: 'Restroom - Floor 1',
     subtitle: 'South Wing — Floor 1',
     icon: Icons.wc_outlined,
     iconColor: Color(0xFFF59E0B),
   ),
-  const _LocationOption(
+  _LocationOption(
     name: 'Stairs - Floor 1',
     subtitle: 'East Wing — Floor 1',
     icon: Icons.stairs_outlined,
     iconColor: Color(0xFF60A5FA),
   ),
-  const _LocationOption(
+  _LocationOption(
     name: 'International Support Gallery',
     subtitle: 'Building B — Floor 2',
     icon: Icons.location_on,
     iconColor: Colors.red,
   ),
-  const _LocationOption(
+  _LocationOption(
     name: 'Peace and Reconciliation Display',
     subtitle: 'Memorial Wing — Floor 2',
     icon: Icons.location_on,
     iconColor: Colors.red,
   ),
-  const _LocationOption(
+  _LocationOption(
     name: 'Documentary Corner',
     subtitle: 'Archive Hall — Floor 2',
     icon: Icons.visibility_outlined,
     iconColor: Colors.red,
   ),
-  const _LocationOption(
+  _LocationOption(
     name: 'Restroom - Floor 2',
     subtitle: 'South Wing — Floor 2',
     icon: Icons.wc_outlined,
     iconColor: Color(0xFFF59E0B),
   ),
-  const _LocationOption(
+  _LocationOption(
     name: 'Stairs - Floor 2',
     subtitle: 'East Wing — Floor 2',
     icon: Icons.stairs_outlined,
     iconColor: Color(0xFF60A5FA),
   ),
-  const _LocationOption(
+  _LocationOption(
     name: 'Cafe Break',
     subtitle: 'Upper Lobby — Floor 2',
     icon: Icons.coffee_outlined,
@@ -1080,67 +1081,67 @@ List<_LocationOption> _buildWarRemnantsLocationOptions() => <_LocationOption>[
 ];
 
 List<_LocationOption> _buildFineArtsLocationOptions() => <_LocationOption>[
-  const _LocationOption(
+  _LocationOption(
     name: 'Contemporary Vietnamese Art',
     subtitle: 'Main Gallery — Floor 1',
     icon: Icons.palette_outlined,
     iconColor: Colors.deepPurple,
   ),
-  const _LocationOption(
+  _LocationOption(
     name: 'Lacquer Painting Rural Life',
     subtitle: 'Main Gallery — Floor 1',
     icon: Icons.brush_outlined,
     iconColor: Colors.deepPurple,
   ),
-  const _LocationOption(
+  _LocationOption(
     name: 'Main Entrance',
     subtitle: 'Entrance — Floor 1',
     icon: Icons.meeting_room_outlined,
-    iconColor: Color(0xFF6B7280),
+    iconColor: themeNotifier.textSecondaryColor,
   ),
-  const _LocationOption(
+  _LocationOption(
     name: 'Restroom - Floor 1',
     subtitle: 'South Wing — Floor 1',
     icon: Icons.wc_outlined,
     iconColor: Color(0xFFF59E0B),
   ),
-  const _LocationOption(
+  _LocationOption(
     name: 'Stairs - Floor 1',
     subtitle: 'East Wing — Floor 1',
     icon: Icons.stairs_outlined,
     iconColor: Color(0xFF60A5FA),
   ),
-  const _LocationOption(
+  _LocationOption(
     name: 'Traditional Crafts Exhibition',
     subtitle: 'Heritage Wing — Floor 2',
     icon: Icons.palette_outlined,
     iconColor: Colors.deepPurple,
   ),
-  const _LocationOption(
+  _LocationOption(
     name: 'Buddhist Statue',
     subtitle: 'Sculpture Hall — Floor 2',
     icon: Icons.account_balance_outlined,
     iconColor: Colors.deepPurple,
   ),
-  const _LocationOption(
+  _LocationOption(
     name: 'International Art Collection',
     subtitle: 'International Gallery — Floor 2',
     icon: Icons.image_outlined,
     iconColor: Colors.deepPurple,
   ),
-  const _LocationOption(
+  _LocationOption(
     name: 'Restroom - Floor 2',
     subtitle: 'South Wing — Floor 2',
     icon: Icons.wc_outlined,
     iconColor: Color(0xFFF59E0B),
   ),
-  const _LocationOption(
+  _LocationOption(
     name: 'Stairs - Floor 2',
     subtitle: 'East Wing — Floor 2',
     icon: Icons.stairs_outlined,
     iconColor: Color(0xFF60A5FA),
   ),
-  const _LocationOption(
+  _LocationOption(
     name: 'Museum Cafe',
     subtitle: 'Upper Lobby — Floor 2',
     icon: Icons.coffee_outlined,
@@ -1149,67 +1150,67 @@ List<_LocationOption> _buildFineArtsLocationOptions() => <_LocationOption>[
 ];
 
 List<_LocationOption> _buildCityMuseumLocationOptions() => <_LocationOption>[
-  const _LocationOption(
+  _LocationOption(
     name: 'City History Journey Hall',
     subtitle: 'Main Gallery — Floor 1',
     icon: Icons.history_edu_outlined,
     iconColor: Colors.teal,
   ),
-  const _LocationOption(
+  _LocationOption(
     name: 'Traditional Ao Dai',
     subtitle: 'Textile Hall — Floor 1',
     icon: Icons.checkroom_outlined,
     iconColor: Colors.teal,
   ),
-  const _LocationOption(
+  _LocationOption(
     name: 'Main Entrance',
     subtitle: 'Entrance — Floor 1',
     icon: Icons.meeting_room_outlined,
-    iconColor: Color(0xFF6B7280),
+    iconColor: themeNotifier.textSecondaryColor,
   ),
-  const _LocationOption(
+  _LocationOption(
     name: 'Restroom - Floor 1',
     subtitle: 'South Wing — Floor 1',
     icon: Icons.wc_outlined,
     iconColor: Color(0xFFF59E0B),
   ),
-  const _LocationOption(
+  _LocationOption(
     name: 'Stairs - Floor 1',
     subtitle: 'East Wing — Floor 1',
     icon: Icons.stairs_outlined,
     iconColor: Color(0xFF60A5FA),
   ),
-  const _LocationOption(
+  _LocationOption(
     name: 'Cultural Heritage Trail Hall',
     subtitle: 'Heritage Wing — Floor 2',
     icon: Icons.history_edu_outlined,
     iconColor: Colors.teal,
   ),
-  const _LocationOption(
+  _LocationOption(
     name: 'Saigon Map 1930',
     subtitle: 'Archive Hall — Floor 2',
     icon: Icons.map_outlined,
     iconColor: Colors.teal,
   ),
-  const _LocationOption(
+  _LocationOption(
     name: 'Archive Reading Corner',
     subtitle: 'Research Corner — Floor 2',
     icon: Icons.menu_book_outlined,
     iconColor: Colors.teal,
   ),
-  const _LocationOption(
+  _LocationOption(
     name: 'Restroom - Floor 2',
     subtitle: 'South Wing — Floor 2',
     icon: Icons.wc_outlined,
     iconColor: Color(0xFFF59E0B),
   ),
-  const _LocationOption(
+  _LocationOption(
     name: 'Stairs - Floor 2',
     subtitle: 'East Wing — Floor 2',
     icon: Icons.stairs_outlined,
     iconColor: Color(0xFF60A5FA),
   ),
-  const _LocationOption(
+  _LocationOption(
     name: 'Museum Cafe',
     subtitle: 'Upper Lobby — Floor 2',
     icon: Icons.coffee_outlined,
@@ -1450,33 +1451,33 @@ class _DetectingScreenState extends State<_DetectingScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF6B7280),
+      backgroundColor: themeNotifier.textSecondaryColor,
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ScaleTransition(
               scale: _scale,
-              child: const Icon(
+              child: Icon(
                 Icons.gps_fixed,
                 color: Color(0xFF22C55E),
                 size: 52,
               ),
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
             Text(
               'Detecting your position...'.tr,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: themeNotifier.surfaceColor,
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Text(
               'Using indoor positioning'.tr,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.7),
+                color: themeNotifier.surfaceColor.withValues(alpha: 0.7),
                 fontSize: 14,
               ),
             ),
@@ -1507,42 +1508,42 @@ class _LocationPickerSheet extends StatelessWidget {
           children: [
             Center(
               child: Container(
-                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                margin: EdgeInsets.only(top: 12, bottom: 8),
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE5E7EB),
+                  color: themeNotifier.borderColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 8, 4),
+              padding: EdgeInsets.fromLTRB(20, 8, 8, 4),
               child: Row(
                 children: [
                   Expanded(
                     child: Text(
                       'Where are you now?'.tr,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF111827),
+                        color: themeNotifier.textPrimaryColor,
                       ),
                     ),
                   ),
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close, color: Color(0xFF6B7280)),
+                    icon: Icon(Icons.close, color: themeNotifier.textSecondaryColor),
                   ),
                 ],
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+              padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
               child: Text(
                 'Indoor positioning unavailable. Select your nearest location.'
                     .tr,
-                style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+                style: TextStyle(fontSize: 13, color: themeNotifier.textSecondaryColor),
               ),
             ),
             const Divider(height: 1),
@@ -1555,7 +1556,7 @@ class _LocationPickerSheet extends StatelessWidget {
                 itemBuilder: (context, i) {
                   final loc = options[i];
                   return ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
+                    contentPadding: EdgeInsets.symmetric(
                       horizontal: 20,
                       vertical: 4,
                     ),
@@ -1570,17 +1571,17 @@ class _LocationPickerSheet extends StatelessWidget {
                     ),
                     title: Text(
                       loc.name.tr,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF111827),
+                        color: themeNotifier.textPrimaryColor,
                       ),
                     ),
                     subtitle: Text(
                       loc.subtitle.tr,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: Color(0xFF6B7280),
+                        color: themeNotifier.textSecondaryColor,
                       ),
                     ),
                     onTap: () => Navigator.of(context).pop(loc),
@@ -1615,49 +1616,49 @@ class _RoutePickerSheet extends StatelessWidget {
           children: [
             Center(
               child: Container(
-                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                margin: EdgeInsets.only(top: 12, bottom: 8),
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE5E7EB),
+                  color: themeNotifier.borderColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 8, 4),
+              padding: EdgeInsets.fromLTRB(20, 8, 8, 4),
               child: Row(
                 children: [
                   Expanded(
                     child: Text(
                       '✨ Recommended Routes'.tr,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF111827),
+                        color: themeNotifier.textPrimaryColor,
                       ),
                     ),
                   ),
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close, color: Color(0xFF6B7280)),
+                    icon: Icon(Icons.close, color: themeNotifier.textSecondaryColor),
                   ),
                 ],
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+              padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
               child: Text(
                 'Choose a guided path to explore the museum'.tr,
-                style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+                style: TextStyle(fontSize: 13, color: themeNotifier.textSecondaryColor),
               ),
             ),
             Expanded(
               child: ListView.separated(
                 controller: scrollController,
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                padding: EdgeInsets.fromLTRB(16, 4, 16, 24),
                 itemCount: routes.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 12),
+                separatorBuilder: (_, _) => SizedBox(height: 12),
                 itemBuilder: (context, i) {
                   final route = routes[i];
                   final preview = route.stops
@@ -1667,78 +1668,78 @@ class _RoutePickerSheet extends StatelessWidget {
                   return GestureDetector(
                     onTap: () => Navigator.of(context).pop(route),
                     child: Container(
-                      padding: const EdgeInsets.all(16),
+                      padding: EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: themeNotifier.surfaceColor,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFE5E7EB)),
+                        border: Border.all(color: themeNotifier.borderColor),
                       ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             route.emoji,
-                            style: const TextStyle(fontSize: 26),
+                            style: TextStyle(fontSize: 26),
                           ),
-                          const SizedBox(width: 12),
+                          SizedBox(width: 12),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   route.name.tr,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w700,
-                                    color: Color(0xFF111827),
+                                    color: themeNotifier.textPrimaryColor,
                                   ),
                                 ),
-                                const SizedBox(height: 2),
+                                SizedBox(height: 2),
                                 Text(
                                   route.description.tr,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 12,
-                                    color: Color(0xFF6B7280),
+                                    color: themeNotifier.textSecondaryColor,
                                   ),
                                 ),
-                                const SizedBox(height: 8),
+                                SizedBox(height: 8),
                                 Row(
                                   children: [
-                                    const Icon(
+                                    Icon(
                                       Icons.schedule,
                                       size: 12,
-                                      color: Color(0xFF9CA3AF),
+                                      color: themeNotifier.textSecondaryColor,
                                     ),
-                                    const SizedBox(width: 4),
+                                    SizedBox(width: 4),
                                     Text(
                                       route.duration.tr,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 12,
-                                        color: Color(0xFF6B7280),
+                                        color: themeNotifier.textSecondaryColor,
                                       ),
                                     ),
-                                    const SizedBox(width: 12),
-                                    const Icon(
+                                    SizedBox(width: 12),
+                                    Icon(
                                       Icons.place,
                                       size: 12,
-                                      color: Color(0xFF9CA3AF),
+                                      color: themeNotifier.textSecondaryColor,
                                     ),
-                                    const SizedBox(width: 4),
+                                    SizedBox(width: 4),
                                     Text(
                                       '${route.stopsCount} stops'.tr,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 12,
-                                        color: Color(0xFF6B7280),
+                                        color: themeNotifier.textSecondaryColor,
                                       ),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 6),
+                                SizedBox(height: 6),
                                 Text(
                                   '$preview →',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 11,
-                                    color: Color(0xFF9CA3AF),
+                                    color: themeNotifier.textSecondaryColor,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -1746,9 +1747,9 @@ class _RoutePickerSheet extends StatelessWidget {
                               ],
                             ),
                           ),
-                          const Icon(
+                          Icon(
                             Icons.chevron_right,
-                            color: Color(0xFF9CA3AF),
+                            color: themeNotifier.textSecondaryColor,
                           ),
                         ],
                       ),
@@ -1782,58 +1783,58 @@ class _RouteReadySheet extends StatelessWidget {
           children: [
             Center(
               child: Container(
-                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                margin: EdgeInsets.only(top: 12, bottom: 8),
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE5E7EB),
+                  color: themeNotifier.borderColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 8, 4),
+              padding: EdgeInsets.fromLTRB(20, 8, 8, 4),
               child: Row(
                 children: [
                   Expanded(
                     child: Text(
                       'Route Ready'.tr,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF111827),
+                        color: themeNotifier.textPrimaryColor,
                       ),
                     ),
                   ),
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close, color: Color(0xFF6B7280)),
+                    icon: Icon(Icons.close, color: themeNotifier.textSecondaryColor),
                   ),
                 ],
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+              padding: EdgeInsets.fromLTRB(20, 0, 20, 16),
               child: Row(
                 children: [
-                  Text(route.emoji, style: const TextStyle(fontSize: 24)),
-                  const SizedBox(width: 10),
+                  Text(route.emoji, style: TextStyle(fontSize: 24)),
+                  SizedBox(width: 10),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         route.name.tr,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF111827),
+                          color: themeNotifier.textPrimaryColor,
                         ),
                       ),
                       Text(
                         '${route.duration.tr} • ${route.stopsCount} ${'stops'.tr}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: Color(0xFF6B7280),
+                          color: themeNotifier.textSecondaryColor,
                         ),
                       ),
                     ],
@@ -1843,7 +1844,7 @@ class _RouteReadySheet extends StatelessWidget {
             ),
             const Divider(height: 1),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               child: Column(
                 children: List.generate(route.stops.length, (i) {
                   final stop = route.stops[i];
@@ -1862,14 +1863,14 @@ class _RouteReadySheet extends StatelessWidget {
                                   ? const Color(0xFF22C55E)
                                   : isLast
                                   ? Theme.of(context).colorScheme.primary
-                                  : Colors.white,
+                                  : themeNotifier.surfaceColor,
                               shape: BoxShape.circle,
                               border: Border.all(
                                 color: isFirst
                                     ? const Color(0xFF22C55E)
                                     : isLast
                                     ? Theme.of(context).colorScheme.primary
-                                    : const Color(0xFF9CA3AF),
+                                    : themeNotifier.textSecondaryColor,
                                 width: 2,
                               ),
                             ),
@@ -1878,30 +1879,30 @@ class _RouteReadySheet extends StatelessWidget {
                             Container(
                               width: 2,
                               height: 38,
-                              color: const Color(0xFFE5E7EB),
+                              color: themeNotifier.borderColor,
                             ),
                         ],
                       ),
-                      const SizedBox(width: 12),
+                      SizedBox(width: 12),
                       Expanded(
                         child: Padding(
-                          padding: const EdgeInsets.only(bottom: 18),
+                          padding: EdgeInsets.only(bottom: 18),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 stop.name.tr,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFF111827),
+                                  color: themeNotifier.textPrimaryColor,
                                 ),
                               ),
                               Text(
                                 stop.subtitle.tr,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: Color(0xFF6B7280),
+                                  color: themeNotifier.textSecondaryColor,
                                 ),
                               ),
                             ],
@@ -1915,42 +1916,42 @@ class _RouteReadySheet extends StatelessWidget {
             ),
             const Divider(height: 1),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+              padding: EdgeInsets.fromLTRB(16, 12, 16, 24),
               child: Row(
                 children: [
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => Navigator.of(context).pop(),
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        side: const BorderSide(color: Color(0xFFE5E7EB)),
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        side: BorderSide(color: themeNotifier.borderColor),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
                       child: Text(
                         'Cancel'.tr,
-                        style: const TextStyle(
-                          color: Color(0xFF111827),
+                        style: TextStyle(
+                          color: themeNotifier.textPrimaryColor,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12),
                   Expanded(
                     flex: 2,
                     child: ElevatedButton.icon(
                       onPressed: () => Navigator.of(context).pop(true),
-                      icon: const Icon(Icons.navigation_outlined, size: 18),
+                      icon: Icon(Icons.navigation_outlined, size: 18),
                       label: Text(
                         'Start Navigation'.tr,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
+                        style: TextStyle(fontWeight: FontWeight.w600),
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Theme.of(context).colorScheme.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        foregroundColor: themeNotifier.surfaceColor,
+                        padding: EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -1988,7 +1989,7 @@ class _NavigationPanel extends StatelessWidget {
     final isLast = currentStopIndex == route.stops.length - 1;
     return Container(
       color: Theme.of(context).colorScheme.primary,
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+      padding: EdgeInsets.fromLTRB(12, 10, 12, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1996,24 +1997,24 @@ class _NavigationPanel extends StatelessWidget {
             children: [
               Text(
                 '${'Navigating - Stop'.tr} ${currentStopIndex + 1}/${route.stops.length}',
-                style: const TextStyle(color: Colors.white, fontSize: 12),
+                style: TextStyle(color: themeNotifier.surfaceColor, fontSize: 12),
               ),
               const Spacer(),
               GestureDetector(
                 onTap: onStop,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
+                  padding: EdgeInsets.symmetric(
                     horizontal: 12,
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.24),
+                    color: themeNotifier.surfaceColor.withValues(alpha: 0.24),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
                     'Stop'.tr,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: themeNotifier.surfaceColor,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),
@@ -2022,22 +2023,22 @@ class _NavigationPanel extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             'To:'.tr,
-            style: const TextStyle(color: Colors.white, fontSize: 16),
+            style: TextStyle(color: themeNotifier.surfaceColor, fontSize: 16),
           ),
-          const SizedBox(height: 2),
+          SizedBox(height: 2),
           Text(
             currentStop.name.tr,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: themeNotifier.surfaceColor,
               fontSize: 30,
               height: 1,
               fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Row(
             children: List.generate(route.stops.length, (i) {
               final done = i <= currentStopIndex;
@@ -2049,22 +2050,22 @@ class _NavigationPanel extends StatelessWidget {
                   height: 3,
                   decoration: BoxDecoration(
                     color: done
-                        ? Colors.white
-                        : Colors.white.withValues(alpha: 0.3),
+                        ? themeNotifier.surfaceColor
+                        : themeNotifier.surfaceColor.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(3),
                   ),
                 ),
               );
             }),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           Container(
             width: double.infinity,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: themeNotifier.surfaceColor,
               borderRadius: BorderRadius.circular(14),
             ),
-            padding: const EdgeInsets.all(14),
+            padding: EdgeInsets.all(14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -2073,8 +2074,8 @@ class _NavigationPanel extends StatelessWidget {
                     Expanded(
                       child: Text(
                         currentStop.name.tr,
-                        style: const TextStyle(
-                          color: Color(0xFF111827),
+                        style: TextStyle(
+                          color: themeNotifier.textPrimaryColor,
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                         ),
@@ -2086,10 +2087,10 @@ class _NavigationPanel extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: 6),
                 Text(
                   description.tr,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Color(0xFF4B5563),
                     height: 1.4,
                     fontSize: 14,
@@ -2098,22 +2099,22 @@ class _NavigationPanel extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
               onPressed: onNext,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
+                backgroundColor: themeNotifier.surfaceColor,
                 foregroundColor: Theme.of(context).colorScheme.primary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24),
                 ),
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                padding: EdgeInsets.symmetric(vertical: 12),
               ),
               child: Text(
                 isLast ? 'Finish'.tr : 'Next  →'.tr,
-                style: const TextStyle(fontWeight: FontWeight.w600),
+                style: TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -2271,7 +2272,7 @@ class Museum3DPainter extends CustomPainter {
     final textPainter = TextPainter(
       text: TextSpan(
         text: location.name.tr,
-        style: const TextStyle(
+        style: TextStyle(
           color: Color(0xFFFFFFFF),
           fontSize: 11,
           fontWeight: FontWeight.w500,
@@ -2324,10 +2325,10 @@ class _LegendItem extends StatelessWidget {
           height: 8,
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
-        const SizedBox(width: 4),
+        SizedBox(width: 4),
         Text(
           label,
-          style: const TextStyle(fontSize: 11, color: Color(0xFF6D7785)),
+          style: TextStyle(fontSize: 11, color: themeNotifier.textSecondaryColor),
         ),
       ],
     );

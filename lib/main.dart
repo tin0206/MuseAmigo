@@ -75,19 +75,15 @@ class MuseAmigoApp extends StatelessWidget {
                   data: MediaQuery.of(context).copyWith(
                     textScaler: TextScaler.linear(fontSizeNotifier.scale),
                   ),
-                  child: appChild!,
+                  child: appChild,
                 );
               },
             );
           },
           title: 'MuseAmigo',
-          theme: ThemeData(
-            scaffoldBackgroundColor: const Color(0xFFF3F4F6),
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: primary,
-              primary: primary,
-            ),
-          ),
+          themeMode: themeNotifier.themeMode,
+          theme: AppTheme.lightTheme(primary),
+          darkTheme: AppTheme.darkTheme(primary),
           routes: {
             AppRoutes.login: (_) => const LoginScreen(),
             AppRoutes.signUp: (_) => const SignUpScreen(),

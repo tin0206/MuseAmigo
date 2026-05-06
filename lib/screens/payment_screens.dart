@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:museamigo/app_routes.dart';
 import 'package:museamigo/l10n/translations.dart';
+import 'package:museamigo/theme_notifier.dart';
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
@@ -62,11 +63,11 @@ class _CardPaymentSheetState extends State<CardPaymentSheet> {
         ),
         child: Container(
           decoration: BoxDecoration(
-            color: const Color(0xFFF3F3F4),
+            color: themeNotifier.surfaceColor,
             borderRadius: BorderRadius.circular(22),
           ),
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 18, 24, 24),
+            padding: EdgeInsets.fromLTRB(24, 18, 24, 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -74,7 +75,7 @@ class _CardPaymentSheetState extends State<CardPaymentSheet> {
                   children: [
                     TextButton.icon(
                       onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.arrow_back, size: 18),
+                      icon: Icon(Icons.arrow_back, size: 18),
                       label: Text('Return'.tr),
                       style: TextButton.styleFrom(
                         foregroundColor: Theme.of(context).colorScheme.primary,
@@ -83,7 +84,7 @@ class _CardPaymentSheetState extends State<CardPaymentSheet> {
                     const Spacer(),
                     IconButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close, size: 28),
+                      icon: Icon(Icons.close, size: 28),
                     ),
                   ],
                 ),
@@ -95,21 +96,21 @@ class _CardPaymentSheetState extends State<CardPaymentSheet> {
                     color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
-                const SizedBox(height: 22),
+                SizedBox(height: 22),
                 _FieldLabel('Card number'.tr),
                 _PaymentTextField(
                   controller: _cardNumberController,
                   hint: '1234 5678 9012 3456',
                   keyboardType: TextInputType.number,
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 _FieldLabel('Cardholder name'.tr),
                 _PaymentTextField(
                   controller: _cardholderController,
                   hint: 'NGUYEN VAN A',
                   textCapitalization: TextCapitalization.characters,
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 Row(
                   children: [
                     Expanded(
@@ -125,7 +126,7 @@ class _CardPaymentSheetState extends State<CardPaymentSheet> {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 14),
+                    SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -142,7 +143,7 @@ class _CardPaymentSheetState extends State<CardPaymentSheet> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 28),
+                SizedBox(height: 28),
                 FilledButton(
                   onPressed: () {
                     _handleCardPayment();
@@ -157,7 +158,7 @@ class _CardPaymentSheetState extends State<CardPaymentSheet> {
                   ),
                   child: Text(
                     'Pay '.tr + widget.ticket.price,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w700,
                     ),
@@ -187,14 +188,14 @@ class QrPaymentSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(10, 16, 10, 16),
+        padding: EdgeInsets.fromLTRB(10, 16, 10, 16),
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: themeNotifier.surfaceColor,
             borderRadius: BorderRadius.circular(22),
           ),
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+            padding: EdgeInsets.fromLTRB(20, 10, 20, 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -203,7 +204,7 @@ class QrPaymentSheet extends StatelessWidget {
                   children: [
                     TextButton.icon(
                       onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.arrow_back, size: 16),
+                      icon: Icon(Icons.arrow_back, size: 16),
                       label: Text('Return'.tr),
                       style: TextButton.styleFrom(
                         foregroundColor: Theme.of(context).colorScheme.primary,
@@ -213,7 +214,7 @@ class QrPaymentSheet extends StatelessWidget {
                     const Spacer(),
                     IconButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close, size: 24),
+                      icon: Icon(Icons.close, size: 24),
                       visualDensity: VisualDensity.compact,
                     ),
                   ],
@@ -226,41 +227,41 @@ class QrPaymentSheet extends StatelessWidget {
                     color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 4),
                 Text(
                   'Use digital banking app or e-wallet app to scan the QR below'
                       .tr,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: Color(0xFF6D7785),
+                    color: themeNotifier.textSecondaryColor,
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 // ── QR card ─────────────────────────────────────────────
                 Container(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding: EdgeInsets.symmetric(vertical: 16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF3F3F4),
+                    color: themeNotifier.surfaceColor,
                     borderRadius: BorderRadius.circular(18),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.qr_code_2,
                         size: 130,
-                        color: Color(0xFFAAAAAA),
+                        color: themeNotifier.textSecondaryColor,
                       ),
-                      const SizedBox(height: 12),
+                      SizedBox(height: 12),
                       Text(
                         'Money to pay'.tr,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
-                          color: Color(0xFF6D7785),
+                          color: themeNotifier.textSecondaryColor,
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4),
                       Text(
                         ticket.price,
                         style: TextStyle(
@@ -270,21 +271,21 @@ class QrPaymentSheet extends StatelessWidget {
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(
+                        padding: EdgeInsets.symmetric(
                           horizontal: 14,
                           vertical: 5,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: themeNotifier.surfaceColor,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
                           '${ticket.ticketLabel} - ${ticket.museumName.tr}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
-                            color: Color(0xFF4D5562),
+                            color: themeNotifier.textSecondaryColor,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -292,16 +293,16 @@ class QrPaymentSheet extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 // ── Pay via ─────────────────────────────────────────────
                 Text(
                   'Pay via:'.tr,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: Color(0xFF6D7785),
+                    color: themeNotifier.textSecondaryColor,
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
@@ -314,62 +315,62 @@ class QrPaymentSheet extends StatelessWidget {
                     _QrPayApp(label: 'Banking'.tr, icon: Icons.account_balance),
                   ],
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 // ── Guide ───────────────────────────────────────────────
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFF8E1),
+                    color: themeNotifier.surfaceColor,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFFFCC02)),
+                    border: Border.all(color: Theme.of(context).colorScheme.primary),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.info_outline,
-                            color: Color(0xFFE65100),
+                            color: Theme.of(context).colorScheme.primary,
                             size: 16,
                           ),
-                          const SizedBox(width: 6),
+                          SizedBox(width: 6),
                           Text(
                             'Guide:'.tr,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFFE65100),
+                              color: Theme.of(context).colorScheme.primary,
                               fontSize: 13,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4),
                       Text(
                         'Open banking or e-wallet app'.tr,
-                        style: const TextStyle(
-                          color: Color(0xFFE65100),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
                           fontSize: 13,
                         ),
                       ),
                       Text(
                         'Choose QR code payment (scanner)'.tr,
-                        style: const TextStyle(
-                          color: Color(0xFFE65100),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
                           fontSize: 13,
                         ),
                       ),
                       Text(
                         'Scan the QR code to complete'.tr,
-                        style: const TextStyle(
-                          color: Color(0xFFE65100),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.primary,
                           fontSize: 13,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 FilledButton(
                   onPressed: () {
                     _handleQrPayment();
@@ -384,7 +385,7 @@ class QrPaymentSheet extends StatelessWidget {
                   ),
                   child: Text(
                     'Done'.tr,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                     ),
@@ -422,10 +423,10 @@ class _QrPayApp extends StatelessWidget {
             size: 26,
           ),
         ),
-        const SizedBox(height: 6),
+        SizedBox(height: 6),
         Text(
           label,
-          style: const TextStyle(fontSize: 12, color: Color(0xFF4D5562)),
+          style: TextStyle(fontSize: 12, color: themeNotifier.textSecondaryColor),
         ),
       ],
     );
@@ -448,10 +449,10 @@ class _CheckingPaymentDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: Colors.white,
+      backgroundColor: themeNotifier.surfaceColor,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        padding: EdgeInsets.fromLTRB(24, 16, 24, 32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -459,7 +460,7 @@ class _CheckingPaymentDialog extends StatelessWidget {
               alignment: Alignment.topRight,
               child: IconButton(
                 onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.close),
+                icon: Icon(Icons.close),
               ),
             ),
             SizedBox(
@@ -470,15 +471,15 @@ class _CheckingPaymentDialog extends StatelessWidget {
                 strokeWidth: 5,
               ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             Text(
               'Checking payment'.tr,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
             ),
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             Text(
               'Please wait...'.tr,
-              style: const TextStyle(color: Color(0xFF6D7785)),
+              style: TextStyle(color: themeNotifier.textSecondaryColor),
             ),
           ],
         ),
@@ -503,10 +504,10 @@ class _PaymentSuccessDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: Colors.white,
+      backgroundColor: themeNotifier.surfaceColor,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        padding: EdgeInsets.fromLTRB(24, 16, 24, 32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -514,7 +515,7 @@ class _PaymentSuccessDialog extends StatelessWidget {
               alignment: Alignment.topRight,
               child: IconButton(
                 onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.close),
+                icon: Icon(Icons.close),
               ),
             ),
             Container(
@@ -524,17 +525,17 @@ class _PaymentSuccessDialog extends StatelessWidget {
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.green, width: 4),
               ),
-              child: const Icon(Icons.check, color: Colors.green, size: 44),
+              child: Icon(Icons.check, color: Colors.green, size: 44),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             Text(
               'Payment successful!'.tr,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
             ),
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             Text(
               'Creating QR code for your ticket...'.tr,
-              style: const TextStyle(color: Color(0xFF6D7785)),
+              style: TextStyle(color: themeNotifier.textSecondaryColor),
             ),
           ],
         ),
@@ -569,14 +570,14 @@ class _TicketResultSheet extends StatelessWidget {
 
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.all(10),
+        padding: EdgeInsets.all(10),
         child: Container(
           decoration: BoxDecoration(
-            color: const Color(0xFFF3F3F4),
+            color: themeNotifier.surfaceColor,
             borderRadius: BorderRadius.circular(22),
           ),
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 18, 24, 24),
+            padding: EdgeInsets.fromLTRB(24, 18, 24, 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -584,7 +585,7 @@ class _TicketResultSheet extends StatelessWidget {
                   children: [
                     Text(
                       'Your ticket'.tr,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.w700,
                       ),
@@ -592,18 +593,18 @@ class _TicketResultSheet extends StatelessWidget {
                     const Spacer(),
                     IconButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close, size: 28),
+                      icon: Icon(Icons.close, size: 28),
                     ),
                   ],
                 ),
                 Text(
                   'Please provide this QR code at the entrance'.tr,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
-                    color: Color(0xFF6D7785),
+                    color: themeNotifier.textSecondaryColor,
                   ),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20),
                 Center(
                   child: Column(
                     children: [
@@ -611,10 +612,10 @@ class _TicketResultSheet extends StatelessWidget {
                         width: 180,
                         height: 180,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: themeNotifier.surfaceColor,
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: const Center(
+                        child: Center(
                           child: Icon(
                             Icons.qr_code_2,
                             size: 140,
@@ -622,8 +623,8 @@ class _TicketResultSheet extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      const Text(
+                      SizedBox(height: 8),
+                      Text(
                         '#AVLBQWJ05',
                         style: TextStyle(
                           fontWeight: FontWeight.w700,
@@ -632,18 +633,18 @@ class _TicketResultSheet extends StatelessWidget {
                       ),
                       Text(
                         'SCAN ME'.tr,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: Color(0xFF6D7785),
+                          color: themeNotifier.textSecondaryColor,
                           letterSpacing: 1.5,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20),
                 const Divider(color: Color(0xFFE0E0E0)),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 _TicketDetailRow(
                   label: 'Museum'.tr,
                   value: ticket.museumName.tr,
@@ -658,40 +659,40 @@ class _TicketResultSheet extends StatelessWidget {
                   value: ticket.price,
                   bold: true,
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 Container(
-                  padding: const EdgeInsets.all(14),
+                  padding: EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFF8E1),
+                    color: themeNotifier.surfaceColor,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFFFCC02)),
+                    border: Border.all(color: Theme.of(context).colorScheme.primary),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.info_outline,
-                        color: Color(0xFFE65100),
+                        color: Theme.of(context).colorScheme.primary,
                         size: 18,
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               'Warning:'.tr,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontWeight: FontWeight.w700,
-                                color: Color(0xFFE65100),
+                                color: Theme.of(context).colorScheme.primary,
                               ),
                             ),
-                            const SizedBox(height: 4),
+                            SizedBox(height: 4),
                             Text(
                               "You might have to provide this to the museum's ticket inspectors to print you a paper ticket."
                                   .tr,
-                              style: const TextStyle(
-                                color: Color(0xFFE65100),
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.primary,
                                 fontSize: 13,
                               ),
                             ),
@@ -701,15 +702,15 @@ class _TicketResultSheet extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: 24),
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton(
                         onPressed: _handleSaveTicket,
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF171A21),
-                          side: const BorderSide(color: Color(0xFFCCCCCC)),
+                          foregroundColor: themeNotifier.textPrimaryColor,
+                          side: BorderSide(color: Color(0xFFCCCCCC)),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -717,14 +718,14 @@ class _TicketResultSheet extends StatelessWidget {
                         ),
                         child: Text(
                           'Save for later use'.tr,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 13,
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: 12),
                     Expanded(
                       child: FilledButton(
                         onPressed: () =>
@@ -743,7 +744,7 @@ class _TicketResultSheet extends StatelessWidget {
                         ),
                         child: Text(
                           "I'm in".tr,
-                          style: const TextStyle(fontWeight: FontWeight.w700),
+                          style: TextStyle(fontWeight: FontWeight.w700),
                         ),
                       ),
                     ),
@@ -772,12 +773,12 @@ class _TicketDetailRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
           Text(
             label,
-            style: const TextStyle(color: Color(0xFF6D7785), fontSize: 14),
+            style: TextStyle(color: themeNotifier.textSecondaryColor, fontSize: 14),
           ),
           const Spacer(),
           Text(
@@ -803,10 +804,10 @@ class _FieldLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: EdgeInsets.only(bottom: 6),
       child: Text(
         text,
-        style: const TextStyle(fontSize: 14, color: Color(0xFF6D7785)),
+        style: TextStyle(fontSize: 14, color: themeNotifier.textSecondaryColor),
       ),
     );
   }
@@ -836,10 +837,10 @@ class _PaymentTextField extends StatelessWidget {
       textCapitalization: textCapitalization,
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(color: Color(0xFFAAAAAA)),
+        hintStyle: TextStyle(color: themeNotifier.textSecondaryColor),
         filled: true,
-        fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(
+        fillColor: themeNotifier.surfaceColor,
+        contentPadding: EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 14,
         ),

@@ -6,6 +6,7 @@ import 'package:museamigo/language_notifier.dart';
 import 'package:museamigo/screens/museum_3d_map_screen.dart';
 import 'package:museamigo/services/backend_api.dart';
 import 'package:museamigo/session.dart';
+import 'package:museamigo/theme_notifier.dart';
 
 class AIAssistantScreen extends StatefulWidget {
   const AIAssistantScreen({super.key});
@@ -979,19 +980,20 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         languageNotifier,
         AppSession.currentMuseumId,
         AppSession.currentMuseumName,
+        themeNotifier,
       ]),
       builder: (context, _) {
         final quickAccessQuestions = _quickAccessQuestionsForMuseum(
           AppSession.currentMuseumName.value,
         );
         return Scaffold(
-          backgroundColor: const Color(0xFFF3F4F6),
+          backgroundColor: themeNotifier.backgroundColor,
           body: SafeArea(
             child: Column(
               children: [
                 Container(
                   color: Theme.of(context).colorScheme.primary,
-                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+                  padding: EdgeInsets.fromLTRB(14, 12, 14, 14),
                   child: Row(
                     children: [
                       GestureDetector(
@@ -1000,9 +1002,9 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                             context,
                           ).pushReplacementNamed(AppRoutes.home);
                         },
-                        child: const Icon(
+                        child: Icon(
                           Icons.arrow_back_ios_new,
-                          color: Colors.white,
+                          color: themeNotifier.surfaceColor,
                           size: 20,
                         ),
                       ),
@@ -1010,11 +1012,11 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                       Container(
                         width: 42,
                         height: 42,
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
+                        decoration: BoxDecoration(
+                          color: themeNotifier.surfaceColor,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.volume_up_outlined,
                           color: Colors.black,
                         ),
@@ -1024,10 +1026,10 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                 ),
                 Container(
                   width: double.infinity,
-                  margin: const EdgeInsets.fromLTRB(14, 12, 14, 8),
-                  padding: const EdgeInsets.all(12),
+                  margin: EdgeInsets.fromLTRB(14, 12, 14, 8),
+                  padding: EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE5E7EB),
+                    color: themeNotifier.borderColor,
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Row(
@@ -1035,8 +1037,8 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                       Container(
                         width: 48,
                         height: 48,
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
+                        decoration: BoxDecoration(
+                          color: themeNotifier.surfaceColor,
                           shape: BoxShape.circle,
                         ),
                         child: ClipOval(
@@ -1046,21 +1048,21 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      SizedBox(width: 10),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
                             children: [
-                              const Text(
+                              Text(
                                 'Ogima',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF111827),
-                                ),
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w700,
+                                    color: themeNotifier.textPrimaryColor,
+                                  ),
                               ),
-                              const SizedBox(width: 6),
+                              SizedBox(width: 6),
                               Text(
                                 'online'.tr,
                                 style: TextStyle(
@@ -1071,12 +1073,12 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 2),
+                          SizedBox(height: 2),
                           Text(
                             'Your AI companion'.tr,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
-                              color: Color(0xFF4B5563),
+                              color: themeNotifier.textSecondaryColor,
                             ),
                           ),
                         ],
@@ -1088,11 +1090,11 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                   child: ListView.builder(
                     controller: _scrollController,
                     primary: false,
-                    padding: const EdgeInsets.fromLTRB(14, 4, 14, 8),
+                    padding: EdgeInsets.fromLTRB(14, 4, 14, 8),
                     itemCount: _messages.length + (_isAiTyping ? 1 : 0),
                     itemBuilder: (context, index) {
                       if (_isAiTyping && index == _messages.length) {
-                        return const Padding(
+                        return Padding(
                           padding: EdgeInsets.only(bottom: 8),
                           child: Align(
                             alignment: Alignment.centerLeft,
@@ -1104,7 +1106,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                       final isOpeningMessage =
                           index == 0 && !(msg.isUser ?? true);
                       return Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
+                        padding: EdgeInsets.only(bottom: 8),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -1116,7 +1118,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                             ),
                             if (!(msg.isUser ?? true) &&
                                 (msg.actions?.isNotEmpty ?? false)) ...[
-                              const SizedBox(height: 8),
+                              SizedBox(height: 8),
                               Wrap(
                                 spacing: 8,
                                 runSpacing: 8,
@@ -1132,7 +1134,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                               ),
                             ],
                             if (isOpeningMessage) ...[
-                              const SizedBox(height: 8),
+                              SizedBox(height: 8),
                               Wrap(
                                 spacing: 8,
                                 runSpacing: 8,
@@ -1158,12 +1160,12 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                 ),
                 Container(
                   width: double.infinity,
-                  margin: const EdgeInsets.fromLTRB(14, 0, 14, 8),
+                  margin: EdgeInsets.fromLTRB(14, 0, 14, 8),
                   child: Text(
                     'Quick access buttons:'.tr,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
-                      color: Color(0xFF374151),
+                      color: themeNotifier.textSecondaryColor,
                     ),
                   ),
                 ),
@@ -1184,9 +1186,9 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                       primary: false,
                       scrollDirection: Axis.horizontal,
                       physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      padding: EdgeInsets.symmetric(horizontal: 14),
                       itemCount: quickAccessQuestions.length,
-                      separatorBuilder: (_, _) => const SizedBox(width: 8),
+                      separatorBuilder: (_, _) => SizedBox(width: 8),
                       itemBuilder: (_, index) => _QuickQuestionChip(
                         text: quickAccessQuestions[index].tr,
                         onTap: () =>
@@ -1196,23 +1198,23 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                   ),
                 ),
                 Container(
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFF3F4F6),
-                    border: Border(top: BorderSide(color: Color(0xFFE5E7EB))),
+                  decoration: BoxDecoration(
+                    color: themeNotifier.backgroundColor,
+                    border: Border(top: BorderSide(color: themeNotifier.borderColor)),
                   ),
-                  padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+                  padding: EdgeInsets.fromLTRB(10, 10, 10, 10),
                   child: Row(
                     children: [
                       _roundIcon(Icons.mic_none),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       Expanded(
                         child: Container(
                           height: 48,
-                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          padding: EdgeInsets.symmetric(horizontal: 14),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFEFF1F4),
+                            color: themeNotifier.surfaceColor,
                             borderRadius: BorderRadius.circular(24),
-                            border: Border.all(color: const Color(0xFFD1D5DB)),
+                            border: Border.all(color: themeNotifier.borderColor),
                           ),
                           child: TextField(
                             controller: _messageController,
@@ -1220,12 +1222,12 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                             textAlignVertical: TextAlignVertical.center,
                             decoration: InputDecoration(
                               hintText: 'Ask me anything...'.tr,
-                              hintStyle: const TextStyle(
+                              hintStyle: TextStyle(
                                 fontSize: 14,
-                                color: Color(0xFF9CA3AF),
+                                color: themeNotifier.textSecondaryColor,
                               ),
                               border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(
+                              contentPadding: EdgeInsets.symmetric(
                                 vertical: 12,
                               ),
                             ),
@@ -1233,7 +1235,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       GestureDetector(
                         onTap: _submitMessage,
                         child: _roundIcon(Icons.near_me_outlined),
@@ -1253,11 +1255,11 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     return Container(
       width: 40,
       height: 40,
-      decoration: const BoxDecoration(
-        color: Color(0xFFE5E7EB),
+      decoration: BoxDecoration(
+        color: themeNotifier.borderColor,
         shape: BoxShape.circle,
       ),
-      child: Icon(icon, color: const Color(0xFF4B5563)),
+      child: Icon(icon, color: themeNotifier.textSecondaryColor),
     );
   }
 }
@@ -1594,11 +1596,11 @@ class _MessageBubble extends StatelessWidget {
     final isUser = message.isUser ?? true;
     return Container(
       constraints: const BoxConstraints(maxWidth: 250),
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+      padding: EdgeInsets.fromLTRB(14, 10, 14, 10),
       decoration: BoxDecoration(
         color: isUser
             ? Theme.of(context).colorScheme.primary
-            : const Color(0xFFE5E7EB),
+            : themeNotifier.borderColor,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -1608,18 +1610,18 @@ class _MessageBubble extends StatelessWidget {
             message.text.tr,
             style: TextStyle(
               fontSize: 14,
-              color: isUser ? Colors.white : const Color(0xFF111827),
+              color: isUser ? themeNotifier.surfaceColor : themeNotifier.textPrimaryColor,
               height: 1.35,
             ),
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: 6),
           Text(
             message.time,
             style: TextStyle(
               fontSize: 11,
               color: isUser
-                  ? Colors.white.withValues(alpha: 0.85)
-                  : const Color(0xFF6B7280),
+                  ? themeNotifier.surfaceColor.withValues(alpha: 0.85)
+                  : themeNotifier.textSecondaryColor,
             ),
           ),
         ],
@@ -1635,16 +1637,16 @@ class _TypingBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       constraints: const BoxConstraints(maxWidth: 120),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFE5E7EB),
+        color: themeNotifier.borderColor,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Text(
         'Ogima is typing...'.tr,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
-          color: Color(0xFF6B7280),
+          color: themeNotifier.textSecondaryColor,
           fontStyle: FontStyle.italic,
         ),
       ),
@@ -1666,17 +1668,17 @@ class _QuickQuestionChip extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(18),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           decoration: BoxDecoration(
-            color: const Color(0xFFF3F4F6),
+            color: themeNotifier.backgroundColor,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: const Color(0xFFD1D5DB)),
+            border: Border.all(color: themeNotifier.borderColor),
           ),
           child: Text(
             text.tr,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              color: Color(0xFF111827),
+              color: themeNotifier.textPrimaryColor,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -1702,21 +1704,21 @@ class _StarterActionChip extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: const Color(0xFFE5E7EB),
+          color: themeNotifier.borderColor,
           borderRadius: BorderRadius.circular(24),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 16, color: const Color(0xFF111827)),
-            const SizedBox(width: 6),
+            Icon(icon, size: 16, color: themeNotifier.textPrimaryColor),
+            SizedBox(width: 6),
             Text(
               text.tr,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: Color(0xFF111827),
+                color: themeNotifier.textPrimaryColor,
                 fontWeight: FontWeight.w600,
               ),
             ),
