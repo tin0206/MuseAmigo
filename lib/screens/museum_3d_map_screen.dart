@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:museamigo/l10n/translations.dart';
 import 'package:museamigo/session.dart';
+import 'package:geolocator/geolocator.dart';
 
 class Museum3DMapScreen extends StatefulWidget {
   const Museum3DMapScreen({
@@ -211,7 +212,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.4),
+                              color: Colors.black.withOpacity(0.4),
                               blurRadius: 8,
                               offset: const Offset(0, 2),
                             ),
@@ -265,13 +266,14 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
   // ── Navigation flow ────────────────────────────────────────────────────
 
   Future<void> _openRouteFlow() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
+    final success = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
         fullscreenDialog: true,
         builder: (_) => const _DetectingScreen(),
       ),
     );
     if (!mounted) return;
+    if (success != true) return;
     _showLocationPicker();
   }
 
@@ -287,10 +289,17 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
           _LocationPickerSheet(options: _currentConfig.locationOptions),
     );
     if (loc == null || !mounted) return;
-    _showRoutePicker(loc);
+    _showRoutePicker(loc, _currentConfig.routes);
   }
 
-  Future<void> _showRoutePicker(_LocationOption from) async {
+  Future<void> _showRoutePicker(
+      _LocationOption from, List<_RouteOption> routes) async {
+    List<_RouteOption> suggestedRoutes =
+        routes.where((route) => route.stops.first.name == from.name).toList();
+
+    if (suggestedRoutes.isEmpty) {
+      suggestedRoutes = _generateDynamicRoutes(from);
+    }
     final route = await showModalBottomSheet<_RouteOption>(
       context: context,
       isScrollControlled: true,
@@ -298,10 +307,75 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => _RoutePickerSheet(routes: _currentConfig.routes),
+      builder: (_) => _RoutePickerSheet(routes: suggestedRoutes),
     );
     if (route == null || !mounted) return;
     _showRouteReady(route);
+  }
+
+  List<_RouteOption> _generateDynamicRoutes(_LocationOption fromOption) {
+    final fromLoc = _findLocationByName(fromOption.name);
+    if (fromLoc == null) return [];
+
+    final allLocs = _currentConfig.locations.where((l) => 
+        l.name != fromLoc.name && 
+        !l.name.contains('Restroom') && 
+        !l.name.contains('Stairs') &&
+        !l.name.contains('Entrance')).toList();
+        
+    final sameFloor = allLocs.where((l) => l.floor == fromLoc.floor).toList();
+    final quickTargets = sameFloor.isNotEmpty ? sameFloor.take(2).toList() : allLocs.take(2).toList();
+    
+    final fullTargets = allLocs.take(5).toList();
+
+    List<_RouteStop> buildStops(List<_MapLocation> targets) {
+      final stops = <_RouteStop>[];
+      var currentLoc = fromLoc;
+      
+      stops.add(_RouteStop(name: currentLoc.name, subtitle: _subtitleForLocation(currentLoc)));
+
+      for (var target in targets) {
+        if (currentLoc.floor != target.floor) {
+          final fromStairs = _findLocationByName('Stairs - ${currentLoc.floor}');
+          final toStairs = _findLocationByName('Stairs - ${target.floor}');
+          if (fromStairs != null && stops.last.name != fromStairs.name) {
+            stops.add(_RouteStop(name: fromStairs.name, subtitle: _subtitleForLocation(fromStairs)));
+          }
+          if (toStairs != null) {
+            stops.add(_RouteStop(name: toStairs.name, subtitle: _subtitleForLocation(toStairs)));
+          }
+        }
+        if (stops.isEmpty || stops.last.name != target.name) {
+          stops.add(_RouteStop(name: target.name, subtitle: _subtitleForLocation(target)));
+        }
+        currentLoc = target;
+      }
+      return stops;
+    }
+
+    final quickStops = buildStops(quickTargets);
+    final fullStops = buildStops(fullTargets);
+
+    return [
+      if (quickTargets.isNotEmpty)
+        _RouteOption(
+          emoji: '🚶',
+          name: 'Quick Explorer',
+          description: 'A short walk from your current location',
+          duration: '15 min',
+          stopsCount: quickStops.length,
+          stops: quickStops,
+        ),
+      if (fullTargets.isNotEmpty)
+        _RouteOption(
+          emoji: '🧭',
+          name: 'Deep Dive',
+          description: 'Explore the main highlights from here',
+          duration: '45 min',
+          stopsCount: fullStops.length,
+          stops: fullStops,
+        ),
+    ];
   }
 
   Future<void> _showRouteReady(_RouteOption route) async {
@@ -1457,10 +1531,52 @@ class _DetectingScreenState extends State<_DetectingScreen>
       begin: 0.8,
       end: 1.2,
     ).animate(CurvedAnimation(parent: _pulse, curve: Curves.easeInOut));
-    // Simulate scan failure after 2 s then pop
-    Future<void>.delayed(const Duration(seconds: 2), () {
-      if (mounted) Navigator.of(context).pop();
-    });
+    
+    _checkLocation();
+  }
+
+  Future<void> _checkLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      _failAndPop();
+      return;
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        _failAndPop();
+        return;
+      }
+    }
+    
+    if (permission == LocationPermission.deniedForever) {
+      _failAndPop();
+      return;
+    } 
+
+    try {
+      await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          timeLimit: Duration(seconds: 5),
+        )
+      );
+      if (mounted) Navigator.of(context).pop(true);
+    } catch (_) {
+      _failAndPop();
+    }
+  }
+
+  void _failAndPop() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('GPS Unavailable. Please enable GPS.'.tr)),
+    );
+    Navigator.of(context).pop(false);
   }
 
   @override
@@ -1498,7 +1614,7 @@ class _DetectingScreenState extends State<_DetectingScreen>
             Text(
               'Using indoor positioning'.tr,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.7),
+                color: Colors.white.withOpacity(0.7),
                 fontSize: 14,
               ),
             ),
@@ -1585,7 +1701,7 @@ class _LocationPickerSheet extends StatelessWidget {
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                        color: loc.iconColor.withValues(alpha: 0.1),
+                        color: loc.iconColor.withOpacity(0.1),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(loc.icon, color: loc.iconColor, size: 18),
@@ -2029,7 +2145,7 @@ class _NavigationPanel extends StatelessWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.24),
+                    color: Colors.white.withOpacity(0.24),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -2072,7 +2188,7 @@ class _NavigationPanel extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: done
                         ? Colors.white
-                        : Colors.white.withValues(alpha: 0.3),
+                        : Colors.white.withOpacity(0.3),
                     borderRadius: BorderRadius.circular(3),
                   ),
                 ),
