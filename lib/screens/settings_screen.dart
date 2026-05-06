@@ -261,7 +261,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         child: Text(
                           'Cancel'.tr,
-                          style: TextStyle(color: themeNotifier.textSecondaryColor),
+                          style: TextStyle(
+                            color: themeNotifier.textSecondaryColor,
+                          ),
                         ),
                       ),
                     ),
@@ -615,7 +617,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
               ),
-              Icon(Icons.chevron_right, color: themeNotifier.textSecondaryColor),
+              Icon(
+                Icons.chevron_right,
+                color: themeNotifier.textSecondaryColor,
+              ),
             ],
           ),
         ),
@@ -711,7 +716,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       children: [
         Text(
           label,
-          style: TextStyle(fontSize: 13, color: themeNotifier.textSecondaryColor),
+          style: TextStyle(
+            fontSize: 13,
+            color: themeNotifier.textSecondaryColor,
+          ),
         ),
         SizedBox(height: 4),
         Container(
@@ -1156,7 +1164,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     _SectionLabel(text: 'APPEARANCE'.tr),
                     SizedBox(height: 8),
                     _ToggleTile(
-                      icon: themeNotifier.isDarkMode ? Icons.nightlight_round : Icons.wb_sunny_outlined,
+                      icon: themeNotifier.isDarkMode
+                          ? Icons.nightlight_round
+                          : Icons.wb_sunny_outlined,
                       title: 'Theme',
                       subtitle: themeNotifier.isDarkMode ? 'Dark' : 'Light',
                       value: !themeNotifier.isDarkMode,
@@ -1387,7 +1397,10 @@ class _ArrowTile extends StatelessWidget {
                   backgroundColor: Theme.of(context).colorScheme.primary,
                 )
               else
-                Icon(Icons.chevron_right, color: themeNotifier.textSecondaryColor),
+                Icon(
+                  Icons.chevron_right,
+                  color: themeNotifier.textSecondaryColor,
+                ),
             ],
           ),
         ),

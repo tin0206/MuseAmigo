@@ -224,31 +224,11 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Login', style: TextStyle(color: colorScheme.onPrimary)),
+        title: Text(
+          'MuseAmigo',
+          style: TextStyle(color: colorScheme.onPrimary),
+        ),
         backgroundColor: colorScheme.primary,
-        actions: [
-          IconButton(
-            icon: Icon(
-              themeNotifier.isDarkMode ? Icons.wb_sunny : Icons.nightlight_round,
-              color: colorScheme.onPrimary,
-            ),
-            onPressed: () {
-              themeNotifier.setThemeMode(
-                themeNotifier.isDarkMode ? ThemeMode.light : ThemeMode.dark,
-              );
-            },
-          ),
-          IconButton(
-            icon: Icon(Icons.color_lens, color: colorScheme.onPrimary),
-            onPressed: () {
-              themeNotifier.setPrimaryColor(
-                themeNotifier.primaryColor == AppTheme.redPrimary 
-                    ? AppTheme.yellowPrimary 
-                    : AppTheme.redPrimary,
-              );
-            },
-          ),
-        ],
       ),
       body: SafeArea(
         child: Padding(
@@ -381,7 +361,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       children: [
                         Text(
                           'Don\'t have an account?',
-                          style: TextStyle(fontSize: 17, color: colorScheme.onSurface),
+                          style: TextStyle(
+                            fontSize: 17,
+                            color: colorScheme.onSurface,
+                          ),
                         ),
                         InkWell(
                           onTap: _openSignUp,

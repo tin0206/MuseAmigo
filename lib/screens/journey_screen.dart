@@ -43,7 +43,11 @@ class _JourneyScreenState extends State<JourneyScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([languageNotifier, achievementNotifier, themeNotifier]),
+      listenable: Listenable.merge([
+        languageNotifier,
+        achievementNotifier,
+        themeNotifier,
+      ]),
       builder: (context, _) {
         // ── STEP 4: REMOVE STALE DATA SOURCES (ONLY READ FROM NOTIFIER) ──
         final totalPoints = achievementNotifier.totalPoints;
@@ -171,9 +175,7 @@ class _JourneyScreenState extends State<JourneyScreen> {
                   ),
                   SizedBox(height: 10),
                   if (achievementNotifier.isLoading)
-                    Expanded(
-                      child: Center(child: CircularProgressIndicator()),
-                    )
+                    Expanded(child: Center(child: CircularProgressIndicator()))
                   else
                     Expanded(
                       child: ListView.builder(
@@ -380,7 +382,9 @@ class _StatCard extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: 12,
-              color: active ? themeNotifier.surfaceColor : themeNotifier.textSecondaryColor,
+              color: active
+                  ? themeNotifier.surfaceColor
+                  : themeNotifier.textSecondaryColor,
             ),
           ),
         ],
@@ -427,7 +431,10 @@ class _ProgressCard extends StatelessWidget {
               ),
               Text(
                 '$unlockedCount/$maxArtifacts',
-                style: TextStyle(fontSize: 11, color: themeNotifier.textSecondaryColor),
+                style: TextStyle(
+                  fontSize: 11,
+                  color: themeNotifier.textSecondaryColor,
+                ),
               ),
             ],
           ),
@@ -515,13 +522,18 @@ class _ProgressStep extends StatelessWidget {
           child: Icon(
             icon,
             size: 13,
-            color: active ? themeNotifier.surfaceColor : themeNotifier.textSecondaryColor,
+            color: active
+                ? themeNotifier.surfaceColor
+                : themeNotifier.textSecondaryColor,
           ),
         ),
         SizedBox(height: 2),
         Text(
           label,
-          style: TextStyle(fontSize: 10, color: themeNotifier.textSecondaryColor),
+          style: TextStyle(
+            fontSize: 10,
+            color: themeNotifier.textSecondaryColor,
+          ),
         ),
       ],
     );
@@ -557,7 +569,9 @@ class _AchievementTile extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: unlocked ? themeNotifier.surfaceColor : themeNotifier.borderColor,
+        color: unlocked
+            ? themeNotifier.surfaceColor
+            : themeNotifier.borderColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: borderColor),
       ),
@@ -570,7 +584,9 @@ class _AchievementTile extends StatelessWidget {
                 : themeNotifier.borderColor,
             child: Icon(
               icon,
-              color: unlocked ? themeNotifier.surfaceColor : themeNotifier.textSecondaryColor,
+              color: unlocked
+                  ? themeNotifier.surfaceColor
+                  : themeNotifier.textSecondaryColor,
               size: 18,
             ),
           ),

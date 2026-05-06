@@ -73,8 +73,18 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
         final month = int.parse(parts[1]);
         final day = int.parse(parts[2]);
         final monthNames = [
-          'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'May',
+          'Jun',
+          'Jul',
+          'Aug',
+          'Sep',
+          'Oct',
+          'Nov',
+          'Dec',
         ];
         return '${monthNames[month - 1]} ${day.toString().padLeft(2, '0')}, $year';
       }
@@ -124,9 +134,7 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
                         indicatorSize: TabBarIndicatorSize.tab,
                         indicator: BoxDecoration(
                           color: Theme.of(context).colorScheme.primary,
-                          borderRadius: BorderRadius.all(
-                            Radius.circular(18),
-                          ),
+                          borderRadius: BorderRadius.all(Radius.circular(18)),
                         ),
                         splashBorderRadius: BorderRadius.all(
                           Radius.circular(18),
@@ -200,10 +208,7 @@ class _TicketList extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'Tickets you purchase will appear here'.tr,
-              style: const TextStyle(
-                fontSize: 14,
-                color: Color(0xFF9CA3AF),
-              ),
+              style: const TextStyle(fontSize: 14, color: Color(0xFF9CA3AF)),
             ),
           ],
         ),
@@ -269,10 +274,7 @@ class _TicketCard extends StatelessWidget {
                     ),
                   ),
                   Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: themeNotifier.surfaceColor.withValues(alpha: 0.25),
                       borderRadius: BorderRadius.circular(12),
@@ -371,9 +373,7 @@ class _TicketCard extends StatelessWidget {
                             icon: Icon(Icons.qr_code_2, size: 18),
                             label: Text(
                               'Show QR Code'.tr,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                              ),
+                              style: TextStyle(fontWeight: FontWeight.w700),
                             ),
                           ),
                         ),
@@ -606,7 +606,10 @@ class _InfoRow extends StatelessWidget {
           children: [
             Text(
               label,
-              style: TextStyle(fontSize: 15, color: themeNotifier.textSecondaryColor),
+              style: TextStyle(
+                fontSize: 15,
+                color: themeNotifier.textSecondaryColor,
+              ),
             ),
             SizedBox(height: 4),
             Text(
@@ -631,7 +634,10 @@ class _InfoRow extends StatelessWidget {
             width: 108,
             child: Text(
               label,
-              style: TextStyle(fontSize: 15, color: themeNotifier.textSecondaryColor),
+              style: TextStyle(
+                fontSize: 15,
+                color: themeNotifier.textSecondaryColor,
+              ),
             ),
           ),
           SizedBox(width: 8),

@@ -2022,11 +2022,11 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                             children: [
                               Text(
                                 'Ogima',
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w700,
-                                    color: themeNotifier.textPrimaryColor,
-                                  ),
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w700,
+                                  color: themeNotifier.textPrimaryColor,
+                                ),
                               ),
                               SizedBox(width: 6),
                               Text(
@@ -2207,7 +2207,9 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                 Container(
                   decoration: BoxDecoration(
                     color: themeNotifier.backgroundColor,
-                    border: Border(top: BorderSide(color: themeNotifier.borderColor)),
+                    border: Border(
+                      top: BorderSide(color: themeNotifier.borderColor),
+                    ),
                   ),
                   padding: EdgeInsets.fromLTRB(10, 10, 10, 10),
                   child: Row(
@@ -2221,7 +2223,9 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                           decoration: BoxDecoration(
                             color: themeNotifier.surfaceColor,
                             borderRadius: BorderRadius.circular(24),
-                            border: Border.all(color: themeNotifier.borderColor),
+                            border: Border.all(
+                              color: themeNotifier.borderColor,
+                            ),
                           ),
                           child: TextField(
                             controller: _messageController,
@@ -2636,7 +2640,9 @@ class _MessageBubble extends StatelessWidget {
             message.text.tr,
             style: TextStyle(
               fontSize: 14,
-              color: isUser ? themeNotifier.surfaceColor : themeNotifier.textPrimaryColor,
+              color: isUser
+                  ? themeNotifier.surfaceColor
+                  : themeNotifier.textPrimaryColor,
               height: 1.35,
             ),
           ),

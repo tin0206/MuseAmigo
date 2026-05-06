@@ -41,8 +41,12 @@ class AppTheme {
 
   static ThemeData darkTheme(Color primaryColor) {
     final bool isYellow = primaryColor.value == yellowPrimary.value;
-    final Color topCardColor = isYellow ? const Color(0xFF18181B) : const Color(0xFFFFFFFF);
-    final Color onTopCardColor = isYellow ? const Color(0xFFFFFFFF) : const Color(0xFF0A0A0A);
+    final Color topCardColor = isYellow
+        ? const Color(0xFF18181B)
+        : const Color(0xFFFFFFFF);
+    final Color onTopCardColor = isYellow
+        ? const Color(0xFFFFFFFF)
+        : const Color(0xFF0A0A0A);
 
     return ThemeData(
       brightness: Brightness.dark,
@@ -96,12 +100,17 @@ class ThemeNotifier extends ChangeNotifier {
   /// Convenience getter for whether the current mode is dark.
   bool get isDarkMode => _themeMode == ThemeMode.dark;
 
-  Color get backgroundColor => isDarkMode ? const Color(0xFF09090B) : const Color(0xFFFFFFFF);
-  Color get surfaceColor => isDarkMode ? const Color(0xFF18181B) : const Color(0xFFEEEEEE);
-  Color get textPrimaryColor => isDarkMode ? const Color(0xFFA1A1AA) : const Color(0xFF0A0A0A);
-  Color get textSecondaryColor => isDarkMode ? const Color(0xFFA1A1AA).withAlpha(179) : const Color(0xFF0A0A0A).withAlpha(179);
-  Color get borderColor => isDarkMode ? const Color(0xFF18181B) : const Color(0xFFEEEEEE);
-
+  Color get backgroundColor =>
+      isDarkMode ? const Color(0xFF09090B) : const Color(0xFFFFFFFF);
+  Color get surfaceColor =>
+      isDarkMode ? const Color(0xFF18181B) : const Color(0xFFEEEEEE);
+  Color get textPrimaryColor =>
+      isDarkMode ? const Color(0xFFA1A1AA) : const Color(0xFF0A0A0A);
+  Color get textSecondaryColor => isDarkMode
+      ? const Color(0xFFA1A1AA).withAlpha(179)
+      : const Color(0xFF0A0A0A).withAlpha(179);
+  Color get borderColor =>
+      isDarkMode ? const Color(0xFF18181B) : const Color(0xFFEEEEEE);
 
   /// Updates the primary color and notifies all listeners so
   /// the [MaterialApp] rebuilds its theme.

@@ -38,9 +38,11 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
     final q = query.toLowerCase();
     setState(() {
       _searchResults = _currentConfig.locationOptions
-          .where((l) =>
-              l.name.toLowerCase().contains(q) ||
-              l.subtitle.toLowerCase().contains(q))
+          .where(
+            (l) =>
+                l.name.toLowerCase().contains(q) ||
+                l.subtitle.toLowerCase().contains(q),
+          )
           .toList();
     });
   }
@@ -124,7 +126,11 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.search, color: Color(0xFF9CA3AF), size: 20),
+                    const Icon(
+                      Icons.search,
+                      color: Color(0xFF9CA3AF),
+                      size: 20,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: TextField(
@@ -145,7 +151,11 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                           _searchController.clear();
                           _onSearchChanged('');
                         },
-                        child: const Icon(Icons.close, color: Color(0xFF9CA3AF), size: 18),
+                        child: const Icon(
+                          Icons.close,
+                          color: Color(0xFF9CA3AF),
+                          size: 18,
+                        ),
                       ),
                   ],
                 ),
@@ -156,10 +166,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
               height: 50,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
-                padding: EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 itemCount: _floors.length + 1,
                 separatorBuilder: (_, index) =>
                     SizedBox(width: index == _floors.length - 1 ? 140 : 8),
@@ -297,8 +304,16 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                             final loc = _searchResults[i];
                             return ListTile(
                               leading: Icon(loc.icon, color: loc.iconColor),
-                              title: Text(loc.name.tr, style: const TextStyle(fontWeight: FontWeight.w600)),
-                              subtitle: Text(loc.subtitle.tr, style: const TextStyle(fontSize: 12)),
+                              title: Text(
+                                loc.name.tr,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              subtitle: Text(
+                                loc.subtitle.tr,
+                                style: const TextStyle(fontSize: 12),
+                              ),
                               onTap: () async {
                                 _searchController.clear();
                                 _onSearchChanged('');
@@ -306,19 +321,27 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                                 if (floor != null) {
                                   setState(() => _selectedFloor = floor);
                                 }
-                                
-                                final fromLoc = await showModalBottomSheet<_LocationOption>(
-                                  context: context,
-                                  isScrollControlled: true,
-                                  backgroundColor: Colors.white,
-                                  shape: const RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                                  ),
-                                  builder: (_) => _LocationPickerSheet(options: _currentConfig.locationOptions),
-                                );
+
+                                final fromLoc =
+                                    await showModalBottomSheet<_LocationOption>(
+                                      context: context,
+                                      isScrollControlled: true,
+                                      backgroundColor: Colors.white,
+                                      shape: const RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.vertical(
+                                          top: Radius.circular(20),
+                                        ),
+                                      ),
+                                      builder: (_) => _LocationPickerSheet(
+                                        options: _currentConfig.locationOptions,
+                                      ),
+                                    );
                                 if (fromLoc == null || !mounted) return;
-                                
-                                final route = _buildInitialRouteFromLocations(fromLoc.name, loc.name);
+
+                                final route = _buildInitialRouteFromLocations(
+                                  fromLoc.name,
+                                  loc.name,
+                                );
                                 if (route != null) {
                                   _showRouteReady(route);
                                 }
@@ -395,9 +418,12 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
   }
 
   Future<void> _showRoutePicker(
-      _LocationOption from, List<_RouteOption> routes) async {
-    List<_RouteOption> suggestedRoutes =
-        routes.where((route) => route.stops.first.name == from.name).toList();
+    _LocationOption from,
+    List<_RouteOption> routes,
+  ) async {
+    List<_RouteOption> suggestedRoutes = routes
+        .where((route) => route.stops.first.name == from.name)
+        .toList();
 
     if (suggestedRoutes.isEmpty) {
       suggestedRoutes = _generateDynamicRoutes(from);
@@ -419,36 +445,64 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
     final fromLoc = _findLocationByName(fromOption.name);
     if (fromLoc == null) return [];
 
-    final allLocs = _currentConfig.locations.where((l) => 
-        l.name != fromLoc.name && 
-        !l.name.contains('Restroom') && 
-        !l.name.contains('Stairs') &&
-        !l.name.contains('Entrance')).toList();
-        
+    final allLocs = _currentConfig.locations
+        .where(
+          (l) =>
+              l.name != fromLoc.name &&
+              !l.name.contains('Restroom') &&
+              !l.name.contains('Stairs') &&
+              !l.name.contains('Entrance'),
+        )
+        .toList();
+
     final sameFloor = allLocs.where((l) => l.floor == fromLoc.floor).toList();
-    final quickTargets = sameFloor.isNotEmpty ? sameFloor.take(2).toList() : allLocs.take(2).toList();
-    
+    final quickTargets = sameFloor.isNotEmpty
+        ? sameFloor.take(2).toList()
+        : allLocs.take(2).toList();
+
     final fullTargets = allLocs.take(5).toList();
 
     List<_RouteStop> buildStops(List<_MapLocation> targets) {
       final stops = <_RouteStop>[];
       var currentLoc = fromLoc;
-      
-      stops.add(_RouteStop(name: currentLoc.name, subtitle: _subtitleForLocation(currentLoc)));
+
+      stops.add(
+        _RouteStop(
+          name: currentLoc.name,
+          subtitle: _subtitleForLocation(currentLoc),
+        ),
+      );
 
       for (var target in targets) {
         if (currentLoc.floor != target.floor) {
-          final fromStairs = _findLocationByName('Stairs - ${currentLoc.floor}');
+          final fromStairs = _findLocationByName(
+            'Stairs - ${currentLoc.floor}',
+          );
           final toStairs = _findLocationByName('Stairs - ${target.floor}');
           if (fromStairs != null && stops.last.name != fromStairs.name) {
-            stops.add(_RouteStop(name: fromStairs.name, subtitle: _subtitleForLocation(fromStairs)));
+            stops.add(
+              _RouteStop(
+                name: fromStairs.name,
+                subtitle: _subtitleForLocation(fromStairs),
+              ),
+            );
           }
           if (toStairs != null) {
-            stops.add(_RouteStop(name: toStairs.name, subtitle: _subtitleForLocation(toStairs)));
+            stops.add(
+              _RouteStop(
+                name: toStairs.name,
+                subtitle: _subtitleForLocation(toStairs),
+              ),
+            );
           }
         }
         if (stops.isEmpty || stops.last.name != target.name) {
-          stops.add(_RouteStop(name: target.name, subtitle: _subtitleForLocation(target)));
+          stops.add(
+            _RouteStop(
+              name: target.name,
+              subtitle: _subtitleForLocation(target),
+            ),
+          );
         }
         currentLoc = target;
       }
@@ -611,7 +665,10 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
     return _findLocationByName(stopName)?.floor;
   }
 
-  _RouteOption? _buildInitialRouteFromLocations(String fromName, String toName) {
+  _RouteOption? _buildInitialRouteFromLocations(
+    String fromName,
+    String toName,
+  ) {
     final from = _findLocationByName(fromName);
     final to = _findLocationByName(toName);
     if (from == null || to == null) {
@@ -656,10 +713,14 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
   }
 
   _RouteOption? _buildInitialRoute() {
-    if (widget.initialFromLocationName == null || widget.initialToLocationName == null) {
+    if (widget.initialFromLocationName == null ||
+        widget.initialToLocationName == null) {
       return null;
     }
-    return _buildInitialRouteFromLocations(widget.initialFromLocationName!, widget.initialToLocationName!);
+    return _buildInitialRouteFromLocations(
+      widget.initialFromLocationName!,
+      widget.initialToLocationName!,
+    );
   }
 
   static String _subtitleForLocation(_MapLocation location) {
@@ -1633,7 +1694,7 @@ class _DetectingScreenState extends State<_DetectingScreen>
       begin: 0.8,
       end: 1.2,
     ).animate(CurvedAnimation(parent: _pulse, curve: Curves.easeInOut));
-    
+
     _checkLocation();
   }
 
@@ -1655,17 +1716,17 @@ class _DetectingScreenState extends State<_DetectingScreen>
         return;
       }
     }
-    
+
     if (permission == LocationPermission.deniedForever) {
       _failAndPop();
       return;
-    } 
+    }
 
     try {
       await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           timeLimit: Duration(seconds: 5),
-        )
+        ),
       );
       if (mounted) Navigator.of(context).pop(true);
     } catch (_) {
@@ -1697,11 +1758,7 @@ class _DetectingScreenState extends State<_DetectingScreen>
           children: [
             ScaleTransition(
               scale: _scale,
-              child: Icon(
-                Icons.gps_fixed,
-                color: Color(0xFF22C55E),
-                size: 52,
-              ),
+              child: Icon(Icons.gps_fixed, color: Color(0xFF22C55E), size: 52),
             ),
             SizedBox(height: 24),
             Text(
@@ -1772,7 +1829,10 @@ class _LocationPickerSheet extends StatelessWidget {
                   ),
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    icon: Icon(Icons.close, color: themeNotifier.textSecondaryColor),
+                    icon: Icon(
+                      Icons.close,
+                      color: themeNotifier.textSecondaryColor,
+                    ),
                   ),
                 ],
               ),
@@ -1782,7 +1842,10 @@ class _LocationPickerSheet extends StatelessWidget {
               child: Text(
                 'Indoor positioning unavailable. Select your nearest location.'
                     .tr,
-                style: TextStyle(fontSize: 13, color: themeNotifier.textSecondaryColor),
+                style: TextStyle(
+                  fontSize: 13,
+                  color: themeNotifier.textSecondaryColor,
+                ),
               ),
             ),
             const Divider(height: 1),
@@ -1880,7 +1943,10 @@ class _RoutePickerSheet extends StatelessWidget {
                   ),
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    icon: Icon(Icons.close, color: themeNotifier.textSecondaryColor),
+                    icon: Icon(
+                      Icons.close,
+                      color: themeNotifier.textSecondaryColor,
+                    ),
                   ),
                 ],
               ),
@@ -1889,7 +1955,10 @@ class _RoutePickerSheet extends StatelessWidget {
               padding: EdgeInsets.fromLTRB(20, 0, 20, 12),
               child: Text(
                 'Choose a guided path to explore the museum'.tr,
-                style: TextStyle(fontSize: 13, color: themeNotifier.textSecondaryColor),
+                style: TextStyle(
+                  fontSize: 13,
+                  color: themeNotifier.textSecondaryColor,
+                ),
               ),
             ),
             Expanded(
@@ -1916,10 +1985,7 @@ class _RoutePickerSheet extends StatelessWidget {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            route.emoji,
-                            style: TextStyle(fontSize: 26),
-                          ),
+                          Text(route.emoji, style: TextStyle(fontSize: 26)),
                           SizedBox(width: 12),
                           Expanded(
                             child: Column(
@@ -2047,7 +2113,10 @@ class _RouteReadySheet extends StatelessWidget {
                   ),
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    icon: Icon(Icons.close, color: themeNotifier.textSecondaryColor),
+                    icon: Icon(
+                      Icons.close,
+                      color: themeNotifier.textSecondaryColor,
+                    ),
                   ),
                 ],
               ),
@@ -2236,16 +2305,16 @@ class _NavigationPanel extends StatelessWidget {
             children: [
               Text(
                 '${'Navigating - Stop'.tr} ${currentStopIndex + 1}/${route.stops.length}',
-                style: TextStyle(color: themeNotifier.surfaceColor, fontSize: 12),
+                style: TextStyle(
+                  color: themeNotifier.surfaceColor,
+                  fontSize: 12,
+                ),
               ),
               const Spacer(),
               GestureDetector(
                 onTap: onStop,
                 child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 4,
-                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.24),
                     borderRadius: BorderRadius.circular(20),
@@ -2288,9 +2357,7 @@ class _NavigationPanel extends StatelessWidget {
                   ),
                   height: 3,
                   decoration: BoxDecoration(
-                    color: done
-                        ? Colors.white
-                        : Colors.white.withOpacity(0.3),
+                    color: done ? Colors.white : Colors.white.withOpacity(0.3),
                     borderRadius: BorderRadius.circular(3),
                   ),
                 ),
@@ -2567,7 +2634,10 @@ class _LegendItem extends StatelessWidget {
         SizedBox(width: 4),
         Text(
           label,
-          style: TextStyle(fontSize: 11, color: themeNotifier.textSecondaryColor),
+          style: TextStyle(
+            fontSize: 11,
+            color: themeNotifier.textSecondaryColor,
+          ),
         ),
       ],
     );
