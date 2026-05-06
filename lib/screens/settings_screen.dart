@@ -5,6 +5,8 @@ import 'package:museamigo/profile_notifier.dart';
 import 'package:museamigo/language_notifier.dart';
 import 'package:museamigo/font_size_notifier.dart';
 import 'package:museamigo/l10n/translations.dart';
+import 'package:museamigo/services/backend_api.dart';
+import 'package:museamigo/session.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -17,10 +19,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _audioGuide = true;
   bool _autoPlay = false;
   bool _indoorNavigation = true;
-  final String _fontSize = 'Medium';
+
   double _horizontalDragDistance = 0;
   bool _isEdgeSwipe = false;
   bool _hasPoppedBySwipe = false;
+
+  Future<void> _saveSettingsToBackend() async {
+    if (AppSession.userId.value == null) return;
+    try {
+      await BackendApi.instance.updateUserSettings(
+        AppSession.userId.value!,
+        theme: themeNotifier.isDarkMode ? 'dark' : 'light',
+        language: languageNotifier.currentLanguage,
+        fontSize: fontSizeNotifier.levelName,
+        scheme:
+            '0x${themeNotifier.primaryColor.value.toRadixString(16).padLeft(8, '0').toUpperCase()}',
+      );
+    } catch (e) {
+      debugPrint('Failed to save settings to backend: $e');
+    }
+  }
 
   void _handleSwipeStart(DragStartDetails details) {
     _horizontalDragDistance = 0;
@@ -252,6 +270,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       child: ElevatedButton.icon(
                         onPressed: () {
                           themeNotifier.setPrimaryColor(selected);
+                          _saveSettingsToBackend();
                           Navigator.of(ctx).pop();
                         },
                         style: ElevatedButton.styleFrom(
@@ -373,6 +392,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: ElevatedButton(
                     onPressed: () {
                       languageNotifier.setLanguage(temp);
+                      _saveSettingsToBackend();
                       Navigator.of(ctx).pop();
                     },
                     style: ElevatedButton.styleFrom(
@@ -500,6 +520,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: ElevatedButton(
                     onPressed: () {
                       fontSizeNotifier.setLevel(temp);
+                      _saveSettingsToBackend();
                       Navigator.of(ctx).pop();
                     },
                     style: ElevatedButton.styleFrom(
@@ -918,77 +939,91 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _showLogoutConfirmDialog(BuildContext context) {
     showDialog<void>(
       context: context,
-      builder: (ctx) => Dialog(
-        backgroundColor: themeNotifier.surfaceColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(18, 16, 18, 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Confirm Logout'.tr,
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: themeNotifier.textPrimaryColor,
-                ),
-              ),
-              SizedBox(height: 8),
-              Text(
-                'Are you sure you want to log out?'.tr,
-                style: TextStyle(fontSize: 13, color: themeNotifier.textSecondaryColor),
-              ),
-              SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.of(ctx).pop(),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: themeNotifier.borderColor),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        padding: EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      child: Text(
-                        'No'.tr,
-                        style: TextStyle(color: themeNotifier.textSecondaryColor),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(ctx).pop();
-                        Navigator.of(context).pushNamedAndRemoveUntil(
-                          AppRoutes.login,
-                          (route) => false,
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        foregroundColor: themeNotifier.surfaceColor,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        padding: EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      child: Text(
-                        'Yes'.tr,
-                        style: TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+      builder: (ctx) {
+        final scheme = Theme.of(ctx).colorScheme;
+        final primary = scheme.primary;
+
+        return Dialog(
+          backgroundColor: scheme.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
           ),
-        ),
-      ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Confirm Logout'.tr,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: primary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Are you sure you want to log out?'.tr,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: scheme.onSurface.withValues(alpha: 0.68),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(ctx).pop(),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: primary,
+                          backgroundColor: primary.withValues(alpha: 0.06),
+                          side: BorderSide(
+                            color: primary.withValues(alpha: 0.35),
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        child: Text(
+                          'No'.tr,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(ctx).pop();
+                          Navigator.of(context).pushNamedAndRemoveUntil(
+                            AppRoutes.login,
+                            (route) => false,
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primary,
+                          foregroundColor: scheme.onPrimary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        child: Text(
+                          'Yes'.tr,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -1021,18 +1056,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Settings'.tr,
-                      style: TextStyle(
-                        fontSize: 38,
-                        fontWeight: FontWeight.w500,
-                        color: themeNotifier.textPrimaryColor,
-                      ),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      'Customize your museum experience'.tr,
-                      style: TextStyle(fontSize: 12, color: themeNotifier.textSecondaryColor),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Settings'.tr,
+                                style: const TextStyle(
+                                  fontSize: 38,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFF171A21),
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Customize your museum experience'.tr,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF6B7280),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.of(context).maybePop(),
+                          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                          color: Theme.of(context).colorScheme.primary,
+                          tooltip: 'Back',
+                        ),
+                      ],
                     ),
                     SizedBox(height: 12),
                     Material(
@@ -1106,7 +1161,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       subtitle: themeNotifier.isDarkMode ? 'Dark' : 'Light',
                       value: !themeNotifier.isDarkMode,
                       onChanged: (v) {
-                        themeNotifier.setThemeMode(v ? ThemeMode.light : ThemeMode.dark);
+                        themeNotifier.setThemeMode(
+                          v ? ThemeMode.light : ThemeMode.dark,
+                        );
+                        _saveSettingsToBackend();
                       },
                     ),
                     SizedBox(height: 8),
@@ -1206,8 +1264,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           foregroundColor: Theme.of(
                             context,
                           ).colorScheme.primary,
-                          side: BorderSide(color: themeNotifier.borderColor),
-                          backgroundColor: themeNotifier.surfaceColor,
+                          side: BorderSide(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.primary.withValues(alpha: 0.35),
+                          ),
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.primary.withValues(alpha: 0.06),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),

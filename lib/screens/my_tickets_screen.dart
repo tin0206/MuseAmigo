@@ -3,6 +3,7 @@ import 'package:museamigo/language_notifier.dart';
 import 'package:museamigo/l10n/translations.dart';
 import 'package:museamigo/services/backend_api.dart';
 import 'package:museamigo/theme_notifier.dart';
+import 'package:museamigo/session.dart';
 
 class MyTicketsScreen extends StatefulWidget {
   const MyTicketsScreen({super.key});
@@ -23,69 +24,62 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
   }
 
   Future<List<_TicketData>> _loadTickets() async {
+    final userId = AppSession.userId.value;
+    if (userId == null) {
+      return <_TicketData>[];
+    }
     try {
-      final museums = await BackendApi.instance.fetchMuseums();
-      if (museums.isEmpty) {
-        return _fallbackTickets();
-      }
-
-      return museums.asMap().entries.map((entry) {
-        final index = entry.key;
-        final museum = entry.value;
-        final serial = (index + 1).toString().padLeft(3, '0');
-        return _TicketData(
-          title: museum.name,
-          subtitle: 'Adult - General Admission',
-          date: _sampleDateForIndex(index),
-          time: _sampleTimeForIndex(index),
-          location: 'Main Entrance',
-          id: 'TKT$serial',
-          priceVnd: _defaultTicketPriceVnd,
-          active: index % 2 == 0,
-        );
-      }).toList();
+      final rawTickets = await BackendApi.instance.fetchUserTickets(userId);
+      return rawTickets.map((json) => _mapBackendTicket(json)).toList();
     } catch (_) {
-      return _fallbackTickets();
+      return <_TicketData>[];
     }
   }
 
-  static String _sampleDateForIndex(int index) {
-    const dates = <String>[
-      'May 08, 2026',
-      'May 14, 2026',
-      'May 22, 2026',
-      'May 30, 2026',
-    ];
-    return dates[index % dates.length];
+  static _TicketData _mapBackendTicket(Map<String, dynamic> json) {
+    final purchaseDate = json['purchase_date'] as String? ?? '';
+    final isUsed = json['is_used'] as bool? ?? false;
+    final today = _formatDate(DateTime.now());
+
+    // Upcoming = today's ticket AND not used
+    // Past = used OR expired (purchase_date < today)
+    final isUpcoming = purchaseDate == today && !isUsed;
+    final isPast = isUsed || (purchaseDate.isNotEmpty && purchaseDate != today);
+
+    return _TicketData(
+      title: json['museum_name'] as String? ?? 'Unknown Museum',
+      subtitle: json['ticket_type'] as String? ?? 'General Admission',
+      date: _formatDateFriendly(purchaseDate),
+      time: '09:00 AM',
+      location: 'Main Entrance',
+      id: json['qr_code'] as String? ?? 'N/A',
+      priceVnd: _defaultTicketPriceVnd,
+      active: !isUsed && purchaseDate == today,
+      isUpcoming: isUpcoming,
+      isPast: isPast,
+    );
   }
 
-  static String _sampleTimeForIndex(int index) {
-    const times = <String>['09:00 AM', '10:30 AM', '01:30 PM', '03:00 PM'];
-    return times[index % times.length];
+  static String _formatDate(DateTime d) {
+    return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
   }
 
-  static List<_TicketData> _fallbackTickets() {
-    const museumNames = <String>[
-      'Independence Palace',
-      'War Remnants Museum',
-      'HCMC Museum of Fine Arts',
-      'Ho Chi Minh City Museum',
-    ];
-
-    return museumNames.asMap().entries.map((entry) {
-      final index = entry.key;
-      final serial = (index + 1).toString().padLeft(3, '0');
-      return _TicketData(
-        title: entry.value,
-        subtitle: 'Adult - General Admission',
-        date: _sampleDateForIndex(index),
-        time: _sampleTimeForIndex(index),
-        location: 'Main Entrance',
-        id: 'TKT$serial',
-        priceVnd: _defaultTicketPriceVnd,
-        active: index % 2 == 0,
-      );
-    }).toList();
+  static String _formatDateFriendly(String raw) {
+    if (raw.isEmpty) return 'N/A';
+    try {
+      final parts = raw.split('-');
+      if (parts.length == 3) {
+        final year = int.parse(parts[0]);
+        final month = int.parse(parts[1]);
+        final day = int.parse(parts[2]);
+        final monthNames = [
+          'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+        ];
+        return '${monthNames[month - 1]} ${day.toString().padLeft(2, '0')}, $year';
+      }
+    } catch (_) {}
+    return raw;
   }
 
   @override
@@ -102,7 +96,9 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
               );
             }
 
-            final tickets = snapshot.data ?? _fallbackTickets();
+            final tickets = snapshot.data ?? <_TicketData>[];
+            final upcoming = tickets.where((e) => e.isUpcoming).toList();
+            final past = tickets.where((e) => e.isPast).toList();
 
             return DefaultTabController(
               length: 3,
@@ -162,12 +158,8 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
                 body: TabBarView(
                   children: [
                     _TicketList(tickets: tickets),
-                    _TicketList(
-                      tickets: tickets.where((e) => e.active).toList(),
-                    ),
-                    _TicketList(
-                      tickets: tickets.where((e) => !e.active).toList(),
-                    ),
+                    _TicketList(tickets: upcoming),
+                    _TicketList(tickets: past),
                   ],
                 ),
               ),
@@ -186,6 +178,37 @@ class _TicketList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (tickets.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.confirmation_num_outlined,
+              size: 64,
+              color: const Color(0xFFD1D5DB),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No tickets found'.tr,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF6B7280),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Tickets you purchase will appear here'.tr,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Color(0xFF9CA3AF),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     return ListView.separated(
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       itemCount: tickets.length,
@@ -639,6 +662,8 @@ class _TicketData {
     required this.id,
     required this.priceVnd,
     required this.active,
+    this.isUpcoming = false,
+    this.isPast = false,
   });
 
   final String title;
@@ -649,4 +674,6 @@ class _TicketData {
   final String id;
   final int priceVnd;
   final bool active;
+  final bool isUpcoming;
+  final bool isPast;
 }

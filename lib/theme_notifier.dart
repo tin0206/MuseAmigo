@@ -102,6 +102,7 @@ class ThemeNotifier extends ChangeNotifier {
   Color get textSecondaryColor => isDarkMode ? const Color(0xFFA1A1AA).withAlpha(179) : const Color(0xFF0A0A0A).withAlpha(179);
   Color get borderColor => isDarkMode ? const Color(0xFF18181B) : const Color(0xFFEEEEEE);
 
+
   /// Updates the primary color and notifies all listeners so
   /// the [MaterialApp] rebuilds its theme.
   void setPrimaryColor(Color color) {

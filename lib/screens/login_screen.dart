@@ -11,6 +11,8 @@ import 'package:museamigo/widgets/auth_form_widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:museamigo/achievement_notifier.dart';
 import 'package:museamigo/theme_notifier.dart';
+import 'package:museamigo/language_notifier.dart';
+import 'package:museamigo/font_size_notifier.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -130,6 +132,42 @@ class _LoginScreenState extends State<LoginScreen> {
         name: result.fullName,
         email: _emailController.text.trim(),
       );
+      final languageRaw = result.language.trim().toLowerCase();
+      final resolvedLanguage =
+          (languageRaw == 'vi' || languageRaw == 'vietnamese')
+          ? 'Vietnamese'
+          : 'English';
+
+      // Apply settings from backend
+      languageNotifier.setLanguage(resolvedLanguage);
+
+      final themeRaw = result.theme.trim().toLowerCase();
+      themeNotifier.setThemeMode(
+        themeRaw == 'dark' ? ThemeMode.dark : ThemeMode.light,
+      );
+
+      final fontSizeStr = result.fontSize.toLowerCase();
+      FontSizeLevel fontSizeLevel = FontSizeLevel.medium;
+      if (fontSizeStr == 'small') fontSizeLevel = FontSizeLevel.small;
+      if (fontSizeStr == 'large') fontSizeLevel = FontSizeLevel.large;
+      fontSizeNotifier.setLevel(fontSizeLevel);
+
+      try {
+        final rawScheme = result.scheme.trim();
+        late final int colorValue;
+        if (rawScheme.startsWith('0x') || rawScheme.startsWith('0X')) {
+          colorValue = int.parse(rawScheme);
+        } else {
+          final cleanHex = rawScheme.replaceAll('#', '');
+          final normalizedHex = cleanHex.length == 6 ? 'FF$cleanHex' : cleanHex;
+          colorValue = int.parse('0x$normalizedHex');
+        }
+        themeNotifier.setPrimaryColor(Color(colorValue));
+      } catch (e) {
+        // fallback
+        themeNotifier.setPrimaryColor(Color(int.parse('0xFFCC353A')));
+      }
+
       // Start preloading achievements right after login
       achievementNotifier.ensureLoaded();
     } on SocketException catch (e) {

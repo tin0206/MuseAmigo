@@ -1,6 +1,8 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:museamigo/app_routes.dart';
+import 'package:museamigo/font_size_notifier.dart';
 import 'package:museamigo/l10n/translations.dart';
 import 'package:museamigo/language_notifier.dart';
 import 'package:museamigo/screens/museum_3d_map_screen.dart';
@@ -23,6 +25,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   final List<_ChatMessage> _messages = <_ChatMessage>[];
 
   bool _isAiTyping = false;
+  bool _isTranslating = false;
   _PendingRouteRequest? _pendingRouteRequest;
 
   bool get _useVietnameseReplies =>
@@ -33,13 +36,11 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     super.initState();
     _seedGreetingForCurrentMuseum();
     AppSession.currentMuseumName.addListener(_onMuseumContextChanged);
-    languageNotifier.addListener(_onLanguageChanged);
   }
 
   @override
   void dispose() {
     AppSession.currentMuseumName.removeListener(_onMuseumContextChanged);
-    languageNotifier.removeListener(_onLanguageChanged);
     _messageController.dispose();
     _scrollController.dispose();
     _quickAccessScrollController.dispose();
@@ -82,32 +83,10 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     );
   }
 
-  void _onLanguageChanged() {
-    if (!mounted || _messages.isEmpty) {
-      return;
-    }
-
-    final firstMessage = _messages.first;
-    if (firstMessage.isUser ?? true) {
-      return;
-    }
-
-    setState(() {
-      _messages[0] = _ChatMessage(
-        text: _buildGreetingMessage(
-          AppSession.currentMuseumName.value,
-          _useVietnameseReplies,
-        ),
-        time: _formatTime(DateTime.now()),
-        isUser: false,
-      );
-    });
-  }
-
   static String _buildGreetingMessage(String museumName, bool isVietnamese) {
     if (isVietnamese) {
       return 'Xin chào! Mình là Ogima, hướng dẫn viên cá nhân của bạn tại $museumName. '
-          'ình có thể giúp bạn khám phá hiện vật, chỉ đường trong museum, '
+          'Mình có thể giúp bạn khám phá hiện vật, chỉ đường trong museum, '
           'trả lời câu hỏi và gợi ý các trưng bày thú vị. '
           'ôm nay mình có thể hỗ trợ bạn điều gì?';
     }
@@ -242,6 +221,58 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
           sourceMessage.sourceQuestion ?? sourceMessage.text,
         );
         break;
+      case _ChatActionType.schemeOption:
+        final color = action.color;
+        if (color != null) {
+          themeNotifier.setPrimaryColor(color);
+          _applySettingsToBackend(
+            scheme: (action.value ?? '').replaceFirst('#', ''),
+          );
+        }
+        if (!mounted) return;
+        _addBotMessage(
+          _useVietnameseReplies
+              ? 'Đã chuyển màu scheme sang ${action.label} (${action.value})!'
+              : 'Switched scheme color to ${action.label} (${action.value})!',
+        );
+        break;
+      case _ChatActionType.themeOption:
+        final themeValue = action.value ?? 'light';
+        themeNotifier.setThemeMode(
+          themeValue == 'dark' ? ThemeMode.dark : ThemeMode.light,
+        );
+        _applySettingsToBackend(theme: themeValue);
+        if (!mounted) return;
+        _addBotMessage(
+          _useVietnameseReplies
+              ? (themeValue == 'dark'
+                    ? 'Đã chuyển sang Dark Theme!'
+                    : 'Đã chuyển sang Light Theme!')
+              : (themeValue == 'dark'
+                    ? 'Switched to Dark Theme!'
+                    : 'Switched to Light Theme!'),
+        );
+        break;
+      case _ChatActionType.languageOption:
+        final lang = action.value ?? 'English';
+        languageNotifier.setLanguage(lang);
+        _applySettingsToBackend(language: lang == 'Vietnamese' ? 'vi' : 'en');
+        break;
+      case _ChatActionType.fontSizeOption:
+        final levelName = action.value ?? 'medium';
+        final level = FontSizeLevel.values.firstWhere(
+          (l) => l.name == levelName,
+          orElse: () => FontSizeLevel.medium,
+        );
+        fontSizeNotifier.setLevel(level);
+        _applySettingsToBackend(fontSize: level.name);
+        if (!mounted) return;
+        _addBotMessage(
+          _useVietnameseReplies
+              ? 'Đã chuyển cỡ chữ sang ${action.label}!'
+              : 'Font size changed to ${action.label}!',
+        );
+        break;
     }
   }
 
@@ -250,7 +281,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       return;
     }
     await Navigator.of(context).push(
-      MaterialPageRoute(
+      _SlidePageRoute<void>(
         builder: (_) => Museum3DMapScreen(
           initialFromLocationName: action.fromLocationName,
           initialToLocationName: action.toLocationName,
@@ -296,51 +327,96 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   Future<_ResolvedReply> _resolveReplyForInput(String text) async {
     final normalized = _normalizeForIntent(text);
     final isVietnamese = _useVietnameseReplies;
+
+    // Handle settings intents before any network-dependent logic.
+    if (_isSchemeChangeIntent(normalized)) {
+      return _buildSchemeReply(normalized, isVietnamese);
+    }
+
+    if (_isThemeChangeIntent(normalized)) {
+      return _buildThemeReply(normalized, isVietnamese);
+    }
+
+    if (_isLanguageChangeIntent(normalized)) {
+      return _buildLanguageReply(normalized, isVietnamese);
+    }
+
+    if (_isFontSizeChangeIntent(normalized)) {
+      return _buildFontSizeReply(normalized, isVietnamese);
+    }
+
     final museum = await _resolveMuseum(text);
 
-    final pendingRouteRequest = _pendingRouteRequest;
-    if (pendingRouteRequest != null) {
-      return _resolvePendingRouteRequest(
-        text: text,
-        isVietnamese: _useVietnameseReplies,
-        museum: museum,
-        request: pendingRouteRequest,
-      );
-    }
-
-    if (museum != null && _isLocationQuestion(normalized)) {
-      final locationInfo = _museumLocationInfo(museum.name);
-      if (locationInfo != null) {
-        return _ResolvedReply(
-          text: isVietnamese
-              ? 'Theo Google Maps, ${museum.name} nằm tại ${locationInfo.addressVi}.'
-              : 'According to Google Maps, ${museum.name} is located at ${locationInfo.addressEn}.',
+    // If the user is clearly asking a new question, reset any stale pending state.
+    if (_pendingRouteRequest != null) {
+      if (_isNewTopicQuestion(normalized, text, museum)) {
+        _pendingRouteRequest = null;
+        // fall through to normal handling below
+      } else {
+        return _resolvePendingRouteRequest(
+          text: text,
+          isVietnamese: _useVietnameseReplies,
+          museum: museum,
+          request: _pendingRouteRequest!,
         );
       }
-      return _ResolvedReply(
-        text: isVietnamese
-            ? 'Vị trí của ${museum.name}: ${museum.latitude}, ${museum.longitude}.'
-            : 'Location of ${museum.name}: ${museum.latitude}, ${museum.longitude}.',
-      );
     }
 
-    if (_isDirectionsToPlaceQuestion(normalized) && museum != null) {
+    if (museum != null &&
+        (_isAmbiguousMultiFloorQuery(normalized) ||
+            _isLocationQuestion(normalized) ||
+            _isDirectionsToPlaceQuestion(normalized))) {
+      // Ambiguous restroom/stairs (no floor specified) → resolve destination after user gives floor
+      if (_isAmbiguousMultiFloorQuery(normalized)) {
+        final spotType = _extractAmbiguousSpotType(normalized);
+        _pendingRouteRequest = _PendingRouteRequest(
+          isVietnamese: isVietnamese,
+          ambiguousSpotType: spotType,
+        );
+        return _ResolvedReply(
+          text: isVietnamese
+              ? 'Bạn đang ở tầng nào vậy? Bạn có thể trả lời là tầng 1 hoặc tầng 2!'
+              : 'Which floor are you on? You can just say Floor 1 or Floor 2 😊',
+        );
+      }
+
+      // Known in-museum spot → ask floor first
       final destination = _extractNavigationSpot(text, museum.id);
-      if (destination == null) {
+      if (destination != null) {
+        _pendingRouteRequest = _PendingRouteRequest(
+          destination: destination,
+          isVietnamese: isVietnamese,
+        );
         return _ResolvedReply(
           text: isVietnamese
-              ? '${museum.name} hiện không có địa điểm đó trên bản đồ.'
-              : '${museum.name} does not have that place on the current map.',
+              ? 'Bạn đang ở tầng nào vậy? Bạn có thể trả lời là tầng 1 hoặc tầng 2!'
+              : 'Which floor are you on? You can just say Floor 1 or Floor 2 😊',
         );
       }
-      _pendingRouteRequest = _PendingRouteRequest(
-        destination: destination,
-        isVietnamese: isVietnamese,
-      );
+
+      // 2. Location question about the museum itself → return real-world address
+      if (_isLocationQuestion(normalized) &&
+          _isAskingAboutMuseumSelf(normalized, museum.name)) {
+        final locationInfo = _museumLocationInfo(museum.name);
+        if (locationInfo != null) {
+          return _ResolvedReply(
+            text: isVietnamese
+                ? 'Theo Google Maps, ${museum.name} nằm tại ${locationInfo.addressVi}.'
+                : 'According to Google Maps, ${museum.name} is located at ${locationInfo.addressEn}.',
+          );
+        }
+        return _ResolvedReply(
+          text: isVietnamese
+              ? 'Vị trí của ${museum.name}: ${museum.latitude}, ${museum.longitude}.'
+              : 'Location of ${museum.name}: ${museum.latitude}, ${museum.longitude}.',
+        );
+      }
+
+      // 3. Place not found in museum
       return _ResolvedReply(
         text: isVietnamese
-            ? 'Mình tìm thấy ${destination.name} ở ${destination.floor}. Hiện tại bạn đang ở tầng nào?'
-            : 'I found ${destination.name} on ${destination.floor}. Which floor are you on right now?',
+            ? 'Địa điểm đó không có trong bản đồ của ${museum.name}.'
+            : 'That place is not found on the map of ${museum.name}.',
       );
     }
 
@@ -429,122 +505,162 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   }) {
     final currentMuseumId = museum?.id ?? AppSession.currentMuseumId.value;
 
+    // ── Case 1: Ambiguous spot (restroom/stairs), waiting for floor ────────────
+    // destination is null; resolve to same-floor spot once user gives their floor.
+    if (request.destination == null) {
+      final floor = _extractFloorLabel(text);
+      if (floor == null) {
+        return _ResolvedReply(
+          text: isVietnamese
+              ? 'Bạn đang ở tầng nào vậy? Bạn có thể trả lời là tầng 1 hoặc tầng 2!'
+              : 'Which floor are you on? You can just say Floor 1 or Floor 2 😊',
+        );
+      }
+
+      final spotLabel = request.ambiguousSpotType == 'restroom'
+          ? 'Restroom'
+          : 'Stairs';
+      final destination = _findNavigationSpotByName(
+        currentMuseumId,
+        '$spotLabel - $floor',
+      );
+
+      if (destination == null) {
+        _pendingRouteRequest = null;
+        final viLabel = request.ambiguousSpotType == 'restroom'
+            ? 'nhà vệ sinh'
+            : 'cầu thang';
+        return _ResolvedReply(
+          text: isVietnamese
+              ? 'Không tìm thấy $viLabel trên $floor.'
+              : 'Could not find ${request.ambiguousSpotType} on $floor.',
+        );
+      }
+
+      // Restroom/Stairs are always on the same floor as the user → ask current position
+      _pendingRouteRequest = _PendingRouteRequest(
+        destination: destination,
+        isVietnamese: isVietnamese,
+        currentFloor: floor,
+      );
+      return _ResolvedReply(
+        text: isVietnamese
+            ? 'Bạn đang ở $floor. Bạn đang đứng ở điểm nào trên $floor? Ví dụ: Main Entrance, Stairs - $floor.'
+            : 'You are on $floor. Which spot are you currently at on $floor? For example: Main Entrance, Stairs - $floor.',
+      );
+    }
+
+    // From here destination is always non-null.
+    final destination = request.destination!;
+
+    // ── Case 2: Destination known, waiting for user's floor ───────────────────
     if (request.currentFloor == null) {
       final currentFloor = _extractFloorLabel(text);
       if (currentFloor == null) {
         return _ResolvedReply(
           text: isVietnamese
-              ? 'Mình chưa xác định được bạn đang ở tầng nào. Bạn hãy trả lời như Floor 1, Floor 2, tầng 1 hoặc tầng 2.'
-              : 'I could not identify your current floor. Reply with Floor 1, Floor 2, level 1, or level 2.',
+              ? 'Bạn đang ở tầng nào vậy? Bạn có thể trả lời là tầng 1 hoặc tầng 2!'
+              : 'Which floor are you on? You can just say Floor 1 or Floor 2 😊',
         );
       }
 
-      if (currentFloor != request.destination.floor) {
+      if (currentFloor != destination.floor) {
+        // Different floor → give cross-floor instructions + View Map (Stairs → dest)
         _pendingRouteRequest = null;
         final floorInstruction = _buildCrossFloorInstruction(
           fromFloor: currentFloor,
-          toFloor: request.destination.floor,
+          toFloor: destination.floor,
           isVietnamese: isVietnamese,
         );
-        final destinationFloorStairs = _findNavigationSpotByName(
+        final destFloorStairs = _findNavigationSpotByName(
           currentMuseumId,
-          'Stairs - ${request.destination.floor}',
+          'Stairs - ${destination.floor}',
         );
-        final routeStartSpot = destinationFloorStairs ?? request.destination;
-        final crossFloorMapAction = _ChatAction(
+        final routeFrom = destFloorStairs ?? destination;
+        final mapAction = _ChatAction(
           type: _ChatActionType.map,
           label: 'View Map',
           icon: Icons.near_me_outlined,
-          fromLocationName: routeStartSpot.name,
-          toLocationName: request.destination.name,
+          fromLocationName: routeFrom.name,
+          toLocationName: destination.name,
         );
-
         return _ResolvedReply(
           text: isVietnamese
-              ? '$floorInstruction Sau khi tới ${request.destination.floor}, bạn đi từ ${routeStartSpot.name} đến ${request.destination.name}. Mình đã chuẩn bị sẵn bản đồ 3D với route từ ${routeStartSpot.name} đến ${request.destination.name} ở nút bên dưới.'
-              : '$floorInstruction After you reach ${request.destination.floor}, continue from ${routeStartSpot.name} to ${request.destination.name}. I prepared the 3D map with a route from ${routeStartSpot.name} to ${request.destination.name} in the button below.',
-          actions: <_ChatAction>[crossFloorMapAction],
-          mapAction: crossFloorMapAction,
+              ? '$floorInstruction ${destination.name} nằm ở ${destination.floor}. Bạn sẽ đi từ cầu thang đến ${destination.name}. Nhấn View Map bên dưới để xem đường đi!'
+              : '$floorInstruction ${destination.name} is on ${destination.floor}. You\'ll head from the stairs to ${destination.name}. Tap View Map below to see the route!',
+          actions: <_ChatAction>[mapAction],
+          mapAction: mapAction,
         );
       }
 
+      // Same floor → ask current position
       _pendingRouteRequest = request.copyWith(currentFloor: currentFloor);
       return _ResolvedReply(
         text: isVietnamese
             ? 'Bạn đang ở $currentFloor. Bạn đang đứng ở điểm nào trên $currentFloor? Ví dụ: Main Entrance, Restroom - $currentFloor hoặc Stairs - $currentFloor.'
-            : 'You are on $currentFloor. Which point are you currently standing at on $currentFloor? For example: Main Entrance, Restroom - $currentFloor, or Stairs - $currentFloor.',
+            : 'You are on $currentFloor. Which spot are you currently at on $currentFloor? For example: Main Entrance, Restroom - $currentFloor, or Stairs - $currentFloor.',
       );
     }
 
-    final fromSpot = _extractNavigationSpot(text, currentMuseumId);
+    // ── Case 3: Floor known, waiting for current spot ─────────────────────────
+    // If user says an ambiguous spot type (stairs/restroom) without a floor,
+    // resolve it to the floor we already know they're on.
+    final normalized3 = _normalizeForIntent(text);
+    final _NavigationSpot? floorQualifiedSpot = () {
+      for (final label in ['Restroom', 'Stairs']) {
+        final aliases = label == 'Stairs'
+            ? <String>['stairs', 'staircase', 'stair', 'cầu thang', 'thang bộ']
+            : <String>['restroom', 'toilet', 'wc', 'nhà vệ sinh', 'wc'];
+        final matched = aliases.any((a) => normalized3.contains(a));
+        if (matched && !normalized3.contains('floor')) {
+          return _findNavigationSpotByName(
+            currentMuseumId,
+            '$label - ${request.currentFloor}',
+          );
+        }
+      }
+      return null;
+    }();
+    final fromSpot =
+        floorQualifiedSpot ?? _extractNavigationSpot(text, currentMuseumId);
 
     if (fromSpot == null) {
       return _ResolvedReply(
         text: isVietnamese
-            ? 'Mình chưa xác định được vị trí hiện tại của bạn trong museum này. Bạn hãy trả lời bằng đúng tên điểm trên map, ví dụ Main Entrance hoặc Restroom - Floor 1.'
-            : 'I could not identify your current location in this museum. Reply with an exact place name from the map, for example Main Entrance or Restroom - Floor 1.',
+            ? 'Mình chưa xác định được vị trí của bạn. Hãy nói tên điểm trên map, ví dụ Main Entrance hoặc Restroom - Floor 1 nhé!'
+            : 'I could not find that spot. Please say an exact place name from the map, e.g. Main Entrance or Restroom - Floor 1.',
       );
     }
 
     if (fromSpot.floor != request.currentFloor) {
       return _ResolvedReply(
         text: isVietnamese
-            ? '${fromSpot.name} nằm ở ${fromSpot.floor}, chưa khớp với tầng bạn vừa chọn là ${request.currentFloor}. Bạn hãy chọn lại một điểm nằm trên ${request.currentFloor}.'
-            : '${fromSpot.name} is on ${fromSpot.floor}, which does not match your selected floor ${request.currentFloor}. Please choose a point on ${request.currentFloor}.',
+            ? '${fromSpot.name} ở ${fromSpot.floor}, nhưng bạn nói bạn đang ở ${request.currentFloor}. Hãy chọn một điểm trên ${request.currentFloor} nhé!'
+            : '${fromSpot.name} is on ${fromSpot.floor}, but you said you\'re on ${request.currentFloor}. Please pick a spot on ${request.currentFloor}.',
       );
     }
 
     _pendingRouteRequest = null;
 
-    if (fromSpot.name == request.destination.name) {
+    if (fromSpot.name == destination.name) {
       return _ResolvedReply(
         text: isVietnamese
-            ? 'Bạn đang ở ngay ${request.destination.name} rồi.'
-            : 'You are already at ${request.destination.name}.',
+            ? 'Bạn đang ở ngay ${destination.name} rồi!'
+            : 'You\'re already at ${destination.name}!',
       );
     }
 
-    final sameFloorMapAction = _ChatAction(
-      type: _ChatActionType.map,
-      label: 'View Map',
-      icon: Icons.near_me_outlined,
-      fromLocationName: fromSpot.name,
-      toLocationName: request.destination.name,
-    );
-
-    if (fromSpot.floor == request.destination.floor) {
-      return _ResolvedReply(
-        text: isVietnamese
-            ? 'Bạn đang ở cùng tầng với ${request.destination.name}. Mình đã chuẩn bị bản đồ 3D với đường đi rõ ràng từ ${fromSpot.name} đến ${request.destination.name} ở nút bên dưới.'
-            : 'You are on the same floor as ${request.destination.name}. I prepared the 3D map with a clear route from ${fromSpot.name} to ${request.destination.name} in the button below.',
-        actions: <_ChatAction>[sameFloorMapAction],
-        mapAction: sameFloorMapAction,
-      );
-    }
-
-    final floorInstruction = _buildCrossFloorInstruction(
-      fromFloor: fromSpot.floor,
-      toFloor: request.destination.floor,
-      isVietnamese: isVietnamese,
-    );
-
-    final destinationFloorStairs = _findNavigationSpotByName(
-      currentMuseumId,
-      'Stairs - ${request.destination.floor}',
-    );
-    final routeStartSpot = destinationFloorStairs ?? request.destination;
     final mapAction = _ChatAction(
       type: _ChatActionType.map,
       label: 'View Map',
       icon: Icons.near_me_outlined,
-      fromLocationName: routeStartSpot.name,
-      toLocationName: request.destination.name,
+      fromLocationName: fromSpot.name,
+      toLocationName: destination.name,
     );
-
     return _ResolvedReply(
       text: isVietnamese
-          ? '$floorInstruction Sau khi tới ${request.destination.floor}, bạn đi từ ${routeStartSpot.name} đến ${request.destination.name}. Mình đã chuẩn bị sẵn bản đồ 3D với route từ ${routeStartSpot.name} đến ${request.destination.name} ở nút bên dưới.'
-          : '$floorInstruction After you reach ${request.destination.floor}, continue from ${routeStartSpot.name} to ${request.destination.name}. I prepared the 3D map with a route from ${routeStartSpot.name} to ${request.destination.name} in the button below.',
+          ? '${destination.name} nằm trên ${destination.floor}. Mình đã chuẩn bị đường đi từ ${fromSpot.name} đến ${destination.name} trên bản đồ bên dưới!'
+          : '${destination.name} is on ${destination.floor}. I\'ve prepared a route from ${fromSpot.name} to ${destination.name} on the map below!',
       actions: <_ChatAction>[mapAction],
       mapAction: mapAction,
     );
@@ -608,17 +724,30 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       'how do i get to',
       'how can i go to',
       'how do i go to',
+      'how to get to',
+      'how to reach',
+      'how do i reach',
+      'directions to',
       'where can i find',
-      'way to',
-      'navigate to',
+      'help me find',
+      'show me',
+      'lead me to',
       'take me to',
+      'navigate to',
+      'way to',
       'go to',
       'get to',
       'chi duong',
+      'huong dan den',
+      'chi toi den',
+      'cho toi den',
+      'di den',
+      'duong den',
       'duong di den',
       'lam sao de toi',
       'lam sao den',
       'toi muon den',
+      'dan toi den',
       'dan toi',
       'den',
     ]);
@@ -743,13 +872,125 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     ]);
   }
 
+  static bool _isAmbiguousMultiFloorQuery(String normalized) {
+    final hasFloor = _containsAny(normalized, <String>[
+      'floor 1',
+      'floor 2',
+      'tang 1',
+      'tang 2',
+      'level 1',
+      'level 2',
+    ]);
+    if (hasFloor) return false;
+    return _containsAny(normalized, <String>[
+      'restroom',
+      'toilet',
+      'wc',
+      'nha ve sinh',
+      'stairs',
+      'stair',
+      'cau thang',
+    ]);
+  }
+
+  static String _extractAmbiguousSpotType(String normalized) {
+    if (_containsAny(normalized, <String>[
+      'restroom',
+      'toilet',
+      'wc',
+      'nha ve sinh',
+    ])) {
+      return 'restroom';
+    }
+    return 'stairs';
+  }
+
+  /// Returns true when the user's message is clearly a new question/topic
+  /// unrelated to any pending navigation state (e.g. asking about a different
+  /// spot, museum info, exhibitions, tickets, or an artifact code).
+  bool _isNewTopicQuestion(
+    String normalized,
+    String rawText,
+    MuseumDto? museum,
+  ) {
+    // If we're waiting for the user's current position (Case 3), any spot name
+    // they give is their answer — not a new navigation intent.
+    if (_pendingRouteRequest?.currentFloor != null) {
+      // Only treat as new topic for clearly unrelated questions (museum info, artifacts, etc.)
+      if (_isExhibitionQuestion(normalized) ||
+          _isRouteQuestion(normalized) ||
+          _isOperatingHoursQuestion(normalized) ||
+          _isTicketPriceQuestion(normalized) ||
+          _extractArtifactCode(rawText) != null) {
+        return true;
+      }
+      return false;
+    }
+
+    // Asking about a named spot in the museum → new navigation intent
+    if (museum != null) {
+      final spot = _extractNavigationSpot(rawText, museum.id);
+      if (spot != null) {
+        // Only treat as new if the spot differs from the current pending destination
+        final pendingDest = _pendingRouteRequest?.destination?.name;
+        if (pendingDest == null || spot.name != pendingDest) return true;
+      }
+    }
+    // Asking about museum-level info
+    if (_isLocationQuestion(normalized) ||
+        _isExhibitionQuestion(normalized) ||
+        _isRouteQuestion(normalized) ||
+        _isOperatingHoursQuestion(normalized) ||
+        _isTicketPriceQuestion(normalized)) {
+      return true;
+    }
+    // Contains an artifact code
+    if (_extractArtifactCode(rawText) != null) return true;
+    // Settings change requests
+    if (_isThemeChangeIntent(normalized) ||
+        _isSchemeChangeIntent(normalized) ||
+        _isLanguageChangeIntent(normalized) ||
+        _isFontSizeChangeIntent(normalized)) {
+      return true;
+    }
+    return false;
+  }
+
   static bool _isLocationQuestion(String text) {
     return _containsAny(text, <String>[
       'location',
+      'located',
       'where is',
+      'where are',
+      'where can i find',
+      'find the',
       'dia chi',
+      'vi tri',
       'o dau',
       'nam o dau',
+      'nam o',
+      'tim o dau',
+      'co o dau',
+      'o cho nao',
+      'tai dau',
+    ]);
+  }
+
+  static bool _isAskingAboutMuseumSelf(
+    String normalizedText,
+    String museumName,
+  ) {
+    final normalizedMuseumName = _normalizeForIntent(museumName);
+    if (normalizedText.contains(normalizedMuseumName)) return true;
+    return _containsAny(normalizedText, <String>[
+      'this museum',
+      'the museum',
+      'museum located',
+      'museum o dau',
+      'bao tang o dau',
+      'bao tang nay',
+      'bao tang nay o dau',
+      'dia chi bao tang',
     ]);
   }
 
@@ -785,6 +1026,425 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       'my ticket',
       'booking',
     ]);
+  }
+
+  static bool _isThemeChangeIntent(String normalized) {
+    final explicit = _containsAny(normalized, <String>[
+      'change theme',
+      'switch theme',
+      'set theme',
+      'update theme',
+      'theme settings',
+      'doi theme',
+      'chuyen theme',
+      'thay doi theme',
+      'doi giao dien',
+      'chuyen giao dien',
+      'dark mode',
+      'dark theme',
+      'night mode',
+      'night theme',
+      'light mode',
+      'light theme',
+      'che do toi',
+      'giao dien toi',
+      'giao dien sang',
+      'che do sang',
+      'chuyen dark',
+      'chuyen light',
+      'doi dark',
+      'doi light',
+      'theme dark',
+      'theme light',
+      'theme app',
+    ]);
+
+    if (explicit) {
+      return true;
+    }
+
+    final hasAction = _containsAny(normalized, <String>[
+      'change',
+      'switch',
+      'set',
+      'update',
+      'doi',
+      'chuyen',
+      'thay doi',
+      'muon doi',
+      'muon chuyen',
+      'want to',
+    ]);
+    final hasThemeTarget = _containsAny(normalized, <String>[
+      'theme',
+      'giao dien',
+      'dark',
+      'light',
+      'che do toi',
+      'che do sang',
+    ]);
+    return hasAction && hasThemeTarget;
+  }
+
+  static bool _isSchemeChangeIntent(String normalized) {
+    final explicit = _containsAny(normalized, <String>[
+      'change color',
+      'switch color',
+      'set color',
+      'update color',
+      'change colour',
+      'switch colour',
+      'set colour',
+      'change app color',
+      'switch app color',
+      'app colour',
+      'color of app',
+      'colour of app',
+      'color scheme',
+      'theme color',
+      'change ui color',
+      'app color',
+      'color theme',
+      'chuyen scheme',
+      'doi scheme',
+      'thay doi color',
+      'thay doi colour',
+      'thay doi scheme',
+      'set mau',
+      'doi mau',
+      'mau sac',
+      'mau sac app',
+      'mau sac giao dien',
+      'doi mau app',
+      'doi mau giao dien',
+      'doi mau theme',
+      'thay mau app',
+      'thay doi mau',
+      'doi mau sac',
+      'thay doi mau sac',
+      'chuyen mau',
+      'chuyen mau sac',
+      'giao dien mau',
+      'mau giao dien',
+      'doi color',
+      'doi colour',
+      'scheme',
+    ]);
+
+    if (explicit) {
+      return true;
+    }
+
+    final hasAction = _containsAny(normalized, <String>[
+      'change',
+      'switch',
+      'set',
+      'update',
+      'doi',
+      'chuyen',
+      'thay doi',
+      'muon doi',
+      'muon chuyen',
+      'want to',
+    ]);
+    final hasColorTarget = _containsAny(normalized, <String>[
+      'color',
+      'colour',
+      'mau',
+      'scheme',
+    ]);
+    return hasAction && hasColorTarget;
+  }
+
+  static bool _isUnsupportedThemeRequest(String normalized) {
+    return _containsAny(normalized, <String>['bright mode', 'custom color']);
+  }
+
+  static _AppTheme? _detectSpecificScheme(String normalized) {
+    final keywords = <String, _AppTheme>{
+      'red': _appThemes[0],
+      'do': _appThemes[0],
+      'purple': _appThemes[1],
+      'violet': _appThemes[1],
+      'tim': _appThemes[1],
+      'amber': _appThemes[2],
+      'yellow': _appThemes[2],
+      'vang': _appThemes[2],
+      'brown': _appThemes[3],
+      'nau': _appThemes[3],
+      'green': _appThemes[4],
+      'xanh la': _appThemes[4],
+      'sky blue': _appThemes[6],
+      'light blue': _appThemes[6],
+      'xanh nhat': _appThemes[6],
+      'blue': _appThemes[5],
+      'xanh duong': _appThemes[5],
+      'xanh': _appThemes[5],
+    };
+
+    final paddedNormalized = ' $normalized ';
+    for (final entry in keywords.entries) {
+      final needle = ' ${entry.key} ';
+      if (paddedNormalized.contains(needle)) {
+        return entry.value;
+      }
+    }
+    return null;
+  }
+
+  static String? _detectSpecificThemeMode(String normalized) {
+    if (_containsAny(normalized, <String>[
+      'dark mode',
+      'dark theme',
+      'night mode',
+      'night theme',
+      'theme dark',
+      'switch to dark',
+      'set dark theme',
+      'change to dark',
+      'chuyen sang dark',
+      'doi sang dark',
+      'che do toi',
+      'giao dien toi',
+    ])) {
+      return 'dark';
+    }
+    if (_containsAny(normalized, <String>[
+      'light mode',
+      'light theme',
+      'theme light',
+      'switch to light',
+      'set light theme',
+      'change to light',
+      'chuyen sang light',
+      'doi sang light',
+      'che do sang',
+      'giao dien sang',
+    ])) {
+      return 'light';
+    }
+    return null;
+  }
+
+  static bool _isLanguageChangeIntent(String normalized) {
+    final explicit = _containsAny(normalized, <String>[
+      'change language',
+      'switch language',
+      'set language',
+      'update language',
+      'change app language',
+      'language',
+      'doi ngon ngu',
+      'chuyen ngon ngu',
+      'thay ngon ngu',
+      'cai dat ngon ngu',
+      'ngon ngu',
+      'language setting',
+      'doi tieng',
+      'chuyen tieng',
+      'thay tieng',
+      'chuyen sang tieng anh',
+      'chuyen sang tieng viet',
+      'doi sang tieng anh',
+      'doi sang tieng viet',
+      'switch to english',
+      'switch to vietnamese',
+      'set english',
+      'set vietnamese',
+    ]);
+
+    if (explicit) {
+      return true;
+    }
+
+    final hasAction = _containsAny(normalized, <String>[
+      'change',
+      'switch',
+      'set',
+      'update',
+      'doi',
+      'chuyen',
+      'thay',
+      'muon doi',
+      'muon chuyen',
+      'want to',
+    ]);
+    final hasLanguageTarget = _containsAny(normalized, <String>[
+      'language',
+      'ngon ngu',
+      'tieng anh',
+      'tieng viet',
+      'english',
+      'vietnamese',
+    ]);
+    return hasAction && hasLanguageTarget;
+  }
+
+  static bool _isUnsupportedLanguageRequest(String normalized) {
+    return _containsAny(normalized, <String>[
+      'japanese',
+      'korean',
+      'french',
+      'chinese',
+      'mandarin',
+      'spanish',
+      'german',
+      'italian',
+      'portuguese',
+      'russian',
+      'arabic',
+      'tieng nhat',
+      'tieng han',
+      'tieng phap',
+      'tieng trung',
+      'tieng duc',
+    ]);
+  }
+
+  static String? _detectSpecificLanguage(String normalized) {
+    if (_containsAny(normalized, <String>[
+      'english',
+      'tieng anh',
+      'switch to english',
+      'doi sang tieng anh',
+      'chuyen sang tieng anh',
+      'set english',
+    ])) {
+      return 'English';
+    }
+    if (_containsAny(normalized, <String>[
+      'vietnamese',
+      'tieng viet',
+      'switch to vietnamese',
+      'doi sang tieng viet',
+      'chuyen sang tieng viet',
+      'set vietnamese',
+    ])) {
+      return 'Vietnamese';
+    }
+    return null;
+  }
+
+  static bool _isFontSizeChangeIntent(String normalized) {
+    return _containsAny(normalized, <String>[
+      'font size',
+      'change font size',
+      'change font size text',
+      'increase font size',
+      'decrease font size',
+      'make font bigger',
+      'make font smaller',
+      'bigger text',
+      'smaller text',
+      'switch font size',
+      'set font size',
+      'text size',
+      'change text size',
+      'set text size',
+      'increase text size',
+      'decrease text size',
+      'font',
+      'font size',
+      'co chu',
+      'kich co chu',
+      'kich thuoc chu',
+      'tang co chu',
+      'giam co chu',
+      'tang kich thuoc chu',
+      'giam kich thuoc chu',
+      'chu to hon',
+      'chu nho hon',
+      'doi co chu',
+      'chuyen co chu',
+      'thay co chu',
+      'size chu',
+      'chu nho',
+      'chu to',
+    ]);
+  }
+
+  static bool _isIncreaseFontSizeIntent(String normalized) {
+    return _containsAny(normalized, <String>[
+      'increase font size',
+      'increase text size',
+      'make font bigger',
+      'bigger text',
+      'text bigger',
+      'tang co chu',
+      'tang kich thuoc chu',
+      'chu to hon',
+      'phong to chu',
+    ]);
+  }
+
+  static bool _isDecreaseFontSizeIntent(String normalized) {
+    return _containsAny(normalized, <String>[
+      'decrease font size',
+      'decrease text size',
+      'make font smaller',
+      'smaller text',
+      'text smaller',
+      'giam co chu',
+      'giam kich thuoc chu',
+      'chu nho hon',
+      'thu nho chu',
+    ]);
+  }
+
+  static FontSizeLevel _nextFontSizeLevel(FontSizeLevel level) {
+    switch (level) {
+      case FontSizeLevel.small:
+        return FontSizeLevel.medium;
+      case FontSizeLevel.medium:
+        return FontSizeLevel.large;
+      case FontSizeLevel.large:
+        return FontSizeLevel.large;
+    }
+  }
+
+  static FontSizeLevel _previousFontSizeLevel(FontSizeLevel level) {
+    switch (level) {
+      case FontSizeLevel.small:
+        return FontSizeLevel.small;
+      case FontSizeLevel.medium:
+        return FontSizeLevel.small;
+      case FontSizeLevel.large:
+        return FontSizeLevel.medium;
+    }
+  }
+
+  static bool _isUnsupportedFontSizeRequest(String normalized) {
+    return _containsAny(normalized, <String>[
+      'extra large',
+      'extra small',
+      'huge',
+      'tiny',
+      'giant',
+      'very large',
+      'very small',
+      'rat to',
+      'rat nho',
+      'sieu to',
+      'sieu nho',
+    ]);
+  }
+
+  static FontSizeLevel? _detectSpecificFontSize(String normalized) {
+    if (_containsAny(normalized, <String>['small', 'nho', 'chu nho'])) {
+      return FontSizeLevel.small;
+    }
+    if (_containsAny(normalized, <String>['large', 'big', 'lon', 'chu to'])) {
+      return FontSizeLevel.large;
+    }
+    if (_containsAny(normalized, <String>[
+      'medium',
+      'vua',
+      'trung binh',
+      'normal',
+    ])) {
+      return FontSizeLevel.medium;
+    }
+    return null;
   }
 
   static bool _isArtifactIntentQuestion(String text) {
@@ -898,25 +1558,25 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         addressEn:
             '135 Nam Ky Khoi Nghia Street, Ben Thanh Ward, Ho Chi Minh City, Vietnam',
         addressVi:
-            '135 Nam Ky Khoi Nghia, phuong Ben Thanh, Thanh pho Ho Chi Minh, Viet Nam',
+            '135 Nam Kỳ Khởi Nghĩa, phường Bến Thành, Thành phố Hồ Chí Minh, Việt Nam',
       ),
       'War Remnants Museum': _MuseumLocationInfo(
         addressEn:
             '28 Vo Van Tan Street, Xuan Hoa Ward, Ho Chi Minh City, Vietnam',
         addressVi:
-            '28 Vo Van Tan, phuong Xuan Hoa, Thanh pho Ho Chi Minh, Viet Nam',
+            '28 Võ Văn Tần, phường Xuân Hòa, Thành phố Hồ Chí Minh, Việt Nam',
       ),
       'HCMC Museum of Fine Arts': _MuseumLocationInfo(
         addressEn:
             '97-97A Pho Duc Chinh Street, Ben Thanh Ward, District 1, Ho Chi Minh City, Vietnam',
         addressVi:
-            '97-97A Pho Duc Chinh, phuong Ben Thanh, Quan 1, Thanh pho Ho Chi Minh, Viet Nam',
+            '97-97A Phố Đức Chính, phường Bến Thành, Quận 1, Thành phố Hồ Chí Minh, Việt Nam',
       ),
       'Ho Chi Minh City Museum': _MuseumLocationInfo(
         addressEn:
             'at the corner of Ly Tu Trong Street and Nam Ky Khoi Nghia Street, near Independence Palace, Ho Chi Minh City, Vietnam',
         addressVi:
-            'tai goc duong Ly Tu Trong va Nam Ky Khoi Nghia, gan Independence Palace, Thanh pho Ho Chi Minh, Viet Nam',
+            'tại góc đường Lý Tự Trọng và Nam Kỳ Khởi Nghĩa, gần Dinh Độc Lập, Thành phố Hồ Chí Minh, Việt Nam',
       ),
     };
 
@@ -928,27 +1588,333 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     final isVietnamese = _useVietnameseReplies;
     if (q.contains('toilet') || q.contains('restroom')) {
       return isVietnamese
-          ? 'Nha ve sinh gan nhat nam gan Hall C o Floor 1. Neu ban muon, minh co the chi duong cho ban.'
+          ? 'Nhà vệ sinh gần nhất nằm gần Hall C ở Floor 1. Nếu bạn muốn, mình có thể chỉ đường cho bạn.'
           : 'The nearest restroom is near Hall C on Floor 1. I can guide you there if you want.';
     }
     if (q.contains('tank') || q.contains('t-54')) {
       return isVietnamese
-          ? 'Tank T-54 nam o Hall C, Floor 1. Ban co the theo route tren ban do va minh se huong dan tung buoc cho ban.'
+          ? 'Tank T-54 nằm ở Hall C, Floor 1. Bạn có thể theo route trên bản đồ và mình sẽ hướng dẫn từng bước cho bạn.'
           : 'Tank T-54 is in Hall C, Floor 1. Follow the map route and I can navigate step-by-step for you.';
     }
     if (q.contains('floor 2')) {
       return isVietnamese
-          ? 'O Floor 2, cac diem pho bien gom Photography Gallery, Peace Memorial, Diplomatic Room va Rooftop Cafe.'
+          ? 'Ở Floor 2, các điểm phổ biến gồm Photography Gallery, Peace Memorial, Diplomatic Room và Rooftop Cafe.'
           : 'On Floor 2, popular stops include Photography Gallery, Peace Memorial, Diplomatic Room, and Rooftop Cafe.';
     }
     if (q.contains('coffee') || q.contains('cafe')) {
       return isVietnamese
-          ? 'Ban co the nghi chan tai Cafe Nile o Floor 1 hoac Rooftop Cafe o Floor 2.'
+          ? 'Bạn có thể nghỉ chân tại Cafe Nile ở Floor 1 hoặc Rooftop Cafe ở Floor 2.'
           : 'You can take a break at Cafe Nile on Floor 1 or Rooftop Cafe on Floor 2.';
     }
     return isVietnamese
-        ? 'Cau hoi rat hay. Minh co the giup ban kham pha hien vat, tim tien ich va chi duong den bat ky khu vuc nao trong museum.'
+        ? 'Câu hỏi rất hay. Mình có thể giúp bạn khám phá hiện vật, tìm tiện ích và chỉ đường đến bất kỳ khu vực nào trong bảo tàng.'
         : 'Great question. I can help you explore artifacts, find facilities, and navigate to any room in the museum.';
+  }
+
+  void _addBotMessage(String text) {
+    if (!mounted) return;
+    setState(() {
+      _messages.add(
+        _ChatMessage(
+          text: text,
+          time: _formatTime(DateTime.now()),
+          isUser: false,
+        ),
+      );
+    });
+    _scrollToBottom();
+  }
+
+  void _applySettingsToBackend({
+    String? theme,
+    String? language,
+    String? fontSize,
+    String? scheme,
+  }) {
+    final userId = AppSession.userId.value;
+    final resolvedTheme = theme ?? _currentThemeCode();
+    final resolvedLanguage = language ?? _currentLanguageCode();
+    final resolvedFontSize = fontSize ?? _currentFontSizeCode();
+    final resolvedScheme = scheme ?? _currentSchemeHex();
+
+    if (userId == null) {
+      return;
+    }
+
+    () async {
+      try {
+        await BackendApi.instance.updateUserSettings(
+          userId,
+          theme: resolvedTheme,
+          language: resolvedLanguage,
+          fontSize: resolvedFontSize,
+          scheme: resolvedScheme,
+        );
+      } catch (e, st) {
+        debugPrint('[AI_SETTINGS_SYNC] Failed userId=$userId error=$e');
+        debugPrint(st.toString());
+      }
+    }();
+  }
+
+  String _currentSchemeHex() {
+    final value = themeNotifier.primaryColor.value;
+    final rgb = (value & 0xFFFFFF)
+        .toRadixString(16)
+        .padLeft(6, '0')
+        .toUpperCase();
+    return '0xFF$rgb';
+  }
+
+  String _currentThemeCode() {
+    return themeNotifier.isDarkMode ? 'dark' : 'light';
+  }
+
+  String _currentLanguageCode() {
+    return languageNotifier.currentLanguage == 'Vietnamese' ? 'vi' : 'en';
+  }
+
+  String _currentFontSizeCode() {
+    return fontSizeNotifier.level.name;
+  }
+
+  List<_ChatAction> _buildSchemeActions() {
+    return _appThemes
+        .map(
+          (t) => _ChatAction(
+            type: _ChatActionType.schemeOption,
+            label: t.name,
+            icon: Icons.circle,
+            color: t.color,
+            value: t.hex,
+          ),
+        )
+        .toList();
+  }
+
+  List<_ChatAction> _buildThemeActions() {
+    return [
+      _ChatAction(
+        type: _ChatActionType.themeOption,
+        label: 'Light Theme',
+        icon: Icons.light_mode_outlined,
+        value: 'light',
+      ),
+      _ChatAction(
+        type: _ChatActionType.themeOption,
+        label: 'Dark Theme',
+        icon: Icons.dark_mode_outlined,
+        value: 'dark',
+      ),
+    ];
+  }
+
+  List<_ChatAction> _buildLanguageActions() {
+    final isVietnamese = _useVietnameseReplies;
+    return [
+      _ChatAction(
+        type: _ChatActionType.languageOption,
+        label: isVietnamese ? '🇬🇧 Tiếng Anh' : '🇬🇧 English',
+        icon: Icons.language,
+        value: 'English',
+      ),
+      _ChatAction(
+        type: _ChatActionType.languageOption,
+        label: isVietnamese ? '🇻🇳 Tiếng Việt' : '🇻🇳 Vietnamese',
+        icon: Icons.language,
+        value: 'Vietnamese',
+      ),
+    ];
+  }
+
+  List<_ChatAction> _buildFontSizeActions() {
+    return const [
+      _ChatAction(
+        type: _ChatActionType.fontSizeOption,
+        label: 'Small',
+        icon: Icons.text_fields,
+        value: 'small',
+      ),
+      _ChatAction(
+        type: _ChatActionType.fontSizeOption,
+        label: 'Medium',
+        icon: Icons.text_fields,
+        value: 'medium',
+      ),
+      _ChatAction(
+        type: _ChatActionType.fontSizeOption,
+        label: 'Large',
+        icon: Icons.text_fields,
+        value: 'large',
+      ),
+    ];
+  }
+
+  _ResolvedReply _buildSchemeReply(String normalized, bool isVietnamese) {
+    if (_isUnsupportedThemeRequest(normalized)) {
+      return _ResolvedReply(
+        text: isVietnamese
+            ? 'App không hỗ trợ theme đó. Dưới đây là các theme màu có sẵn trong app — nhấn để áp dụng:'
+            : 'The app doesn\'t support that theme. Here are the available color themes — tap to apply:',
+        actions: _buildSchemeActions(),
+      );
+    }
+    final specific = _detectSpecificScheme(normalized);
+    if (specific != null) {
+      return _ResolvedReply(
+        text: isVietnamese
+            ? 'Bạn muốn đổi sang màu ${specific.nameVi} (${specific.hex}) đúng không? Chọn trong bảng màu bên dưới để áp dụng nhé!'
+            : 'You want ${specific.name} (${specific.hex}), right? Please pick it from the scheme palette below to apply.',
+        actions: _buildSchemeActions(),
+      );
+    }
+    return _ResolvedReply(
+      text: isVietnamese
+          ? 'Dưới đây là các màu scheme có sẵn trong app. Nhấn vào màu bạn muốn để áp dụng ngay!'
+          : 'Here are the available scheme colors in the app. Tap one to apply it instantly!',
+      actions: _buildSchemeActions(),
+    );
+  }
+
+  _ResolvedReply _buildThemeReply(String normalized, bool isVietnamese) {
+    final specific = _detectSpecificThemeMode(normalized);
+    if (specific != null) {
+      themeNotifier.setThemeMode(
+        specific == 'dark' ? ThemeMode.dark : ThemeMode.light,
+      );
+      _applySettingsToBackend(theme: specific);
+      return _ResolvedReply(
+        text: isVietnamese
+            ? (specific == 'dark'
+                  ? 'Đã chuyển sang Dark Theme!'
+                  : 'Đã chuyển sang Light Theme!')
+            : (specific == 'dark'
+                  ? 'Switched to Dark Theme!'
+                  : 'Switched to Light Theme!'),
+      );
+    }
+
+    return _ResolvedReply(
+      text: isVietnamese
+          ? 'Theme của app gồm 2 lựa chọn: Light Theme và Dark Theme. Nhấn để đổi ngay:'
+          : 'The app theme has 2 options: Light Theme and Dark Theme. Tap to switch:',
+      actions: _buildThemeActions(),
+    );
+  }
+
+  _ResolvedReply _buildLanguageReply(String normalized, bool isVietnamese) {
+    if (_isUnsupportedLanguageRequest(normalized)) {
+      return _ResolvedReply(
+        text: isVietnamese
+            ? 'App hiện chưa hỗ trợ ngôn ngữ đó. Bạn có thể chọn một trong các ngôn ngữ sau:'
+            : 'The app doesn\'t support that language yet. You can choose from the following:',
+        actions: _buildLanguageActions(),
+      );
+    }
+    final specific = _detectSpecificLanguage(normalized);
+    if (specific != null) {
+      languageNotifier.setLanguage(specific);
+      _applySettingsToBackend(
+        theme: null,
+        language: specific == 'Vietnamese' ? 'vi' : 'en',
+      );
+      return _ResolvedReply(
+        text: specific == 'Vietnamese'
+            ? 'Đã chuyển sang Tiếng Việt!'
+            : 'Switched to English!',
+      );
+    }
+    return _ResolvedReply(
+      text: isVietnamese
+          ? 'App hỗ trợ các ngôn ngữ sau. Nhấn để thay đổi:'
+          : 'The app supports the following languages. Tap to switch:',
+      actions: _buildLanguageActions(),
+    );
+  }
+
+  _ResolvedReply _buildFontSizeReply(String normalized, bool isVietnamese) {
+    if (_isUnsupportedFontSizeRequest(normalized)) {
+      return _ResolvedReply(
+        text: isVietnamese
+            ? 'App không hỗ trợ cỡ chữ đó. Các cỡ chữ có sẵn:'
+            : 'The app doesn\'t support that font size. Available sizes:',
+        actions: _buildFontSizeActions(),
+      );
+    }
+
+    if (_isIncreaseFontSizeIntent(normalized)) {
+      final current = fontSizeNotifier.level;
+      final next = _nextFontSizeLevel(current);
+      fontSizeNotifier.setLevel(next);
+      _applySettingsToBackend(fontSize: next.name);
+
+      if (current == next) {
+        return _ResolvedReply(
+          text: isVietnamese
+              ? 'Cỡ chữ hiện đã ở mức lớn nhất rồi.'
+              : 'Font size is already at the largest level.',
+        );
+      }
+
+      final label = next == FontSizeLevel.small
+          ? (isVietnamese ? 'Nhỏ' : 'Small')
+          : next == FontSizeLevel.large
+          ? (isVietnamese ? 'Lớn' : 'Large')
+          : (isVietnamese ? 'Vừa' : 'Medium');
+      return _ResolvedReply(
+        text: isVietnamese
+            ? 'Đã tăng cỡ chữ lên $label!'
+            : 'Increased font size to $label!',
+      );
+    }
+
+    if (_isDecreaseFontSizeIntent(normalized)) {
+      final current = fontSizeNotifier.level;
+      final previous = _previousFontSizeLevel(current);
+      fontSizeNotifier.setLevel(previous);
+      _applySettingsToBackend(fontSize: previous.name);
+
+      if (current == previous) {
+        return _ResolvedReply(
+          text: isVietnamese
+              ? 'Cỡ chữ hiện đã ở mức nhỏ nhất rồi.'
+              : 'Font size is already at the smallest level.',
+        );
+      }
+
+      final label = previous == FontSizeLevel.small
+          ? (isVietnamese ? 'Nhỏ' : 'Small')
+          : previous == FontSizeLevel.large
+          ? (isVietnamese ? 'Lớn' : 'Large')
+          : (isVietnamese ? 'Vừa' : 'Medium');
+      return _ResolvedReply(
+        text: isVietnamese
+            ? 'Đã giảm cỡ chữ xuống $label!'
+            : 'Decreased font size to $label!',
+      );
+    }
+
+    final specific = _detectSpecificFontSize(normalized);
+    if (specific != null) {
+      fontSizeNotifier.setLevel(specific);
+      _applySettingsToBackend(fontSize: specific.name);
+      final levelLabel = specific == FontSizeLevel.small
+          ? (isVietnamese ? 'Nhỏ' : 'Small')
+          : specific == FontSizeLevel.large
+          ? (isVietnamese ? 'Lớn' : 'Large')
+          : (isVietnamese ? 'Vừa' : 'Medium');
+      return _ResolvedReply(
+        text: isVietnamese
+            ? 'Đã chuyển cỡ chữ sang $levelLabel!'
+            : 'Font size changed to $levelLabel!',
+      );
+    }
+    return _ResolvedReply(
+      text: isVietnamese
+          ? 'Các cỡ chữ có sẵn trong app. Nhấn để thay đổi:'
+          : 'Available font sizes in the app. Tap to change:',
+      actions: _buildFontSizeActions(),
+    );
   }
 
   void _scrollToBottom() {
@@ -1087,75 +2053,116 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                   ),
                 ),
                 Expanded(
-                  child: ListView.builder(
-                    controller: _scrollController,
-                    primary: false,
-                    padding: EdgeInsets.fromLTRB(14, 4, 14, 8),
-                    itemCount: _messages.length + (_isAiTyping ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (_isAiTyping && index == _messages.length) {
-                        return Padding(
-                          padding: EdgeInsets.only(bottom: 8),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: _TypingBubble(),
-                          ),
-                        );
-                      }
-                      final msg = _messages[index];
-                      final isOpeningMessage =
-                          index == 0 && !(msg.isUser ?? true);
-                      return Padding(
-                        padding: EdgeInsets.only(bottom: 8),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Align(
-                              alignment: (msg.isUser ?? true)
-                                  ? Alignment.centerRight
-                                  : Alignment.centerLeft,
-                              child: _MessageBubble(message: msg),
-                            ),
-                            if (!(msg.isUser ?? true) &&
-                                (msg.actions?.isNotEmpty ?? false)) ...[
-                              SizedBox(height: 8),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                children: [
-                                  for (final action
-                                      in msg.actions ?? const <_ChatAction>[])
-                                    _StarterActionChip(
-                                      icon: action.icon,
-                                      text: action.label.tr,
-                                      onTap: () => _onActionTap(action, msg),
-                                    ),
-                                ],
+                  child: Stack(
+                    children: [
+                      ListView.builder(
+                        controller: _scrollController,
+                        primary: false,
+                        padding: const EdgeInsets.fromLTRB(14, 4, 14, 8),
+                        itemCount: _messages.length + (_isAiTyping ? 1 : 0),
+                        itemBuilder: (context, index) {
+                          if (_isAiTyping && index == _messages.length) {
+                            return const Padding(
+                              padding: EdgeInsets.only(bottom: 8),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: _TypingBubble(),
                               ),
-                            ],
-                            if (isOpeningMessage) ...[
-                              SizedBox(height: 8),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                children: [
-                                  _StarterActionChip(
-                                    icon: Icons.near_me_outlined,
-                                    text: 'View Map'.tr,
-                                    onTap: () => Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (_) =>
-                                            const Museum3DMapScreen(),
+                            );
+                          }
+                          final msg = _messages[index];
+                          final isOpeningMessage =
+                              index == 0 && !(msg.isUser ?? true);
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Align(
+                                  alignment: (msg.isUser ?? true)
+                                      ? Alignment.centerRight
+                                      : Alignment.centerLeft,
+                                  child: _MessageBubble(message: msg),
+                                ),
+                                if (!(msg.isUser ?? true) &&
+                                    (msg.actions?.isNotEmpty ?? false)) ...[
+                                  const SizedBox(height: 8),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: [
+                                      for (final action
+                                          in msg.actions ??
+                                              const <_ChatAction>[])
+                                        action.type ==
+                                                _ChatActionType.schemeOption
+                                            ? _ThemeOptionChip(
+                                                action: action,
+                                                onTap: () =>
+                                                    _onActionTap(action, msg),
+                                              )
+                                            : _StarterActionChip(
+                                                icon: action.icon,
+                                                text: action.label.tr,
+                                                onTap: () =>
+                                                    _onActionTap(action, msg),
+                                              ),
+                                    ],
+                                  ),
+                                ],
+                                if (isOpeningMessage) ...[
+                                  const SizedBox(height: 8),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: [
+                                      _StarterActionChip(
+                                        icon: Icons.near_me_outlined,
+                                        text: 'View Map'.tr,
+                                        onTap: () => Navigator.of(context).push(
+                                          _SlidePageRoute<void>(
+                                            builder: (_) =>
+                                                const Museum3DMapScreen(),
+                                          ),
+                                        ),
                                       ),
+                                    ],
+                                  ),
+                                ],
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                      if (_isTranslating)
+                        Positioned.fill(
+                          child: Container(
+                            color: Colors.white.withValues(alpha: 0.88),
+                            child: Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  CircularProgressIndicator(
+                                    color: themeNotifier.primaryColor,
+                                    strokeWidth: 3,
+                                  ),
+                                  const SizedBox(height: 14),
+                                  Text(
+                                    _useVietnameseReplies
+                                        ? 'Đang dịch tin nhắn...'
+                                        : 'Translating messages...',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: themeNotifier.primaryColor,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ],
                               ),
-                            ],
-                          ],
+                            ),
+                          ),
                         ),
-                      );
-                    },
+                    ],
                   ),
                 ),
                 Container(
@@ -1280,7 +2287,15 @@ class _ChatMessage {
   final String? sourceQuestion;
 }
 
-enum _ChatActionType { map, tickets, artifact }
+enum _ChatActionType {
+  map,
+  tickets,
+  artifact,
+  schemeOption,
+  themeOption,
+  languageOption,
+  fontSizeOption,
+}
 
 class _ChatAction {
   const _ChatAction({
@@ -1289,6 +2304,8 @@ class _ChatAction {
     required this.icon,
     this.fromLocationName,
     this.toLocationName,
+    this.color,
+    this.value,
   });
 
   final _ChatActionType type;
@@ -1296,6 +2313,8 @@ class _ChatAction {
   final IconData icon;
   final String? fromLocationName;
   final String? toLocationName;
+  final Color? color;
+  final String? value;
 }
 
 class _ResolvedReply {
@@ -1319,24 +2338,31 @@ class _MuseumLocationInfo {
 
 class _PendingRouteRequest {
   const _PendingRouteRequest({
-    required this.destination,
+    this.destination,
     required this.isVietnamese,
     this.currentFloor,
+    this.ambiguousSpotType,
   });
 
-  final _NavigationSpot destination;
+  /// null when ambiguousSpotType is set (destination resolved after user gives floor)
+  final _NavigationSpot? destination;
   final bool isVietnamese;
   final String? currentFloor;
+
+  /// 'restroom' or 'stairs' — destination resolved once user gives their floor
+  final String? ambiguousSpotType;
 
   _PendingRouteRequest copyWith({
     _NavigationSpot? destination,
     bool? isVietnamese,
     String? currentFloor,
+    String? ambiguousSpotType,
   }) {
     return _PendingRouteRequest(
       destination: destination ?? this.destination,
       isVietnamese: isVietnamese ?? this.isVietnamese,
       currentFloor: currentFloor ?? this.currentFloor,
+      ambiguousSpotType: ambiguousSpotType ?? this.ambiguousSpotType,
     );
   }
 }
@@ -1727,4 +2753,155 @@ class _StarterActionChip extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Represents a supported app color theme.
+class _AppTheme {
+  const _AppTheme({
+    required this.name,
+    required this.nameVi,
+    required this.color,
+    required this.hex,
+  });
+
+  final String name;
+  final String nameVi;
+  final Color color;
+  final String hex;
+}
+
+const List<_AppTheme> _appThemes = <_AppTheme>[
+  _AppTheme(
+    name: 'Red',
+    nameVi: 'Đỏ',
+    color: Color(0xFFCC353A),
+    hex: '#CC353A',
+  ),
+  _AppTheme(
+    name: 'Purple',
+    nameVi: 'Tím',
+    color: Color(0xFF6C4BE8),
+    hex: '#6C4BE8',
+  ),
+  _AppTheme(
+    name: 'Amber',
+    nameVi: 'Vàng',
+    color: Color(0xFFF59E0B),
+    hex: '#F59E0B',
+  ),
+  _AppTheme(
+    name: 'Brown',
+    nameVi: 'Nâu',
+    color: Color(0xFFB45309),
+    hex: '#B45309',
+  ),
+  _AppTheme(
+    name: 'Green',
+    nameVi: 'Xanh lá',
+    color: Color(0xFF10B981),
+    hex: '#10B981',
+  ),
+  _AppTheme(
+    name: 'Blue',
+    nameVi: 'Xanh dương',
+    color: Color(0xFF3B82F6),
+    hex: '#3B82F6',
+  ),
+  _AppTheme(
+    name: 'Sky Blue',
+    nameVi: 'Xanh nhạt',
+    color: Color(0xFF60A5FA),
+    hex: '#60A5FA',
+  ),
+];
+
+/// Chip widget for displaying a color theme option with a colored swatch + name + hex code.
+class _ThemeOptionChip extends StatelessWidget {
+  const _ThemeOptionChip({required this.action, required this.onTap});
+
+  final _ChatAction action;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final chipColor = action.color ?? Colors.grey;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE5E7EB),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: chipColor.withValues(alpha: 0.6),
+            width: 1.5,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 16,
+              height: 16,
+              decoration: BoxDecoration(
+                color: chipColor,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: chipColor.withValues(alpha: 0.4),
+                    blurRadius: 4,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            RichText(
+              text: TextSpan(
+                children: [
+                  TextSpan(
+                    text: action.label,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF111827),
+                    ),
+                  ),
+                  TextSpan(
+                    text: '  ${action.value}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: chipColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Custom route: Cupertino slide animation (both screens move) without swipe-back gesture.
+class _SlidePageRoute<T> extends PageRoute<T>
+    with CupertinoRouteTransitionMixin<T> {
+  _SlidePageRoute({required this.builder});
+
+  final WidgetBuilder builder;
+
+  @override
+  Widget buildContent(BuildContext context) => builder(context);
+
+  @override
+  bool get popGestureEnabled => false;
+
+  @override
+  bool get maintainState => true;
+
+  @override
+  String? get title => null;
 }

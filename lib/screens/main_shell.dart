@@ -54,7 +54,7 @@ class _MainShellState extends State<MainShell> {
       final artifact = await BackendApi.instance.fetchArtifact(scannedCode);
       unlockedTitle = artifact.title;
       final userId = AppSession.userId.value ?? 1;
-      
+
       // Update collection
       await BackendApi.instance.addToCollection(
         userId: userId,
@@ -170,12 +170,12 @@ class _MainShellState extends State<MainShell> {
           // Keep all tab bodies alive via IndexedStack — no rebuilds on switch.
           body: IndexedStack(
             index: _currentIndex,
-            children: const [
-              HomeScreen(),
-              Museum3DMapScreen(),
-              Museum3DMapScreen(),
-              AIAssistantScreen(),
-              JourneyScreen(),
+            children: [
+              const HomeScreen(),
+              Museum3DMapScreen(onBack: () => _onTabTap(0)),
+              Museum3DMapScreen(onBack: () => _onTabTap(0)),
+              const AIAssistantScreen(),
+              const JourneyScreen(),
             ],
           ),
           bottomNavigationBar: AppBottomNav(

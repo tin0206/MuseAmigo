@@ -43,11 +43,19 @@ class AuthLoginResult {
     required this.userId,
     required this.fullName,
     required this.message,
+    this.theme = 'light',
+    this.language = 'English',
+    this.fontSize = 'Medium',
+    this.scheme = '0xFFCC353A',
   });
 
   final int userId;
   final String fullName;
   final String message;
+  final String theme;
+  final String language;
+  final String fontSize;
+  final String scheme;
 }
 
 class ArtifactDto {
@@ -261,6 +269,10 @@ class BackendApi {
       userId: json['user_id'] as int,
       fullName: json['full_name'] as String,
       message: json['message'] as String? ?? 'Login successful',
+      theme: json['theme'] as String? ?? 'light',
+      language: json['language'] as String? ?? 'English',
+      fontSize: json['font_size'] as String? ?? 'Medium',
+      scheme: json['scheme'] as String? ?? '0xFFCC353A',
     );
   }
 
@@ -504,5 +516,41 @@ class BackendApi {
       _throwForResponse(response, json);
     }
     return json;
+  }
+
+  Future<List<Map<String, dynamic>>> fetchUserTickets(int userId) async {
+    final response = await http.get(_uri('/users/$userId/tickets'));
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final json = await _readJson(response);
+      _throwForResponse(response, json);
+    }
+    final decoded = jsonDecode(response.body);
+    if (decoded is! List) {
+      throw ApiException('Unexpected ticket list format');
+    }
+    return decoded.cast<Map<String, dynamic>>();
+  }
+
+  Future<void> updateUserSettings(
+    int userId, {
+    required String theme,
+    required String language,
+    required String fontSize,
+    required String scheme,
+  }) async {
+    final response = await http.put(
+      _uri('/users/$userId/settings'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'theme': theme,
+        'language': language,
+        'font_size': fontSize,
+        'scheme': scheme,
+      }),
+    );
+    final json = await _readJson(response);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      _throwForResponse(response, json);
+    }
   }
 }

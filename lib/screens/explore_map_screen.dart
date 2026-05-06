@@ -327,7 +327,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
         museumName: museum.name,
         options: options,
         onSelect: (ticket) {
-          Navigator.of(context).pop();
+          // Keep ticket-selection sheet open so payment-method sheet can pop back to it.
           _showPaymentSheet(context, museum, ticket);
         },
       ),
@@ -366,7 +366,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
         ticket: ticket,
         methods: methods,
         onSelect: (method) {
-          Navigator.of(context).pop();
+          // Keep payment-method sheet open so the QR/card sheet can pop back to it.
           if (method.title == 'QR Scan'.tr) {
             _showQrPaymentSheet(context, info, museum);
           } else {
@@ -389,6 +389,9 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
       builder: (_) => QrPaymentSheet(
         ticket: info,
         onPay: () {
+          // Pop QR sheet, payment-method sheet, and ticket-selection sheet.
+          Navigator.of(context).pop();
+          Navigator.of(context).pop();
           Navigator.of(context).pop();
           _runPaymentFlow(context, info, museum, info.ticketLabel);
         },
@@ -408,6 +411,9 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
       builder: (_) => CardPaymentSheet(
         ticket: info,
         onPay: () {
+          // Pop card sheet, payment-method sheet, and ticket-selection sheet.
+          Navigator.of(context).pop();
+          Navigator.of(context).pop();
           Navigator.of(context).pop();
           _runPaymentFlow(context, info, museum, info.ticketLabel);
         },
