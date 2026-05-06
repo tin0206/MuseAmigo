@@ -492,6 +492,27 @@ class BackendApi {
     return json;
   }
 
+  Future<void> updateUserSettings(
+    int userId, {
+    required String theme,
+    required String language,
+  }) async {
+    try {
+      final response = await http.put(
+        _uri('/users/$userId/settings'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'theme': theme, 'language': language}),
+      );
+      final json = await _readJson(response);
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        _throwForResponse(response, json);
+      }
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Unable to update settings: $e');
+    }
+  }
+
   Future<Map<String, dynamic>> updateUserProfile(
     int userId, {
     required String fullName,

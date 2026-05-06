@@ -2,11 +2,13 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:museamigo/app_routes.dart';
+import 'package:museamigo/font_size_notifier.dart';
 import 'package:museamigo/l10n/translations.dart';
 import 'package:museamigo/language_notifier.dart';
 import 'package:museamigo/screens/museum_3d_map_screen.dart';
 import 'package:museamigo/services/backend_api.dart';
 import 'package:museamigo/session.dart';
+import 'package:museamigo/theme_notifier.dart';
 
 class AIAssistantScreen extends StatefulWidget {
   const AIAssistantScreen({super.key});
@@ -23,6 +25,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   final List<_ChatMessage> _messages = <_ChatMessage>[];
 
   bool _isAiTyping = false;
+  bool _isTranslating = false;
   _PendingRouteRequest? _pendingRouteRequest;
 
   bool get _useVietnameseReplies =>
@@ -33,13 +36,11 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     super.initState();
     _seedGreetingForCurrentMuseum();
     AppSession.currentMuseumName.addListener(_onMuseumContextChanged);
-    languageNotifier.addListener(_onLanguageChanged);
   }
 
   @override
   void dispose() {
     AppSession.currentMuseumName.removeListener(_onMuseumContextChanged);
-    languageNotifier.removeListener(_onLanguageChanged);
     _messageController.dispose();
     _scrollController.dispose();
     _quickAccessScrollController.dispose();
@@ -82,32 +83,10 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     );
   }
 
-  void _onLanguageChanged() {
-    if (!mounted || _messages.isEmpty) {
-      return;
-    }
-
-    final firstMessage = _messages.first;
-    if (firstMessage.isUser ?? true) {
-      return;
-    }
-
-    setState(() {
-      _messages[0] = _ChatMessage(
-        text: _buildGreetingMessage(
-          AppSession.currentMuseumName.value,
-          _useVietnameseReplies,
-        ),
-        time: _formatTime(DateTime.now()),
-        isUser: false,
-      );
-    });
-  }
-
   static String _buildGreetingMessage(String museumName, bool isVietnamese) {
     if (isVietnamese) {
       return 'Xin chào! Mình là Ogima, hướng dẫn viên cá nhân của bạn tại $museumName. '
-          'ình có thể giúp bạn khám phá hiện vật, chỉ đường trong museum, '
+          'Mình có thể giúp bạn khám phá hiện vật, chỉ đường trong museum, '
           'trả lời câu hỏi và gợi ý các trưng bày thú vị. '
           'ôm nay mình có thể hỗ trợ bạn điều gì?';
     }
@@ -242,6 +221,44 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
           sourceMessage.sourceQuestion ?? sourceMessage.text,
         );
         break;
+      case _ChatActionType.themeOption:
+        final color = action.color;
+        if (color != null) {
+          themeNotifier.setPrimaryColor(color);
+          _applySettingsToBackend(
+            theme: (action.value ?? '').replaceFirst('#', ''),
+            language: null,
+          );
+        }
+        if (!mounted) return;
+        _addBotMessage(
+          _useVietnameseReplies
+              ? 'Đã chuyển sang theme ${action.label} (${action.value})!'
+              : 'Switched to ${action.label} theme (${action.value})!',
+        );
+        break;
+      case _ChatActionType.languageOption:
+        final lang = action.value ?? 'English';
+        languageNotifier.setLanguage(lang);
+        _applySettingsToBackend(
+          theme: null,
+          language: lang == 'Vietnamese' ? 'vi' : 'en',
+        );
+        break;
+      case _ChatActionType.fontSizeOption:
+        final levelName = action.value ?? 'medium';
+        final level = FontSizeLevel.values.firstWhere(
+          (l) => l.name == levelName,
+          orElse: () => FontSizeLevel.medium,
+        );
+        fontSizeNotifier.setLevel(level);
+        if (!mounted) return;
+        _addBotMessage(
+          _useVietnameseReplies
+              ? 'Đã chuyển cỡ chữ sang ${action.label}!'
+              : 'Font size changed to ${action.label}!',
+        );
+        break;
     }
   }
 
@@ -296,6 +313,20 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   Future<_ResolvedReply> _resolveReplyForInput(String text) async {
     final normalized = _normalizeForIntent(text);
     final isVietnamese = _useVietnameseReplies;
+
+    // Handle settings intents before any network-dependent logic.
+    if (_isThemeChangeIntent(normalized)) {
+      return _buildThemeReply(normalized, isVietnamese);
+    }
+
+    if (_isLanguageChangeIntent(normalized)) {
+      return _buildLanguageReply(normalized, isVietnamese);
+    }
+
+    if (_isFontSizeChangeIntent(normalized)) {
+      return _buildFontSizeReply(normalized, isVietnamese);
+    }
+
     final museum = await _resolveMuseum(text);
 
     // If the user is clearly asking a new question, reset any stale pending state.
@@ -897,6 +928,12 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     }
     // Contains an artifact code
     if (_extractArtifactCode(rawText) != null) return true;
+    // Settings change requests
+    if (_isThemeChangeIntent(normalized) ||
+        _isLanguageChangeIntent(normalized) ||
+        _isFontSizeChangeIntent(normalized)) {
+      return true;
+    }
     return false;
   }
 
@@ -970,6 +1007,213 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       'my ticket',
       'booking',
     ]);
+  }
+
+  static bool _isThemeChangeIntent(String normalized) {
+    return _containsAny(normalized, <String>[
+      'change theme',
+      'switch theme',
+      'set theme',
+      'theme settings',
+      'change color',
+      'switch color',
+      'set color',
+      'change colour',
+      'switch colour',
+      'set colour',
+      'change app color',
+      'switch app color',
+      'app colour',
+      'color of app',
+      'colour of app',
+      'color scheme',
+      'theme color',
+      'change ui color',
+      'app color',
+      'color theme',
+      'theme',
+      'doi theme',
+      'chuyen theme',
+      'thay doi theme',
+      'set mau',
+      'doi mau',
+      'mau sac',
+      'mau sac app',
+      'mau sac giao dien',
+      'doi mau app',
+      'doi mau giao dien',
+      'doi mau theme',
+      'thay mau app',
+      'thay doi mau',
+      'doi mau sac',
+      'thay doi mau sac',
+      'chuyen mau',
+      'chuyen mau sac',
+      'giao dien mau',
+      'mau giao dien',
+      'doi giao dien',
+      'theme app',
+    ]);
+  }
+
+  static bool _isUnsupportedThemeRequest(String normalized) {
+    return _containsAny(normalized, <String>[
+      'dark mode',
+      'dark theme',
+      'night mode',
+      'night theme',
+      'light mode',
+      'white theme',
+      'black theme',
+      'che do toi',
+      'giao dien toi',
+      'giao dien sang',
+      'bright mode',
+      'custom color',
+    ]);
+  }
+
+  static _AppTheme? _detectSpecificTheme(String normalized) {
+    final keywords = <String, _AppTheme>{
+      'red': _appThemes[0],
+      'do': _appThemes[0],
+      'purple': _appThemes[1],
+      'violet': _appThemes[1],
+      'tim': _appThemes[1],
+      'amber': _appThemes[2],
+      'yellow': _appThemes[2],
+      'vang': _appThemes[2],
+      'brown': _appThemes[3],
+      'nau': _appThemes[3],
+      'green': _appThemes[4],
+      'xanh la': _appThemes[4],
+      'sky blue': _appThemes[6],
+      'light blue': _appThemes[6],
+      'xanh nhat': _appThemes[6],
+      'blue': _appThemes[5],
+      'xanh duong': _appThemes[5],
+      'xanh': _appThemes[5],
+    };
+
+    final paddedNormalized = ' $normalized ';
+    for (final entry in keywords.entries) {
+      final needle = ' ${entry.key} ';
+      if (paddedNormalized.contains(needle)) {
+        return entry.value;
+      }
+    }
+    return null;
+  }
+
+  static bool _isLanguageChangeIntent(String normalized) {
+    return _containsAny(normalized, <String>[
+      'change language',
+      'switch language',
+      'set language',
+      'change app language',
+      'language',
+      'doi ngon ngu',
+      'chuyen ngon ngu',
+      'thay ngon ngu',
+      'cai dat ngon ngu',
+      'ngon ngu',
+      'language setting',
+      'doi tieng',
+      'chuyen tieng',
+      'thay tieng',
+    ]);
+  }
+
+  static bool _isUnsupportedLanguageRequest(String normalized) {
+    return _containsAny(normalized, <String>[
+      'japanese',
+      'korean',
+      'french',
+      'chinese',
+      'mandarin',
+      'spanish',
+      'german',
+      'italian',
+      'portuguese',
+      'russian',
+      'arabic',
+      'tieng nhat',
+      'tieng han',
+      'tieng phap',
+      'tieng trung',
+      'tieng duc',
+    ]);
+  }
+
+  static String? _detectSpecificLanguage(String normalized) {
+    if (_containsAny(normalized, <String>['english', 'tieng anh', ' anh'])) {
+      return 'English';
+    }
+    if (_containsAny(normalized, <String>[
+      'vietnamese',
+      'tieng viet',
+      'viet nam',
+      'viet',
+    ])) {
+      return 'Vietnamese';
+    }
+    return null;
+  }
+
+  static bool _isFontSizeChangeIntent(String normalized) {
+    return _containsAny(normalized, <String>[
+      'font size',
+      'change font size',
+      'switch font size',
+      'set font size',
+      'text size',
+      'change text size',
+      'set text size',
+      'font',
+      'co chu',
+      'kich co chu',
+      'kich thuoc chu',
+      'doi co chu',
+      'chuyen co chu',
+      'thay co chu',
+      'size chu',
+      'chu nho',
+      'chu to',
+    ]);
+  }
+
+  static bool _isUnsupportedFontSizeRequest(String normalized) {
+    return _containsAny(normalized, <String>[
+      'extra large',
+      'extra small',
+      'huge',
+      'tiny',
+      'giant',
+      'very large',
+      'very small',
+      'rat to',
+      'rat nho',
+      'sieu to',
+      'sieu nho',
+    ]);
+  }
+
+  static FontSizeLevel? _detectSpecificFontSize(String normalized) {
+    if (_containsAny(normalized, <String>['small', 'nho', ' be '])) {
+      return FontSizeLevel.small;
+    }
+    if (_containsAny(normalized, <String>['large', 'big', ' to ', ' lon '])) {
+      return FontSizeLevel.large;
+    }
+    if (_containsAny(normalized, <String>[
+      'medium',
+      'vua',
+      'trung binh',
+      'normal',
+    ])) {
+      return FontSizeLevel.medium;
+    }
+    return null;
   }
 
   static bool _isArtifactIntentQuestion(String text) {
@@ -1136,6 +1380,189 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         : 'Great question. I can help you explore artifacts, find facilities, and navigate to any room in the museum.';
   }
 
+  void _addBotMessage(String text) {
+    if (!mounted) return;
+    setState(() {
+      _messages.add(
+        _ChatMessage(
+          text: text,
+          time: _formatTime(DateTime.now()),
+          isUser: false,
+        ),
+      );
+    });
+    _scrollToBottom();
+  }
+
+  void _applySettingsToBackend({String? theme, String? language}) {
+    final userId = AppSession.userId.value;
+    if (userId == null) return;
+    () async {
+      try {
+        await BackendApi.instance.updateUserSettings(
+          userId,
+          theme: theme ?? _currentThemeHex(),
+          language: language ?? _currentLanguageCode(),
+        );
+      } catch (_) {}
+    }();
+  }
+
+  String _currentThemeHex() {
+    final value = themeNotifier.primaryColor.value;
+    return (value & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase();
+  }
+
+  String _currentLanguageCode() {
+    return languageNotifier.currentLanguage == 'Vietnamese' ? 'vi' : 'en';
+  }
+
+  List<_ChatAction> _buildThemeActions() {
+    return _appThemes
+        .map(
+          (t) => _ChatAction(
+            type: _ChatActionType.themeOption,
+            label: t.name,
+            icon: Icons.circle,
+            color: t.color,
+            value: t.hex,
+          ),
+        )
+        .toList();
+  }
+
+  List<_ChatAction> _buildLanguageActions() {
+    final isVietnamese = _useVietnameseReplies;
+    return [
+      _ChatAction(
+        type: _ChatActionType.languageOption,
+        label: isVietnamese ? '🇬🇧 Tiếng Anh' : '🇬🇧 English',
+        icon: Icons.language,
+        value: 'English',
+      ),
+      _ChatAction(
+        type: _ChatActionType.languageOption,
+        label: isVietnamese ? '🇻🇳 Tiếng Việt' : '🇻🇳 Vietnamese',
+        icon: Icons.language,
+        value: 'Vietnamese',
+      ),
+    ];
+  }
+
+  List<_ChatAction> _buildFontSizeActions() {
+    return const [
+      _ChatAction(
+        type: _ChatActionType.fontSizeOption,
+        label: 'Small',
+        icon: Icons.text_fields,
+        value: 'small',
+      ),
+      _ChatAction(
+        type: _ChatActionType.fontSizeOption,
+        label: 'Medium',
+        icon: Icons.text_fields,
+        value: 'medium',
+      ),
+      _ChatAction(
+        type: _ChatActionType.fontSizeOption,
+        label: 'Large',
+        icon: Icons.text_fields,
+        value: 'large',
+      ),
+    ];
+  }
+
+  _ResolvedReply _buildThemeReply(String normalized, bool isVietnamese) {
+    if (_isUnsupportedThemeRequest(normalized)) {
+      return _ResolvedReply(
+        text: isVietnamese
+            ? 'App không hỗ trợ theme đó. Dưới đây là các theme màu có sẵn trong app — nhấn để áp dụng:'
+            : 'The app doesn\'t support that theme. Here are the available color themes — tap to apply:',
+        actions: _buildThemeActions(),
+      );
+    }
+    final specific = _detectSpecificTheme(normalized);
+    if (specific != null) {
+      themeNotifier.setPrimaryColor(specific.color);
+      _applySettingsToBackend(
+        theme: specific.hex.replaceFirst('#', ''),
+        language: null,
+      );
+      return _ResolvedReply(
+        text: isVietnamese
+            ? 'Đã chuyển sang theme ${specific.nameVi} (${specific.hex})!'
+            : 'Switched to ${specific.name} theme (${specific.hex})!',
+      );
+    }
+    return _ResolvedReply(
+      text: isVietnamese
+          ? 'Dưới đây là các theme màu sắc có sẵn trong app. Nhấn vào màu bạn muốn để áp dụng ngay!'
+          : 'Here are the available color themes in the app. Tap one to apply it instantly!',
+      actions: _buildThemeActions(),
+    );
+  }
+
+  _ResolvedReply _buildLanguageReply(String normalized, bool isVietnamese) {
+    if (_isUnsupportedLanguageRequest(normalized)) {
+      return _ResolvedReply(
+        text: isVietnamese
+            ? 'App hiện chưa hỗ trợ ngôn ngữ đó. Bạn có thể chọn một trong các ngôn ngữ sau:'
+            : 'The app doesn\'t support that language yet. You can choose from the following:',
+        actions: _buildLanguageActions(),
+      );
+    }
+    final specific = _detectSpecificLanguage(normalized);
+    if (specific != null) {
+      languageNotifier.setLanguage(specific);
+      _applySettingsToBackend(
+        theme: null,
+        language: specific == 'Vietnamese' ? 'vi' : 'en',
+      );
+      return _ResolvedReply(
+        text: specific == 'Vietnamese'
+            ? 'Đã chuyển sang Tiếng Việt!'
+            : 'Switched to English!',
+      );
+    }
+    return _ResolvedReply(
+      text: isVietnamese
+          ? 'App hỗ trợ các ngôn ngữ sau. Nhấn để thay đổi:'
+          : 'The app supports the following languages. Tap to switch:',
+      actions: _buildLanguageActions(),
+    );
+  }
+
+  _ResolvedReply _buildFontSizeReply(String normalized, bool isVietnamese) {
+    if (_isUnsupportedFontSizeRequest(normalized)) {
+      return _ResolvedReply(
+        text: isVietnamese
+            ? 'App không hỗ trợ cỡ chữ đó. Các cỡ chữ có sẵn:'
+            : 'The app doesn\'t support that font size. Available sizes:',
+        actions: _buildFontSizeActions(),
+      );
+    }
+    final specific = _detectSpecificFontSize(normalized);
+    if (specific != null) {
+      fontSizeNotifier.setLevel(specific);
+      final levelLabel = specific == FontSizeLevel.small
+          ? (isVietnamese ? 'Nhỏ' : 'Small')
+          : specific == FontSizeLevel.large
+          ? (isVietnamese ? 'Lớn' : 'Large')
+          : (isVietnamese ? 'Vừa' : 'Medium');
+      return _ResolvedReply(
+        text: isVietnamese
+            ? 'Đã chuyển cỡ chữ sang $levelLabel!'
+            : 'Font size changed to $levelLabel!',
+      );
+    }
+    return _ResolvedReply(
+      text: isVietnamese
+          ? 'Các cỡ chữ có sẵn trong app. Nhấn để thay đổi:'
+          : 'Available font sizes in the app. Tap to change:',
+      actions: _buildFontSizeActions(),
+    );
+  }
+
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_scrollController.hasClients) {
@@ -1271,75 +1698,116 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                   ),
                 ),
                 Expanded(
-                  child: ListView.builder(
-                    controller: _scrollController,
-                    primary: false,
-                    padding: const EdgeInsets.fromLTRB(14, 4, 14, 8),
-                    itemCount: _messages.length + (_isAiTyping ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (_isAiTyping && index == _messages.length) {
-                        return const Padding(
-                          padding: EdgeInsets.only(bottom: 8),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: _TypingBubble(),
-                          ),
-                        );
-                      }
-                      final msg = _messages[index];
-                      final isOpeningMessage =
-                          index == 0 && !(msg.isUser ?? true);
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Align(
-                              alignment: (msg.isUser ?? true)
-                                  ? Alignment.centerRight
-                                  : Alignment.centerLeft,
-                              child: _MessageBubble(message: msg),
-                            ),
-                            if (!(msg.isUser ?? true) &&
-                                (msg.actions?.isNotEmpty ?? false)) ...[
-                              const SizedBox(height: 8),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                children: [
-                                  for (final action
-                                      in msg.actions ?? const <_ChatAction>[])
-                                    _StarterActionChip(
-                                      icon: action.icon,
-                                      text: action.label.tr,
-                                      onTap: () => _onActionTap(action, msg),
-                                    ),
-                                ],
+                  child: Stack(
+                    children: [
+                      ListView.builder(
+                        controller: _scrollController,
+                        primary: false,
+                        padding: const EdgeInsets.fromLTRB(14, 4, 14, 8),
+                        itemCount: _messages.length + (_isAiTyping ? 1 : 0),
+                        itemBuilder: (context, index) {
+                          if (_isAiTyping && index == _messages.length) {
+                            return const Padding(
+                              padding: EdgeInsets.only(bottom: 8),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: _TypingBubble(),
                               ),
-                            ],
-                            if (isOpeningMessage) ...[
-                              const SizedBox(height: 8),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                children: [
-                                  _StarterActionChip(
-                                    icon: Icons.near_me_outlined,
-                                    text: 'View Map'.tr,
-                                    onTap: () => Navigator.of(context).push(
-                                      _SlidePageRoute<void>(
-                                        builder: (_) =>
-                                            const Museum3DMapScreen(),
+                            );
+                          }
+                          final msg = _messages[index];
+                          final isOpeningMessage =
+                              index == 0 && !(msg.isUser ?? true);
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Align(
+                                  alignment: (msg.isUser ?? true)
+                                      ? Alignment.centerRight
+                                      : Alignment.centerLeft,
+                                  child: _MessageBubble(message: msg),
+                                ),
+                                if (!(msg.isUser ?? true) &&
+                                    (msg.actions?.isNotEmpty ?? false)) ...[
+                                  const SizedBox(height: 8),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: [
+                                      for (final action
+                                          in msg.actions ??
+                                              const <_ChatAction>[])
+                                        action.type ==
+                                                _ChatActionType.themeOption
+                                            ? _ThemeOptionChip(
+                                                action: action,
+                                                onTap: () =>
+                                                    _onActionTap(action, msg),
+                                              )
+                                            : _StarterActionChip(
+                                                icon: action.icon,
+                                                text: action.label.tr,
+                                                onTap: () =>
+                                                    _onActionTap(action, msg),
+                                              ),
+                                    ],
+                                  ),
+                                ],
+                                if (isOpeningMessage) ...[
+                                  const SizedBox(height: 8),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: [
+                                      _StarterActionChip(
+                                        icon: Icons.near_me_outlined,
+                                        text: 'View Map'.tr,
+                                        onTap: () => Navigator.of(context).push(
+                                          _SlidePageRoute<void>(
+                                            builder: (_) =>
+                                                const Museum3DMapScreen(),
+                                          ),
+                                        ),
                                       ),
+                                    ],
+                                  ),
+                                ],
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                      if (_isTranslating)
+                        Positioned.fill(
+                          child: Container(
+                            color: Colors.white.withValues(alpha: 0.88),
+                            child: Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  CircularProgressIndicator(
+                                    color: themeNotifier.primaryColor,
+                                    strokeWidth: 3,
+                                  ),
+                                  const SizedBox(height: 14),
+                                  Text(
+                                    _useVietnameseReplies
+                                        ? 'Đang dịch tin nhắn...'
+                                        : 'Translating messages...',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: themeNotifier.primaryColor,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ],
                               ),
-                            ],
-                          ],
+                            ),
+                          ),
                         ),
-                      );
-                    },
+                    ],
                   ),
                 ),
                 Container(
@@ -1464,7 +1932,14 @@ class _ChatMessage {
   final String? sourceQuestion;
 }
 
-enum _ChatActionType { map, tickets, artifact }
+enum _ChatActionType {
+  map,
+  tickets,
+  artifact,
+  themeOption,
+  languageOption,
+  fontSizeOption,
+}
 
 class _ChatAction {
   const _ChatAction({
@@ -1473,6 +1948,8 @@ class _ChatAction {
     required this.icon,
     this.fromLocationName,
     this.toLocationName,
+    this.color,
+    this.value,
   });
 
   final _ChatActionType type;
@@ -1480,6 +1957,8 @@ class _ChatAction {
   final IconData icon;
   final String? fromLocationName;
   final String? toLocationName;
+  final Color? color;
+  final String? value;
 }
 
 class _ResolvedReply {
@@ -1911,6 +2390,137 @@ class _StarterActionChip extends StatelessWidget {
                 fontSize: 14,
                 color: Color(0xFF111827),
                 fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Represents a supported app color theme.
+class _AppTheme {
+  const _AppTheme({
+    required this.name,
+    required this.nameVi,
+    required this.color,
+    required this.hex,
+  });
+
+  final String name;
+  final String nameVi;
+  final Color color;
+  final String hex;
+}
+
+const List<_AppTheme> _appThemes = <_AppTheme>[
+  _AppTheme(
+    name: 'Red',
+    nameVi: 'Đỏ',
+    color: Color(0xFFCC353A),
+    hex: '#CC353A',
+  ),
+  _AppTheme(
+    name: 'Purple',
+    nameVi: 'Tím',
+    color: Color(0xFF6C4BE8),
+    hex: '#6C4BE8',
+  ),
+  _AppTheme(
+    name: 'Amber',
+    nameVi: 'Vàng',
+    color: Color(0xFFF59E0B),
+    hex: '#F59E0B',
+  ),
+  _AppTheme(
+    name: 'Brown',
+    nameVi: 'Nâu',
+    color: Color(0xFFB45309),
+    hex: '#B45309',
+  ),
+  _AppTheme(
+    name: 'Green',
+    nameVi: 'Xanh lá',
+    color: Color(0xFF10B981),
+    hex: '#10B981',
+  ),
+  _AppTheme(
+    name: 'Blue',
+    nameVi: 'Xanh dương',
+    color: Color(0xFF3B82F6),
+    hex: '#3B82F6',
+  ),
+  _AppTheme(
+    name: 'Sky Blue',
+    nameVi: 'Xanh nhạt',
+    color: Color(0xFF60A5FA),
+    hex: '#60A5FA',
+  ),
+];
+
+/// Chip widget for displaying a color theme option with a colored swatch + name + hex code.
+class _ThemeOptionChip extends StatelessWidget {
+  const _ThemeOptionChip({required this.action, required this.onTap});
+
+  final _ChatAction action;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final chipColor = action.color ?? Colors.grey;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE5E7EB),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: chipColor.withValues(alpha: 0.6),
+            width: 1.5,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 16,
+              height: 16,
+              decoration: BoxDecoration(
+                color: chipColor,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: chipColor.withValues(alpha: 0.4),
+                    blurRadius: 4,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            RichText(
+              text: TextSpan(
+                children: [
+                  TextSpan(
+                    text: action.label,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF111827),
+                    ),
+                  ),
+                  TextSpan(
+                    text: '  ${action.value}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: chipColor,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
