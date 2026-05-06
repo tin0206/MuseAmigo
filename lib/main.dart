@@ -88,6 +88,15 @@ class MuseAmigoApp extends StatelessWidget {
               primary: primary,
             ),
           ),
+          darkTheme: ThemeData(
+            brightness: Brightness.dark,
+            colorScheme: ColorScheme.fromSeed(
+              brightness: Brightness.dark,
+              seedColor: primary,
+              primary: primary,
+            ),
+          ),
+          themeMode: themeNotifier.themeMode,
           routes: {
             AppRoutes.login: (_) => const LoginScreen(),
             AppRoutes.signUp: (_) => const SignUpScreen(),

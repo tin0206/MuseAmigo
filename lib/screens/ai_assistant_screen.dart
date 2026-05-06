@@ -221,29 +221,42 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
           sourceMessage.sourceQuestion ?? sourceMessage.text,
         );
         break;
-      case _ChatActionType.themeOption:
+      case _ChatActionType.schemeOption:
         final color = action.color;
         if (color != null) {
           themeNotifier.setPrimaryColor(color);
           _applySettingsToBackend(
-            theme: (action.value ?? '').replaceFirst('#', ''),
-            language: null,
+            scheme: (action.value ?? '').replaceFirst('#', ''),
           );
         }
         if (!mounted) return;
         _addBotMessage(
           _useVietnameseReplies
-              ? 'Đã chuyển sang theme ${action.label} (${action.value})!'
-              : 'Switched to ${action.label} theme (${action.value})!',
+              ? 'Đã chuyển màu scheme sang ${action.label} (${action.value})!'
+              : 'Switched scheme color to ${action.label} (${action.value})!',
+        );
+        break;
+      case _ChatActionType.themeOption:
+        final themeValue = action.value ?? 'light';
+        themeNotifier.setThemeMode(
+          themeValue == 'dark' ? ThemeMode.dark : ThemeMode.light,
+        );
+        _applySettingsToBackend(theme: themeValue);
+        if (!mounted) return;
+        _addBotMessage(
+          _useVietnameseReplies
+              ? (themeValue == 'dark'
+                    ? 'Đã chuyển sang Dark Theme!'
+                    : 'Đã chuyển sang Light Theme!')
+              : (themeValue == 'dark'
+                    ? 'Switched to Dark Theme!'
+                    : 'Switched to Light Theme!'),
         );
         break;
       case _ChatActionType.languageOption:
         final lang = action.value ?? 'English';
         languageNotifier.setLanguage(lang);
-        _applySettingsToBackend(
-          theme: null,
-          language: lang == 'Vietnamese' ? 'vi' : 'en',
-        );
+        _applySettingsToBackend(language: lang == 'Vietnamese' ? 'vi' : 'en');
         break;
       case _ChatActionType.fontSizeOption:
         final levelName = action.value ?? 'medium';
@@ -252,6 +265,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
           orElse: () => FontSizeLevel.medium,
         );
         fontSizeNotifier.setLevel(level);
+        _applySettingsToBackend(fontSize: level.name);
         if (!mounted) return;
         _addBotMessage(
           _useVietnameseReplies
@@ -315,6 +329,10 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     final isVietnamese = _useVietnameseReplies;
 
     // Handle settings intents before any network-dependent logic.
+    if (_isSchemeChangeIntent(normalized)) {
+      return _buildSchemeReply(normalized, isVietnamese);
+    }
+
     if (_isThemeChangeIntent(normalized)) {
       return _buildThemeReply(normalized, isVietnamese);
     }
@@ -930,6 +948,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     if (_extractArtifactCode(rawText) != null) return true;
     // Settings change requests
     if (_isThemeChangeIntent(normalized) ||
+        _isSchemeChangeIntent(normalized) ||
         _isLanguageChangeIntent(normalized) ||
         _isFontSizeChangeIntent(normalized)) {
       return true;
@@ -1010,14 +1029,69 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   }
 
   static bool _isThemeChangeIntent(String normalized) {
-    return _containsAny(normalized, <String>[
+    final explicit = _containsAny(normalized, <String>[
       'change theme',
       'switch theme',
       'set theme',
+      'update theme',
       'theme settings',
+      'doi theme',
+      'chuyen theme',
+      'thay doi theme',
+      'doi giao dien',
+      'chuyen giao dien',
+      'dark mode',
+      'dark theme',
+      'night mode',
+      'night theme',
+      'light mode',
+      'light theme',
+      'che do toi',
+      'giao dien toi',
+      'giao dien sang',
+      'che do sang',
+      'chuyen dark',
+      'chuyen light',
+      'doi dark',
+      'doi light',
+      'theme dark',
+      'theme light',
+      'theme app',
+    ]);
+
+    if (explicit) {
+      return true;
+    }
+
+    final hasAction = _containsAny(normalized, <String>[
+      'change',
+      'switch',
+      'set',
+      'update',
+      'doi',
+      'chuyen',
+      'thay doi',
+      'muon doi',
+      'muon chuyen',
+      'want to',
+    ]);
+    final hasThemeTarget = _containsAny(normalized, <String>[
+      'theme',
+      'giao dien',
+      'dark',
+      'light',
+      'che do toi',
+      'che do sang',
+    ]);
+    return hasAction && hasThemeTarget;
+  }
+
+  static bool _isSchemeChangeIntent(String normalized) {
+    final explicit = _containsAny(normalized, <String>[
       'change color',
       'switch color',
       'set color',
+      'update color',
       'change colour',
       'switch colour',
       'set colour',
@@ -1031,10 +1105,11 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       'change ui color',
       'app color',
       'color theme',
-      'theme',
-      'doi theme',
-      'chuyen theme',
-      'thay doi theme',
+      'chuyen scheme',
+      'doi scheme',
+      'thay doi color',
+      'thay doi colour',
+      'thay doi scheme',
       'set mau',
       'doi mau',
       'mau sac',
@@ -1051,29 +1126,41 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       'chuyen mau sac',
       'giao dien mau',
       'mau giao dien',
-      'doi giao dien',
-      'theme app',
+      'doi color',
+      'doi colour',
+      'scheme',
     ]);
+
+    if (explicit) {
+      return true;
+    }
+
+    final hasAction = _containsAny(normalized, <String>[
+      'change',
+      'switch',
+      'set',
+      'update',
+      'doi',
+      'chuyen',
+      'thay doi',
+      'muon doi',
+      'muon chuyen',
+      'want to',
+    ]);
+    final hasColorTarget = _containsAny(normalized, <String>[
+      'color',
+      'colour',
+      'mau',
+      'scheme',
+    ]);
+    return hasAction && hasColorTarget;
   }
 
   static bool _isUnsupportedThemeRequest(String normalized) {
-    return _containsAny(normalized, <String>[
-      'dark mode',
-      'dark theme',
-      'night mode',
-      'night theme',
-      'light mode',
-      'white theme',
-      'black theme',
-      'che do toi',
-      'giao dien toi',
-      'giao dien sang',
-      'bright mode',
-      'custom color',
-    ]);
+    return _containsAny(normalized, <String>['bright mode', 'custom color']);
   }
 
-  static _AppTheme? _detectSpecificTheme(String normalized) {
+  static _AppTheme? _detectSpecificScheme(String normalized) {
     final keywords = <String, _AppTheme>{
       'red': _appThemes[0],
       'do': _appThemes[0],
@@ -1105,11 +1192,46 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     return null;
   }
 
+  static String? _detectSpecificThemeMode(String normalized) {
+    if (_containsAny(normalized, <String>[
+      'dark mode',
+      'dark theme',
+      'night mode',
+      'night theme',
+      'theme dark',
+      'switch to dark',
+      'set dark theme',
+      'change to dark',
+      'chuyen sang dark',
+      'doi sang dark',
+      'che do toi',
+      'giao dien toi',
+    ])) {
+      return 'dark';
+    }
+    if (_containsAny(normalized, <String>[
+      'light mode',
+      'light theme',
+      'theme light',
+      'switch to light',
+      'set light theme',
+      'change to light',
+      'chuyen sang light',
+      'doi sang light',
+      'che do sang',
+      'giao dien sang',
+    ])) {
+      return 'light';
+    }
+    return null;
+  }
+
   static bool _isLanguageChangeIntent(String normalized) {
-    return _containsAny(normalized, <String>[
+    final explicit = _containsAny(normalized, <String>[
       'change language',
       'switch language',
       'set language',
+      'update language',
       'change app language',
       'language',
       'doi ngon ngu',
@@ -1121,7 +1243,41 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       'doi tieng',
       'chuyen tieng',
       'thay tieng',
+      'chuyen sang tieng anh',
+      'chuyen sang tieng viet',
+      'doi sang tieng anh',
+      'doi sang tieng viet',
+      'switch to english',
+      'switch to vietnamese',
+      'set english',
+      'set vietnamese',
     ]);
+
+    if (explicit) {
+      return true;
+    }
+
+    final hasAction = _containsAny(normalized, <String>[
+      'change',
+      'switch',
+      'set',
+      'update',
+      'doi',
+      'chuyen',
+      'thay',
+      'muon doi',
+      'muon chuyen',
+      'want to',
+    ]);
+    final hasLanguageTarget = _containsAny(normalized, <String>[
+      'language',
+      'ngon ngu',
+      'tieng anh',
+      'tieng viet',
+      'english',
+      'vietnamese',
+    ]);
+    return hasAction && hasLanguageTarget;
   }
 
   static bool _isUnsupportedLanguageRequest(String normalized) {
@@ -1146,14 +1302,23 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   }
 
   static String? _detectSpecificLanguage(String normalized) {
-    if (_containsAny(normalized, <String>['english', 'tieng anh', ' anh'])) {
+    if (_containsAny(normalized, <String>[
+      'english',
+      'tieng anh',
+      'switch to english',
+      'doi sang tieng anh',
+      'chuyen sang tieng anh',
+      'set english',
+    ])) {
       return 'English';
     }
     if (_containsAny(normalized, <String>[
       'vietnamese',
       'tieng viet',
-      'viet nam',
-      'viet',
+      'switch to vietnamese',
+      'doi sang tieng viet',
+      'chuyen sang tieng viet',
+      'set vietnamese',
     ])) {
       return 'Vietnamese';
     }
@@ -1164,15 +1329,31 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     return _containsAny(normalized, <String>[
       'font size',
       'change font size',
+      'change font size text',
+      'increase font size',
+      'decrease font size',
+      'make font bigger',
+      'make font smaller',
+      'bigger text',
+      'smaller text',
       'switch font size',
       'set font size',
       'text size',
       'change text size',
       'set text size',
+      'increase text size',
+      'decrease text size',
       'font',
+      'font size',
       'co chu',
       'kich co chu',
       'kich thuoc chu',
+      'tang co chu',
+      'giam co chu',
+      'tang kich thuoc chu',
+      'giam kich thuoc chu',
+      'chu to hon',
+      'chu nho hon',
       'doi co chu',
       'chuyen co chu',
       'thay co chu',
@@ -1180,6 +1361,56 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       'chu nho',
       'chu to',
     ]);
+  }
+
+  static bool _isIncreaseFontSizeIntent(String normalized) {
+    return _containsAny(normalized, <String>[
+      'increase font size',
+      'increase text size',
+      'make font bigger',
+      'bigger text',
+      'text bigger',
+      'tang co chu',
+      'tang kich thuoc chu',
+      'chu to hon',
+      'phong to chu',
+    ]);
+  }
+
+  static bool _isDecreaseFontSizeIntent(String normalized) {
+    return _containsAny(normalized, <String>[
+      'decrease font size',
+      'decrease text size',
+      'make font smaller',
+      'smaller text',
+      'text smaller',
+      'giam co chu',
+      'giam kich thuoc chu',
+      'chu nho hon',
+      'thu nho chu',
+    ]);
+  }
+
+  static FontSizeLevel _nextFontSizeLevel(FontSizeLevel level) {
+    switch (level) {
+      case FontSizeLevel.small:
+        return FontSizeLevel.medium;
+      case FontSizeLevel.medium:
+        return FontSizeLevel.large;
+      case FontSizeLevel.large:
+        return FontSizeLevel.large;
+    }
+  }
+
+  static FontSizeLevel _previousFontSizeLevel(FontSizeLevel level) {
+    switch (level) {
+      case FontSizeLevel.small:
+        return FontSizeLevel.small;
+      case FontSizeLevel.medium:
+        return FontSizeLevel.small;
+      case FontSizeLevel.large:
+        return FontSizeLevel.medium;
+    }
   }
 
   static bool _isUnsupportedFontSizeRequest(String normalized) {
@@ -1199,10 +1430,10 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   }
 
   static FontSizeLevel? _detectSpecificFontSize(String normalized) {
-    if (_containsAny(normalized, <String>['small', 'nho', ' be '])) {
+    if (_containsAny(normalized, <String>['small', 'nho', 'chu nho'])) {
       return FontSizeLevel.small;
     }
-    if (_containsAny(normalized, <String>['large', 'big', ' to ', ' lon '])) {
+    if (_containsAny(normalized, <String>['large', 'big', 'lon', 'chu to'])) {
       return FontSizeLevel.large;
     }
     if (_containsAny(normalized, <String>[
@@ -1327,25 +1558,25 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         addressEn:
             '135 Nam Ky Khoi Nghia Street, Ben Thanh Ward, Ho Chi Minh City, Vietnam',
         addressVi:
-            '135 Nam Ky Khoi Nghia, phuong Ben Thanh, Thanh pho Ho Chi Minh, Viet Nam',
+            '135 Nam Kỳ Khởi Nghĩa, phường Bến Thành, Thành phố Hồ Chí Minh, Việt Nam',
       ),
       'War Remnants Museum': _MuseumLocationInfo(
         addressEn:
             '28 Vo Van Tan Street, Xuan Hoa Ward, Ho Chi Minh City, Vietnam',
         addressVi:
-            '28 Vo Van Tan, phuong Xuan Hoa, Thanh pho Ho Chi Minh, Viet Nam',
+            '28 Võ Văn Tần, phường Xuân Hòa, Thành phố Hồ Chí Minh, Việt Nam',
       ),
       'HCMC Museum of Fine Arts': _MuseumLocationInfo(
         addressEn:
             '97-97A Pho Duc Chinh Street, Ben Thanh Ward, District 1, Ho Chi Minh City, Vietnam',
         addressVi:
-            '97-97A Pho Duc Chinh, phuong Ben Thanh, Quan 1, Thanh pho Ho Chi Minh, Viet Nam',
+            '97-97A Phố Đức Chính, phường Bến Thành, Quận 1, Thành phố Hồ Chí Minh, Việt Nam',
       ),
       'Ho Chi Minh City Museum': _MuseumLocationInfo(
         addressEn:
             'at the corner of Ly Tu Trong Street and Nam Ky Khoi Nghia Street, near Independence Palace, Ho Chi Minh City, Vietnam',
         addressVi:
-            'tai goc duong Ly Tu Trong va Nam Ky Khoi Nghia, gan Independence Palace, Thanh pho Ho Chi Minh, Viet Nam',
+            'tại góc đường Lý Tự Trọng và Nam Kỳ Khởi Nghĩa, gần Dinh Độc Lập, Thành phố Hồ Chí Minh, Việt Nam',
       ),
     };
 
@@ -1357,26 +1588,26 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     final isVietnamese = _useVietnameseReplies;
     if (q.contains('toilet') || q.contains('restroom')) {
       return isVietnamese
-          ? 'Nha ve sinh gan nhat nam gan Hall C o Floor 1. Neu ban muon, minh co the chi duong cho ban.'
+          ? 'Nhà vệ sinh gần nhất nằm gần Hall C ở Floor 1. Nếu bạn muốn, mình có thể chỉ đường cho bạn.'
           : 'The nearest restroom is near Hall C on Floor 1. I can guide you there if you want.';
     }
     if (q.contains('tank') || q.contains('t-54')) {
       return isVietnamese
-          ? 'Tank T-54 nam o Hall C, Floor 1. Ban co the theo route tren ban do va minh se huong dan tung buoc cho ban.'
+          ? 'Tank T-54 nằm ở Hall C, Floor 1. Bạn có thể theo route trên bản đồ và mình sẽ hướng dẫn từng bước cho bạn.'
           : 'Tank T-54 is in Hall C, Floor 1. Follow the map route and I can navigate step-by-step for you.';
     }
     if (q.contains('floor 2')) {
       return isVietnamese
-          ? 'O Floor 2, cac diem pho bien gom Photography Gallery, Peace Memorial, Diplomatic Room va Rooftop Cafe.'
+          ? 'Ở Floor 2, các điểm phổ biến gồm Photography Gallery, Peace Memorial, Diplomatic Room và Rooftop Cafe.'
           : 'On Floor 2, popular stops include Photography Gallery, Peace Memorial, Diplomatic Room, and Rooftop Cafe.';
     }
     if (q.contains('coffee') || q.contains('cafe')) {
       return isVietnamese
-          ? 'Ban co the nghi chan tai Cafe Nile o Floor 1 hoac Rooftop Cafe o Floor 2.'
+          ? 'Bạn có thể nghỉ chân tại Cafe Nile ở Floor 1 hoặc Rooftop Cafe ở Floor 2.'
           : 'You can take a break at Cafe Nile on Floor 1 or Rooftop Cafe on Floor 2.';
     }
     return isVietnamese
-        ? 'Cau hoi rat hay. Minh co the giup ban kham pha hien vat, tim tien ich va chi duong den bat ky khu vuc nao trong museum.'
+        ? 'Câu hỏi rất hay. Mình có thể giúp bạn khám phá hiện vật, tìm tiện ích và chỉ đường đến bất kỳ khu vực nào trong bảo tàng.'
         : 'Great question. I can help you explore artifacts, find facilities, and navigate to any room in the museum.';
   }
 
@@ -1394,34 +1625,64 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     _scrollToBottom();
   }
 
-  void _applySettingsToBackend({String? theme, String? language}) {
+  void _applySettingsToBackend({
+    String? theme,
+    String? language,
+    String? fontSize,
+    String? scheme,
+  }) {
     final userId = AppSession.userId.value;
-    if (userId == null) return;
+    final resolvedTheme = theme ?? _currentThemeCode();
+    final resolvedLanguage = language ?? _currentLanguageCode();
+    final resolvedFontSize = fontSize ?? _currentFontSizeCode();
+    final resolvedScheme = scheme ?? _currentSchemeHex();
+
+    if (userId == null) {
+      return;
+    }
+
     () async {
       try {
         await BackendApi.instance.updateUserSettings(
           userId,
-          theme: theme ?? _currentThemeHex(),
-          language: language ?? _currentLanguageCode(),
+          theme: resolvedTheme,
+          language: resolvedLanguage,
+          fontSize: resolvedFontSize,
+          scheme: resolvedScheme,
         );
-      } catch (_) {}
+      } catch (e, st) {
+        debugPrint('[AI_SETTINGS_SYNC] Failed userId=$userId error=$e');
+        debugPrint(st.toString());
+      }
     }();
   }
 
-  String _currentThemeHex() {
+  String _currentSchemeHex() {
     final value = themeNotifier.primaryColor.value;
-    return (value & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase();
+    final rgb = (value & 0xFFFFFF)
+        .toRadixString(16)
+        .padLeft(6, '0')
+        .toUpperCase();
+    return '0xFF$rgb';
+  }
+
+  String _currentThemeCode() {
+    return themeNotifier.isDarkMode ? 'dark' : 'light';
   }
 
   String _currentLanguageCode() {
     return languageNotifier.currentLanguage == 'Vietnamese' ? 'vi' : 'en';
   }
 
-  List<_ChatAction> _buildThemeActions() {
+  String _currentFontSizeCode() {
+    return fontSizeNotifier.level.name;
+  }
+
+  List<_ChatAction> _buildSchemeActions() {
     return _appThemes
         .map(
           (t) => _ChatAction(
-            type: _ChatActionType.themeOption,
+            type: _ChatActionType.schemeOption,
             label: t.name,
             icon: Icons.circle,
             color: t.color,
@@ -1429,6 +1690,23 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
           ),
         )
         .toList();
+  }
+
+  List<_ChatAction> _buildThemeActions() {
+    return [
+      _ChatAction(
+        type: _ChatActionType.themeOption,
+        label: 'Light Theme',
+        icon: Icons.light_mode_outlined,
+        value: 'light',
+      ),
+      _ChatAction(
+        type: _ChatActionType.themeOption,
+        label: 'Dark Theme',
+        icon: Icons.dark_mode_outlined,
+        value: 'dark',
+      ),
+    ];
   }
 
   List<_ChatAction> _buildLanguageActions() {
@@ -1472,32 +1750,54 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     ];
   }
 
-  _ResolvedReply _buildThemeReply(String normalized, bool isVietnamese) {
+  _ResolvedReply _buildSchemeReply(String normalized, bool isVietnamese) {
     if (_isUnsupportedThemeRequest(normalized)) {
       return _ResolvedReply(
         text: isVietnamese
             ? 'App không hỗ trợ theme đó. Dưới đây là các theme màu có sẵn trong app — nhấn để áp dụng:'
             : 'The app doesn\'t support that theme. Here are the available color themes — tap to apply:',
-        actions: _buildThemeActions(),
+        actions: _buildSchemeActions(),
       );
     }
-    final specific = _detectSpecificTheme(normalized);
+    final specific = _detectSpecificScheme(normalized);
     if (specific != null) {
-      themeNotifier.setPrimaryColor(specific.color);
-      _applySettingsToBackend(
-        theme: specific.hex.replaceFirst('#', ''),
-        language: null,
-      );
       return _ResolvedReply(
         text: isVietnamese
-            ? 'Đã chuyển sang theme ${specific.nameVi} (${specific.hex})!'
-            : 'Switched to ${specific.name} theme (${specific.hex})!',
+            ? 'Bạn muốn đổi sang màu ${specific.nameVi} (${specific.hex}) đúng không? Chọn trong bảng màu bên dưới để áp dụng nhé!'
+            : 'You want ${specific.name} (${specific.hex}), right? Please pick it from the scheme palette below to apply.',
+        actions: _buildSchemeActions(),
       );
     }
     return _ResolvedReply(
       text: isVietnamese
-          ? 'Dưới đây là các theme màu sắc có sẵn trong app. Nhấn vào màu bạn muốn để áp dụng ngay!'
-          : 'Here are the available color themes in the app. Tap one to apply it instantly!',
+          ? 'Dưới đây là các màu scheme có sẵn trong app. Nhấn vào màu bạn muốn để áp dụng ngay!'
+          : 'Here are the available scheme colors in the app. Tap one to apply it instantly!',
+      actions: _buildSchemeActions(),
+    );
+  }
+
+  _ResolvedReply _buildThemeReply(String normalized, bool isVietnamese) {
+    final specific = _detectSpecificThemeMode(normalized);
+    if (specific != null) {
+      themeNotifier.setThemeMode(
+        specific == 'dark' ? ThemeMode.dark : ThemeMode.light,
+      );
+      _applySettingsToBackend(theme: specific);
+      return _ResolvedReply(
+        text: isVietnamese
+            ? (specific == 'dark'
+                  ? 'Đã chuyển sang Dark Theme!'
+                  : 'Đã chuyển sang Light Theme!')
+            : (specific == 'dark'
+                  ? 'Switched to Dark Theme!'
+                  : 'Switched to Light Theme!'),
+      );
+    }
+
+    return _ResolvedReply(
+      text: isVietnamese
+          ? 'Theme của app gồm 2 lựa chọn: Light Theme và Dark Theme. Nhấn để đổi ngay:'
+          : 'The app theme has 2 options: Light Theme and Dark Theme. Tap to switch:',
       actions: _buildThemeActions(),
     );
   }
@@ -1541,9 +1841,63 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         actions: _buildFontSizeActions(),
       );
     }
+
+    if (_isIncreaseFontSizeIntent(normalized)) {
+      final current = fontSizeNotifier.level;
+      final next = _nextFontSizeLevel(current);
+      fontSizeNotifier.setLevel(next);
+      _applySettingsToBackend(fontSize: next.name);
+
+      if (current == next) {
+        return _ResolvedReply(
+          text: isVietnamese
+              ? 'Cỡ chữ hiện đã ở mức lớn nhất rồi.'
+              : 'Font size is already at the largest level.',
+        );
+      }
+
+      final label = next == FontSizeLevel.small
+          ? (isVietnamese ? 'Nhỏ' : 'Small')
+          : next == FontSizeLevel.large
+          ? (isVietnamese ? 'Lớn' : 'Large')
+          : (isVietnamese ? 'Vừa' : 'Medium');
+      return _ResolvedReply(
+        text: isVietnamese
+            ? 'Đã tăng cỡ chữ lên $label!'
+            : 'Increased font size to $label!',
+      );
+    }
+
+    if (_isDecreaseFontSizeIntent(normalized)) {
+      final current = fontSizeNotifier.level;
+      final previous = _previousFontSizeLevel(current);
+      fontSizeNotifier.setLevel(previous);
+      _applySettingsToBackend(fontSize: previous.name);
+
+      if (current == previous) {
+        return _ResolvedReply(
+          text: isVietnamese
+              ? 'Cỡ chữ hiện đã ở mức nhỏ nhất rồi.'
+              : 'Font size is already at the smallest level.',
+        );
+      }
+
+      final label = previous == FontSizeLevel.small
+          ? (isVietnamese ? 'Nhỏ' : 'Small')
+          : previous == FontSizeLevel.large
+          ? (isVietnamese ? 'Lớn' : 'Large')
+          : (isVietnamese ? 'Vừa' : 'Medium');
+      return _ResolvedReply(
+        text: isVietnamese
+            ? 'Đã giảm cỡ chữ xuống $label!'
+            : 'Decreased font size to $label!',
+      );
+    }
+
     final specific = _detectSpecificFontSize(normalized);
     if (specific != null) {
       fontSizeNotifier.setLevel(specific);
+      _applySettingsToBackend(fontSize: specific.name);
       final levelLabel = specific == FontSizeLevel.small
           ? (isVietnamese ? 'Nhỏ' : 'Small')
           : specific == FontSizeLevel.large
@@ -1740,7 +2094,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                                           in msg.actions ??
                                               const <_ChatAction>[])
                                         action.type ==
-                                                _ChatActionType.themeOption
+                                                _ChatActionType.schemeOption
                                             ? _ThemeOptionChip(
                                                 action: action,
                                                 onTap: () =>
@@ -1936,6 +2290,7 @@ enum _ChatActionType {
   map,
   tickets,
   artifact,
+  schemeOption,
   themeOption,
   languageOption,
   fontSizeOption,
