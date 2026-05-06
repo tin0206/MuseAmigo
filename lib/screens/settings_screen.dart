@@ -16,11 +16,9 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _themeLight = true;
   bool _audioGuide = true;
   bool _autoPlay = false;
   bool _indoorNavigation = true;
-  String _fontSize = 'Medium';
   double _horizontalDragDistance = 0;
   bool _isEdgeSwipe = false;
   bool _hasPoppedBySwipe = false;
@@ -30,10 +28,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       await BackendApi.instance.updateUserSettings(
         AppSession.userId.value!,
-        theme: _themeLight ? 'light' : 'dark',
+        theme: themeNotifier.isDarkMode ? 'dark' : 'light',
         language: languageNotifier.currentLanguage,
         fontSize: fontSizeNotifier.levelName,
-        scheme: '0x${themeNotifier.primaryColor.value.toRadixString(16).padLeft(8, '0').toUpperCase()}',
+        scheme:
+            '0x${themeNotifier.primaryColor.value.toRadixString(16).padLeft(8, '0').toUpperCase()}',
       );
     } catch (e) {
       debugPrint('Failed to save settings to backend: $e');
@@ -1158,10 +1157,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     _ToggleTile(
                       icon: Icons.wb_sunny_outlined,
                       title: 'Theme',
-                      subtitle: _themeLight ? 'Light' : 'Dark',
-                      value: _themeLight,
+                      subtitle: themeNotifier.isDarkMode ? 'Dark' : 'Light',
+                      value: !themeNotifier.isDarkMode,
                       onChanged: (v) {
-                        setState(() => _themeLight = v);
+                        themeNotifier.setThemeMode(
+                          v ? ThemeMode.light : ThemeMode.dark,
+                        );
                         _saveSettingsToBackend();
                       },
                     ),
