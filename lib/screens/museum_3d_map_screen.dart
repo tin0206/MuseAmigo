@@ -26,6 +26,24 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
   int _currentStopIndex = 0;
   bool _isPreviewRoute = false;
 
+  final TextEditingController _searchController = TextEditingController();
+  List<_LocationOption> _searchResults = [];
+
+  void _onSearchChanged(String query) {
+    if (query.isEmpty) {
+      setState(() => _searchResults = []);
+      return;
+    }
+    final q = query.toLowerCase();
+    setState(() {
+      _searchResults = _currentConfig.locationOptions
+          .where((l) =>
+              l.name.toLowerCase().contains(q) ||
+              l.subtitle.toLowerCase().contains(q))
+          .toList();
+    });
+  }
+
   static const Color _restroomColor = Color(0xFFF59E0B);
   static const Color _cafeColor = Color(0xFF8B5E3C);
   static const Color _stairsColor = Color(0xFF60A5FA);
@@ -91,6 +109,45 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                     ),
                   ),
                 ],
+              ),
+            ),
+            // ── Search bar ─────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Container(
+                height: 44,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF3F4F6),
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.search, color: Color(0xFF9CA3AF), size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: _onSearchChanged,
+                        decoration: InputDecoration(
+                          hintText: 'Search artifacts, locations...'.tr,
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ),
+                    if (_searchController.text.isNotEmpty)
+                      GestureDetector(
+                        onTap: () {
+                          _searchController.clear();
+                          _onSearchChanged('');
+                        },
+                        child: const Icon(Icons.close, color: Color(0xFF9CA3AF), size: 18),
+                      ),
+                  ],
+                ),
               ),
             ),
             // ── Floor filters + 3D toggle ──────────────────────────────
@@ -226,6 +283,50 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                       ),
                     ),
                   ),
+                  // ── Search Results Overlay ───────────────────────────────
+                  if (_searchResults.isNotEmpty)
+                    Positioned.fill(
+                      child: Container(
+                        color: Colors.white.withOpacity(0.95),
+                        child: ListView.separated(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: _searchResults.length,
+                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          itemBuilder: (context, i) {
+                            final loc = _searchResults[i];
+                            return ListTile(
+                              leading: Icon(loc.icon, color: loc.iconColor),
+                              title: Text(loc.name.tr, style: const TextStyle(fontWeight: FontWeight.w600)),
+                              subtitle: Text(loc.subtitle.tr, style: const TextStyle(fontSize: 12)),
+                              onTap: () async {
+                                _searchController.clear();
+                                _onSearchChanged('');
+                                final floor = _floorOfStop(loc.name);
+                                if (floor != null) {
+                                  setState(() => _selectedFloor = floor);
+                                }
+                                
+                                final fromLoc = await showModalBottomSheet<_LocationOption>(
+                                  context: context,
+                                  isScrollControlled: true,
+                                  backgroundColor: Colors.white,
+                                  shape: const RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                                  ),
+                                  builder: (_) => _LocationPickerSheet(options: _currentConfig.locationOptions),
+                                );
+                                if (fromLoc == null || !mounted) return;
+                                
+                                final route = _buildInitialRouteFromLocations(fromLoc.name, loc.name);
+                                if (route != null) {
+                                  _showRouteReady(route);
+                                }
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -509,14 +610,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
     return _findLocationByName(stopName)?.floor;
   }
 
-  _RouteOption? _buildInitialRoute() {
-    final fromName = widget.initialFromLocationName;
-    final toName = widget.initialToLocationName;
-
-    if (fromName == null || toName == null) {
-      return null;
-    }
-
+  _RouteOption? _buildInitialRouteFromLocations(String fromName, String toName) {
     final from = _findLocationByName(fromName);
     final to = _findLocationByName(toName);
     if (from == null || to == null) {
@@ -558,6 +652,13 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
       stopsCount: stops.length,
       stops: stops,
     );
+  }
+
+  _RouteOption? _buildInitialRoute() {
+    if (widget.initialFromLocationName == null || widget.initialToLocationName == null) {
+      return null;
+    }
+    return _buildInitialRouteFromLocations(widget.initialFromLocationName!, widget.initialToLocationName!);
   }
 
   static String _subtitleForLocation(_MapLocation location) {
