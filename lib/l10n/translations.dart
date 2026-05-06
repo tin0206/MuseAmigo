@@ -350,6 +350,10 @@ const Map<String, Map<String, String>> _localizedStrings = {
     'Route Ready': 'Route Ready',
     'Detecting your position...': 'Detecting your position...',
     'Using indoor positioning': 'Using indoor positioning',
+    'GPS unavailable': 'GPS unavailable',
+    'Unable to detect your location. Please enable GPS.':
+        'Unable to detect your location. Please enable GPS.',
+    'Using GPS positioning': 'Using GPS positioning',
     'Where are you now?': 'Where are you now?',
     'Indoor positioning unavailable. Select your nearest location.':
         'Indoor positioning unavailable. Select your nearest location.',
@@ -773,6 +777,10 @@ const Map<String, Map<String, String>> _localizedStrings = {
     'Route Ready': 'Tuyến đường đã sẵn sàng',
     'Detecting your position...': 'Đang xác định vị trí của bạn...',
     'Using indoor positioning': 'Sử dụng định vị trong nhà',
+    'GPS unavailable': 'GPS không khả dụng',
+    'Unable to detect your location. Please enable GPS.':
+        'Không thể phát hiện vị trí của bạn. Vui lòng bật GPS.',
+    'Using GPS positioning': 'Sử dụng định vị GPS',
     'Where are you now?': 'Bạn đang ở đâu?',
     'Indoor positioning unavailable. Select your nearest location.':
         'Định vị trong nhà không khả dụng. Chọn vị trí gần nhất của bạn.',

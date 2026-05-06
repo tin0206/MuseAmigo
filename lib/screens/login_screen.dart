@@ -10,6 +10,9 @@ import 'package:museamigo/profile_notifier.dart';
 import 'package:museamigo/widgets/auth_form_widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:museamigo/achievement_notifier.dart';
+import 'package:museamigo/theme_notifier.dart';
+import 'package:museamigo/language_notifier.dart';
+import 'package:museamigo/font_size_notifier.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -129,6 +132,28 @@ class _LoginScreenState extends State<LoginScreen> {
         name: result.fullName,
         email: _emailController.text.trim(),
       );
+      
+      // Apply settings from backend
+      languageNotifier.setLanguage(result.language);
+      
+      final fontSizeStr = result.fontSize.toLowerCase();
+      FontSizeLevel fontSizeLevel = FontSizeLevel.medium;
+      if (fontSizeStr == 'small') fontSizeLevel = FontSizeLevel.small;
+      if (fontSizeStr == 'large') fontSizeLevel = FontSizeLevel.large;
+      fontSizeNotifier.setLevel(fontSizeLevel);
+      
+      try {
+        if (result.scheme.startsWith('0x') || result.scheme.startsWith('0X')) {
+          themeNotifier.setPrimaryColor(Color(int.parse(result.scheme)));
+        } else {
+          // fallback
+          themeNotifier.setPrimaryColor(Color(int.parse('0xFFCC353A')));
+        }
+      } catch (e) {
+        // fallback
+        themeNotifier.setPrimaryColor(Color(int.parse('0xFFCC353A')));
+      }
+
       // Start preloading achievements right after login
       achievementNotifier.ensureLoaded();
     } on SocketException catch (e) {

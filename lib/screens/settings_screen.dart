@@ -5,6 +5,8 @@ import 'package:museamigo/profile_notifier.dart';
 import 'package:museamigo/language_notifier.dart';
 import 'package:museamigo/font_size_notifier.dart';
 import 'package:museamigo/l10n/translations.dart';
+import 'package:museamigo/services/backend_api.dart';
+import 'package:museamigo/session.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -22,6 +24,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
   double _horizontalDragDistance = 0;
   bool _isEdgeSwipe = false;
   bool _hasPoppedBySwipe = false;
+
+  Future<void> _saveSettingsToBackend() async {
+    if (AppSession.userId.value == null) return;
+    try {
+      await BackendApi.instance.updateUserSettings(
+        AppSession.userId.value!,
+        theme: _themeLight ? 'light' : 'dark',
+        language: languageNotifier.currentLanguage,
+        fontSize: fontSizeNotifier.levelName,
+        scheme: '0x${themeNotifier.primaryColor.value.toRadixString(16).padLeft(8, '0').toUpperCase()}',
+      );
+    } catch (e) {
+      debugPrint('Failed to save settings to backend: $e');
+    }
+  }
 
   void _handleSwipeStart(DragStartDetails details) {
     _horizontalDragDistance = 0;
@@ -253,6 +270,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       child: ElevatedButton.icon(
                         onPressed: () {
                           themeNotifier.setPrimaryColor(selected);
+                          _saveSettingsToBackend();
                           Navigator.of(ctx).pop();
                         },
                         style: ElevatedButton.styleFrom(
@@ -374,6 +392,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: ElevatedButton(
                     onPressed: () {
                       languageNotifier.setLanguage(temp);
+                      _saveSettingsToBackend();
                       Navigator.of(ctx).pop();
                     },
                     style: ElevatedButton.styleFrom(
@@ -501,6 +520,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: ElevatedButton(
                     onPressed: () {
                       fontSizeNotifier.setLevel(temp);
+                      _saveSettingsToBackend();
                       Navigator.of(ctx).pop();
                     },
                     style: ElevatedButton.styleFrom(
@@ -1140,7 +1160,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       title: 'Theme',
                       subtitle: _themeLight ? 'Light' : 'Dark',
                       value: _themeLight,
-                      onChanged: (v) => setState(() => _themeLight = v),
+                      onChanged: (v) {
+                        setState(() => _themeLight = v);
+                        _saveSettingsToBackend();
+                      },
                     ),
                     const SizedBox(height: 8),
                     _ArrowTile(
