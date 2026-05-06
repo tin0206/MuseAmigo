@@ -507,4 +507,17 @@ class BackendApi {
     }
     return json;
   }
+
+  Future<List<Map<String, dynamic>>> fetchUserTickets(int userId) async {
+    final response = await http.get(_uri('/users/$userId/tickets'));
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final json = await _readJson(response);
+      _throwForResponse(response, json);
+    }
+    final decoded = jsonDecode(response.body);
+    if (decoded is! List) {
+      throw ApiException('Unexpected ticket list format');
+    }
+    return decoded.cast<Map<String, dynamic>>();
+  }
 }

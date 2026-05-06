@@ -559,8 +559,10 @@ class _TicketResultSheet extends StatelessWidget {
 
   final TicketPaymentInfo ticket;
 
-  // TODO: implement save ticket to local storage / API
-  void _handleSaveTicket() {}
+  void _handleSaveTicket(BuildContext context) {
+    Navigator.of(context).pop();
+    Navigator.of(context).pushNamed(AppRoutes.myTickets);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -706,7 +708,7 @@ class _TicketResultSheet extends StatelessWidget {
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: _handleSaveTicket,
+                        onPressed: () => _handleSaveTicket(context),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFF171A21),
                           side: const BorderSide(color: Color(0xFFCCCCCC)),
