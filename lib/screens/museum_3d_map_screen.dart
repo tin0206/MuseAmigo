@@ -1,4 +1,4 @@
-import 'dart:math' as math;
+﻿import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -153,7 +153,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
             ),
             // ── Search bar ─────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
               child: Container(
                 height: 44,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -1928,10 +1928,11 @@ const _independencePalaceRoutes = <_RouteOption>[
     description:
         'Focus on secret command infrastructure and the evacuation narrative on Floor 2',
     duration: '60 min',
-    stopsCount: 4,
+    stopsCount: 5,
     stops: [
       _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
       _RouteStop(name: 'Stairs - Floor 1', subtitle: 'Transition · Floor 1'),
+      _RouteStop(name: 'Stairs - Floor 2', subtitle: 'Transition · Floor 2'),
       _RouteStop(
         name: 'War Command Bunker',
         subtitle: 'Command Center · Floor 2',
@@ -1948,7 +1949,7 @@ const _independencePalaceRoutes = <_RouteOption>[
     description:
         'Complete walkthrough of all six exhibitions across two thematic floors',
     duration: '2 hours',
-    stopsCount: 8,
+    stopsCount: 9,
     stops: [
       _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
       _RouteStop(
@@ -1968,6 +1969,7 @@ const _independencePalaceRoutes = <_RouteOption>[
         subtitle: 'Private Quarters · Floor 1',
       ),
       _RouteStop(name: 'Stairs - Floor 1', subtitle: 'Transition · Floor 1'),
+      _RouteStop(name: 'Stairs - Floor 2', subtitle: 'Transition · Floor 2'),
       _RouteStop(
         name: 'War Command Bunker',
         subtitle: 'Command Center · Floor 2',
@@ -1986,7 +1988,7 @@ const _warRemnantsRoutes = <_RouteOption>[
     name: 'War History Path',
     description: 'Key wartime exhibits and evidence galleries',
     duration: '90 min',
-    stopsCount: 5,
+    stopsCount: 7,
     stops: [
       _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
       _RouteStop(
@@ -1995,6 +1997,8 @@ const _warRemnantsRoutes = <_RouteOption>[
       ),
       _RouteStop(name: 'Guillotine', subtitle: 'Historical Hall · Floor 1'),
       _RouteStop(name: 'Tiger Cages', subtitle: 'Outdoor Area · Floor 1'),
+      _RouteStop(name: 'Stairs - Floor 1', subtitle: 'Transition · Floor 1'),
+      _RouteStop(name: 'Stairs - Floor 2', subtitle: 'Transition · Floor 2'),
       _RouteStop(
         name: 'Peace and Reconciliation Display',
         subtitle: 'Memorial Wing · Floor 2',
@@ -2006,13 +2010,15 @@ const _warRemnantsRoutes = <_RouteOption>[
     name: 'Quick Overview',
     description: 'A short route through the core museum highlights',
     duration: '30 min',
-    stopsCount: 3,
+    stopsCount: 5,
     stops: [
       _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
       _RouteStop(
         name: 'War Crimes Exhibition',
         subtitle: 'Building A · Floor 1',
       ),
+      _RouteStop(name: 'Stairs - Floor 1', subtitle: 'Transition · Floor 1'),
+      _RouteStop(name: 'Stairs - Floor 2', subtitle: 'Transition · Floor 2'),
       _RouteStop(
         name: 'International Support Gallery',
         subtitle: 'Building B · Floor 2',
@@ -2027,7 +2033,7 @@ const _fineArtsRoutes = <_RouteOption>[
     name: 'Masterpieces Collection',
     description: 'A curated route through signature fine art works',
     duration: '60 min',
-    stopsCount: 4,
+    stopsCount: 6,
     stops: [
       _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
       _RouteStop(
@@ -2038,6 +2044,8 @@ const _fineArtsRoutes = <_RouteOption>[
         name: 'Lacquer Painting Rural Life',
         subtitle: 'Main Gallery · Floor 1',
       ),
+      _RouteStop(name: 'Stairs - Floor 1', subtitle: 'Transition · Floor 1'),
+      _RouteStop(name: 'Stairs - Floor 2', subtitle: 'Transition · Floor 2'),
       _RouteStop(name: 'Buddhist Statue', subtitle: 'Sculpture Hall · Floor 2'),
     ],
   ),
@@ -2046,9 +2054,11 @@ const _fineArtsRoutes = <_RouteOption>[
     name: 'Traditional Arts Walk',
     description: 'Explore traditional Vietnamese craft and sculpture',
     duration: '40 min',
-    stopsCount: 3,
+    stopsCount: 5,
     stops: [
       _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
+      _RouteStop(name: 'Stairs - Floor 1', subtitle: 'Transition · Floor 1'),
+      _RouteStop(name: 'Stairs - Floor 2', subtitle: 'Transition · Floor 2'),
       _RouteStop(
         name: 'Traditional Crafts Exhibition',
         subtitle: 'Heritage Wing · Floor 2',
@@ -2065,7 +2075,7 @@ const _cityMuseumRoutes = <_RouteOption>[
     description:
         'A route through key exhibits on the history of Saigon and Ho Chi Minh City',
     duration: '75 min',
-    stopsCount: 4,
+    stopsCount: 6,
     stops: [
       _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
       _RouteStop(
@@ -2076,6 +2086,8 @@ const _cityMuseumRoutes = <_RouteOption>[
         name: 'Traditional Ao Dai',
         subtitle: 'Textile Hall · Floor 1',
       ),
+      _RouteStop(name: 'Stairs - Floor 1', subtitle: 'Transition · Floor 1'),
+      _RouteStop(name: 'Stairs - Floor 2', subtitle: 'Transition · Floor 2'),
       _RouteStop(name: 'Saigon Map 1930', subtitle: 'Archive Hall · Floor 2'),
     ],
   ),
@@ -2084,9 +2096,11 @@ const _cityMuseumRoutes = <_RouteOption>[
     name: 'Cultural Heritage Trail',
     description: 'Highlights of local heritage, archives, and urban memory',
     duration: '50 min',
-    stopsCount: 3,
+    stopsCount: 5,
     stops: [
       _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
+      _RouteStop(name: 'Stairs - Floor 1', subtitle: 'Transition · Floor 1'),
+      _RouteStop(name: 'Stairs - Floor 2', subtitle: 'Transition · Floor 2'),
       _RouteStop(
         name: 'Cultural Heritage Trail Hall',
         subtitle: 'Heritage Wing · Floor 2',
