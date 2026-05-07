@@ -41,7 +41,7 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
       listenable: languageNotifier,
       builder: (context, _) {
         return Scaffold(
-      backgroundColor: const Color(0xFFF2F2F2),
+      backgroundColor: themeNotifier.surfaceColor,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
@@ -82,27 +82,7 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
                       ),
                     ),
                   ),
-                  Positioned(
-                    right: 18,
-                    bottom: 18,
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: themeNotifier.surfaceColor,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Text(
-                        'Navigate'.tr,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: themeNotifier.textPrimaryColor,
-                        ),
-                      ),
-                    ),
-                  ),
+
                 ],
               ),
               SizedBox(height: 12),
@@ -161,7 +141,7 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
                   margin: EdgeInsets.symmetric(horizontal: 12),
                   padding: EdgeInsets.fromLTRB(14, 14, 14, 18),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF3F3F3),
+                    color: themeNotifier.backgroundColor,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Column(
@@ -192,8 +172,8 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
                             .tr,
                         style: TextStyle(
                           fontSize: 14,
-                          color: Color(0xFF2E2E2E),
-                          height: 1.45,
+                          color: themeNotifier.textSecondaryColor,
+                          height: 1.6,
                         ),
                       ),
                       SizedBox(height: 14),
@@ -220,8 +200,8 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
                             .tr,
                         style: TextStyle(
                           fontSize: 14,
-                          color: Color(0xFF2E2E2E),
-                          height: 1.45,
+                          color: themeNotifier.textSecondaryColor,
+                          height: 1.6,
                         ),
                       ),
                     ],

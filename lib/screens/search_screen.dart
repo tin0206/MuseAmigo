@@ -145,13 +145,19 @@ class _SearchScreenState extends State<SearchScreen> {
     return Scaffold(
       backgroundColor: themeNotifier.surfaceColor,
       body: SafeArea(
+        top: false,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ── Top bar ────────────────────────────────────────────────
             Container(
               color: Theme.of(context).colorScheme.primary,
-              padding: EdgeInsets.fromLTRB(4, 10, 16, 12),
+              padding: EdgeInsets.fromLTRB(
+                4,
+                MediaQuery.of(context).padding.top + 10,
+                16,
+                12,
+              ),
               child: Row(
                 children: [
                   IconButton(
@@ -534,11 +540,22 @@ class _ResultCard extends StatelessWidget {
       onTap: () => _openDetail(context),
       behavior: HitTestBehavior.opaque,
       child: Container(
-        margin: EdgeInsets.only(bottom: 10),
-        padding: EdgeInsets.all(12),
+        margin: EdgeInsets.only(bottom: 12),
+        padding: EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: themeNotifier.surfaceColor,
-          borderRadius: BorderRadius.circular(14),
+          color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: themeNotifier.borderColor.withValues(alpha: 0.5),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -547,8 +564,8 @@ class _ResultCard extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(10),
               child: SizedBox(
-                width: 72,
-                height: 72,
+                width: 76,
+                height: 76,
                 child: Image.asset(
                   'assets/images/museum.jpg',
                   fit: BoxFit.cover,
@@ -571,17 +588,19 @@ class _ResultCard extends StatelessWidget {
                       fontWeight: FontWeight.w700,
                       fontSize: 15,
                       color: themeNotifier.textPrimaryColor,
+                      height: 1.4,
                     ),
                   ),
-                  SizedBox(height: 2),
+                  SizedBox(height: 4),
                   Text(
                     item.location,
                     style: TextStyle(
                       fontSize: 13,
                       color: themeNotifier.textSecondaryColor,
+                      height: 1.4,
                     ),
                   ),
-                  SizedBox(height: 4),
+                  SizedBox(height: 6),
                   Row(
                     children: [
                       Container(

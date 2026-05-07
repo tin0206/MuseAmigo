@@ -514,27 +514,15 @@ class _TicketCard extends StatelessWidget {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-<<<<<<< HEAD
                             QrImageView(
                               data: ticket.id,
                               version: QrVersions.auto,
                               size: 102.0,
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              ticket.id,
-                              style: const TextStyle(
-=======
-                            Icon(
-                              Icons.qr_code_2_rounded,
-                              size: 102,
-                              color: themeNotifier.textSecondaryColor,
-                            ),
                             SizedBox(height: 8),
                             Text(
-                              '#AVLBQWJ05',
+                              ticket.id,
                               style: TextStyle(
->>>>>>> 68566d439f6e998550310f3bcde60c1553ea4de3
                                 fontSize: 14,
                                 color: themeNotifier.textSecondaryColor,
                               ),

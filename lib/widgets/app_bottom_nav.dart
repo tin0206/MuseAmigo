@@ -17,56 +17,81 @@ class AppBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currentIndex = selectedIndex ?? 0;
-    return Container(
-      decoration: BoxDecoration(
-        color: themeNotifier.surfaceColor,
-        border: Border(top: BorderSide(color: Color(0xFFE8E8EA), width: 1)),
-      ),
-      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _NavItem(
-            icon: Icons.home_rounded,
-            label: 'Home'.tr,
-            selected: currentIndex == 0,
-            onTap: () => onTap(0),
+    return SafeArea(
+      bottom: true,
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        decoration: BoxDecoration(
+          color: themeNotifier.surfaceColor,
+          borderRadius: BorderRadius.circular(32),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 16,
+              spreadRadius: 2,
+              offset: const Offset(0, 4),
+            ),
+          ],
+          border: Border.all(
+            color: themeNotifier.borderColor.withValues(alpha: 0.5),
+            width: 1,
           ),
-          _NavItem(
-            icon: Icons.map_outlined,
-            label: 'Map'.tr,
-            selected: currentIndex == 1,
-            onTap: () => onTap(1),
-          ),
-          GestureDetector(
-            onTap: onCenterTap,
-            child: Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary,
-                borderRadius: BorderRadius.circular(9999),
-              ),
-              child: Icon(
-                Icons.crop_free_rounded,
-                color: themeNotifier.surfaceColor,
-                size: 30,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _NavItem(
+              icon: Icons.home_rounded,
+              label: 'Home'.tr,
+              selected: currentIndex == 0,
+              onTap: () => onTap(0),
+            ),
+            _NavItem(
+              icon: Icons.map_outlined,
+              label: 'Map'.tr,
+              selected: currentIndex == 1,
+              onTap: () => onTap(1),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: onCenterTap,
+              child: Container(
+                width: 58,
+                height: 58,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.4),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  Icons.crop_free_rounded,
+                  color: themeNotifier.surfaceColor,
+                  size: 28,
+                ),
               ),
             ),
-          ),
-          _NavItem(
-            icon: Icons.chat_bubble_outline_rounded,
-            label: 'AI'.tr,
-            selected: currentIndex == 3,
-            onTap: () => onTap(3),
-          ),
-          _NavItem(
-            icon: Icons.route_outlined,
-            label: 'Journey'.tr,
-            selected: currentIndex == 4,
-            onTap: () => onTap(4),
-          ),
-        ],
+            const SizedBox(width: 8),
+            _NavItem(
+              icon: Icons.chat_bubble_outline_rounded,
+              label: 'AI'.tr,
+              selected: currentIndex == 3,
+              onTap: () => onTap(3),
+            ),
+            _NavItem(
+              icon: Icons.route_outlined,
+              label: 'Journey'.tr,
+              selected: currentIndex == 4,
+              onTap: () => onTap(4),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -95,18 +120,26 @@ class _NavItem extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: SizedBox(
-        width: 56,
+        width: 58,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: color, size: 24),
-            SizedBox(height: 2),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+              decoration: BoxDecoration(
+                color: selected ? activeColor.withValues(alpha: 0.15) : Colors.transparent,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(icon, color: color, size: 24),
+            ),
+            const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 10,
                 color: color,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
               ),
             ),
           ],

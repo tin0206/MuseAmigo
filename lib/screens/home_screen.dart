@@ -237,12 +237,18 @@ class _HomeScreenState extends State<HomeScreen> {
         return Scaffold(
           backgroundColor: themeNotifier.surfaceColor,
           body: SafeArea(
+            top: false,
             child: Column(
               children: [
                 // ── Top bar ────────────────────────────────────────────────
                 Container(
                   color: Theme.of(context).colorScheme.primary,
-                  padding: EdgeInsets.fromLTRB(16, 12, 16, 14),
+                  padding: EdgeInsets.fromLTRB(
+                    16,
+                    MediaQuery.of(context).padding.top + 12,
+                    16,
+                    14,
+                  ),
                   child: Row(
                     children: [
                       Expanded(
@@ -285,10 +291,18 @@ class _HomeScreenState extends State<HomeScreen> {
                           height: 44,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
+                            color: themeNotifier.surfaceColor,
                             border: Border.all(
-                              color: themeNotifier.surfaceColor.withValues(alpha: 0.3),
+                              color: themeNotifier.surfaceColor.withValues(alpha: 0.8),
                               width: 2,
                             ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.15),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
                           child: ClipOval(
                             child: Image.asset(
@@ -612,30 +626,41 @@ class _ArtifactRow extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        margin: EdgeInsets.only(bottom: 10),
-        padding: EdgeInsets.all(12),
+        margin: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: themeNotifier.surfaceColor,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+          border: Border.all(
+            color: themeNotifier.borderColor.withValues(alpha: 0.3),
+            width: 1,
+          ),
         ),
         child: Row(
           children: [
             ClipRRect(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
               child: SizedBox(
-                width: 52,
-                height: 52,
+                width: 68,
+                height: 68,
                 child: Image.asset(
                   'assets/images/museum.jpg',
                   fit: BoxFit.cover,
                   errorBuilder: (_, _, _) => Container(
                     color: item.color.withValues(alpha: 0.3),
-                    child: Icon(Icons.image, color: item.color, size: 28),
+                    child: Icon(Icons.image, color: item.color, size: 32),
                   ),
                 ),
               ),
             ),
-            SizedBox(width: 14),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -644,16 +669,18 @@ class _ArtifactRow extends StatelessWidget {
                     item.name.tr,
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
-                      fontSize: 15,
+                      fontSize: 16,
                       color: themeNotifier.textPrimaryColor,
+                      height: 1.3,
                     ),
                   ),
-                  SizedBox(height: 2),
+                  const SizedBox(height: 6),
                   Text(
                     item.period.tr,
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: 14,
                       color: themeNotifier.textSecondaryColor,
+                      height: 1.3,
                     ),
                   ),
                 ],

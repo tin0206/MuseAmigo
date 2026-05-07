@@ -167,6 +167,7 @@ class _MainShellState extends State<MainShell> {
       listenable: languageNotifier,
       builder: (context, _) {
         return Scaffold(
+          extendBody: true,
           // Keep all tab bodies alive via IndexedStack — no rebuilds on switch.
           body: IndexedStack(
             index: _currentIndex,

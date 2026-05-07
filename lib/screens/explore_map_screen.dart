@@ -5,6 +5,7 @@ import 'package:museamigo/app_routes.dart';
 import 'package:museamigo/l10n/translations.dart';
 import 'package:museamigo/language_notifier.dart';
 import 'package:museamigo/services/backend_api.dart';
+import 'package:museamigo/theme_notifier.dart';
 import 'package:museamigo/session.dart';
 import 'payment_screens.dart';
 
@@ -19,6 +20,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
   late Future<List<_Museum>> _museumsFuture;
   final TextEditingController _searchController = TextEditingController();
   final MapController _mapController = MapController();
+  int? _selectedMuseumId;
 
   static const _fallbackMuseums = <_Museum>[
     _Museum(
@@ -102,7 +104,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
     final isDark = theme.brightness == Brightness.dark;
     
     return ListenableBuilder(
-      listenable: languageNotifier,
+      listenable: Listenable.merge([languageNotifier, themeNotifier]),
       builder: (context, _) {
         return FutureBuilder<List<_Museum>>(
           future: _museumsFuture,
@@ -139,34 +141,42 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
             return Scaffold(
               backgroundColor: theme.scaffoldBackgroundColor,
               body: SafeArea(
+                top: false,
                 child: Column(
                   children: [
                     Container(
-                      color: theme.colorScheme.primary,
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+                      color: Theme.of(context).colorScheme.primary,
+                      padding: EdgeInsets.fromLTRB(
+                        16,
+                        MediaQuery.of(context).padding.top + 12,
+                        16,
+                        14,
+                      ),
                       child: Row(
                         children: [
                           Expanded(
                             child: Container(
-                              height: 52,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                              ),
+                              height: 44,
                               decoration: BoxDecoration(
-                                color: theme.cardColor,
-                                borderRadius: BorderRadius.circular(30),
+                                color: themeNotifier.surfaceColor,
+                                borderRadius: BorderRadius.circular(22),
                               ),
                               child: Row(
                                 children: [
+                                  const SizedBox(width: 12),
                                   Icon(
                                     Icons.search,
-                                    color: theme.iconTheme.color,
+                                    color: themeNotifier.textSecondaryColor,
+                                    size: 20,
                                   ),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: TextField(
                                       controller: _searchController,
-                                      style: TextStyle(color: theme.textTheme.bodyMedium?.color),
+                                      style: TextStyle(
+                                        color: themeNotifier.textPrimaryColor,
+                                        fontSize: 14,
+                                      ),
                                       onChanged: (_) {
                                         setState(() {});
                                         final q = _searchController.text
@@ -188,8 +198,13 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                                       },
                                       decoration: InputDecoration(
                                         hintText: 'Where do you want to go?'.tr,
-                                        hintStyle: TextStyle(color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5)),
+                                        hintStyle: TextStyle(
+                                          color: themeNotifier.textSecondaryColor,
+                                          fontSize: 14,
+                                        ),
                                         border: InputBorder.none,
+                                        isDense: true,
+                                        contentPadding: EdgeInsets.zero,
                                       ),
                                     ),
                                   ),
@@ -197,17 +212,26 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 10),
+                          const SizedBox(width: 12),
                           GestureDetector(
-                            onTap: () => Navigator.of(
-                              context,
-                            ).pushNamed(AppRoutes.settings),
+                            onTap: () => Navigator.of(context).pushNamed(AppRoutes.settings),
                             child: Container(
-                              width: 48,
-                              height: 48,
+                              width: 44,
+                              height: 44,
                               decoration: BoxDecoration(
-                                color: theme.cardColor,
-                                borderRadius: BorderRadius.circular(24),
+                                shape: BoxShape.circle,
+                                color: themeNotifier.surfaceColor,
+                                border: Border.all(
+                                  color: themeNotifier.surfaceColor.withValues(alpha: 0.8),
+                                  width: 2,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.15),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                               ),
                               child: const ClipOval(
                                 child: Image(
@@ -221,50 +245,62 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                       ),
                     ),
                     Expanded(
-                      child: FlutterMap(
-                        mapController: _mapController,
-                        options: MapOptions(
-                          initialCenter: filteredMuseums.isNotEmpty
-                              ? filteredMuseums.first.position
-                              : const LatLng(10.7769, 106.6980),
-                          initialZoom: 14.0,
-                        ),
+                      child: Stack(
                         children: [
-                          tileLayer,
-                          MarkerLayer(
-                            markers: filteredMuseums
-                                .map(
-                                  (museum) => Marker(
-                                    point: museum.position,
-                                    width: 84,
-                                    height: 84,
-                                    child: GestureDetector(
-                                      onTap: () => _showMuseumDetailSheet(
-                                        context,
-                                        museum,
+                          FlutterMap(
+                            mapController: _mapController,
+                            options: MapOptions(
+                              initialCenter: filteredMuseums.isNotEmpty
+                                  ? filteredMuseums.first.position
+                                  : const LatLng(10.7769, 106.6980),
+                              initialZoom: 14.0,
+                            ),
+                            children: [
+                              tileLayer,
+                              MarkerLayer(
+                                markers: filteredMuseums
+                                    .map(
+                                      (museum) => Marker(
+                                        point: museum.position,
+                                        width: 120,
+                                        height: 100,
+                                        child: GestureDetector(
+                                          onTap: () => _showMuseumDetailSheet(
+                                            context,
+                                            museum,
+                                          ),
+                                          child: _MuseumMarker(
+                                            name: museum.name,
+                                            isSelected: _selectedMuseumId == museum.id,
+                                          ),
+                                        ),
                                       ),
-                                      child: const _MuseumMarker(),
-                                    ),
-                                  ),
-                                )
-                                .toList(),
+                                    )
+                                    .toList(),
+                              ),
+                            ],
                           ),
+                          if (query.isNotEmpty && filteredMuseums.isEmpty)
+                            Positioned(
+                              bottom: 0,
+                              left: 0,
+                              right: 0,
+                              child: Container(
+                                width: double.infinity,
+                                color: theme.colorScheme.errorContainer,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 10,
+                                ),
+                                child: Text(
+                                  '${'No museum found for'.tr} "$query"',
+                                  style: TextStyle(color: theme.colorScheme.onErrorContainer),
+                                ),
+                              ),
+                            ),
                         ],
                       ),
                     ),
-                    if (query.isNotEmpty && filteredMuseums.isEmpty)
-                      Container(
-                        width: double.infinity,
-                        color: theme.colorScheme.errorContainer,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
-                        ),
-                        child: Text(
-                          '${'No museum found for'.tr} "$query"',
-                          style: TextStyle(color: theme.colorScheme.onErrorContainer),
-                        ),
-                      ),
                   ],
                 ),
               ),
@@ -280,6 +316,8 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
     AppSession.currentMuseumId.value = museum.id;
     AppSession.currentMuseumName.value = museum.name;
 
+    setState(() => _selectedMuseumId = museum.id);
+
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -291,7 +329,9 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
           _showTicketSheet(context, museum);
         },
       ),
-    );
+    ).whenComplete(() {
+      if (mounted) setState(() => _selectedMuseumId = null);
+    });
   }
 
   Future<void> _showTicketSheet(BuildContext context, _Museum museum) {
@@ -350,11 +390,6 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
         title: 'QR Scan'.tr,
         subtitle: 'VNPay, MoMo, ZaloPay, Banking App'.tr,
         icon: Icons.qr_code_2,
-      ),
-      _PaymentMethodOption(
-        title: 'ATM/Visa/Mastercard'.tr,
-        subtitle: 'Debit and Credit'.tr,
-        icon: Icons.credit_card,
       ),
     ];
 
@@ -481,43 +516,91 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
 }
 
 class _MuseumMarker extends StatelessWidget {
-  const _MuseumMarker();
+  const _MuseumMarker({required this.name, required this.isSelected});
+  
+  final String name;
+  final bool isSelected;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        Container(
-          width: 54,
-          height: 54,
-          decoration: BoxDecoration(
-            color: theme.colorScheme.primary.withValues(alpha: 0.22),
-            shape: BoxShape.circle,
-          ),
-        ),
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: theme.cardColor,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: theme.colorScheme.primary.withValues(alpha: 0.45),
-                blurRadius: 16,
-                spreadRadius: 2,
+    final scale = isSelected ? 1.15 : 1.0;
+    return TweenAnimationBuilder<double>(
+      duration: const Duration(milliseconds: 200),
+      tween: Tween(begin: 1.0, end: scale),
+      builder: (context, val, child) {
+        return Transform.scale(
+          scale: val,
+          child: child,
+        );
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  color: isSelected 
+                      ? theme.colorScheme.primary.withValues(alpha: 0.35) 
+                      : theme.colorScheme.primary.withValues(alpha: 0.22),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: theme.cardColor,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: isSelected 
+                          ? theme.colorScheme.primary.withValues(alpha: 0.6) 
+                          : theme.colorScheme.primary.withValues(alpha: 0.45),
+                      blurRadius: isSelected ? 20 : 16,
+                      spreadRadius: isSelected ? 4 : 2,
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  Icons.account_balance,
+                  color: theme.colorScheme.primary,
+                  size: 22,
+                ),
               ),
             ],
           ),
-          child: Icon(
-            Icons.account_balance,
-            color: theme.colorScheme.primary,
-            size: 22,
+          const SizedBox(height: 4),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: theme.cardColor.withValues(alpha: 0.9),
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 4,
+                ),
+              ],
+            ),
+            child: Text(
+              name.tr,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                color: theme.textTheme.bodyMedium?.color,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -603,7 +686,7 @@ class _MuseumDetailSheetState extends State<_MuseumDetailSheet> {
                     widget.museum.description.tr,
                     style: TextStyle(
                       fontSize: 17,
-                      height: 1.45,
+                      height: 1.6,
                       color: theme.textTheme.bodyMedium?.color,
                     ),
                   ),
@@ -630,56 +713,7 @@ class _MuseumDetailSheetState extends State<_MuseumDetailSheet> {
                     ],
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 18, 24, 10),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainer,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.download_rounded,
-                          color: theme.colorScheme.primary,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Download Offline Data'.tr,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              Text(
-                                'Map & Audio Guides'.tr,
-                                style: TextStyle(
-                                  color: theme.textTheme.bodySmall?.color,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Switch.adaptive(
-                          value: _downloadOffline,
-                          onChanged: (value) {
-                            setState(() {
-                              _downloadOffline = value;
-                            });
-                          },
-                          activeTrackColor: theme.colorScheme.primary,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
                   child: Row(
