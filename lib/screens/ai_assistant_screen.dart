@@ -150,9 +150,11 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     }
 
     setState(() {
-      final contextActions = resolved.actions.isNotEmpty
+      final contextActions = resolved.suppressDefaultActions
           ? resolved.actions
-          : _buildContextActions(text);
+          : (resolved.actions.isNotEmpty
+                ? resolved.actions
+                : _buildContextActions(text));
       _messages.add(
         _ChatMessage(
           text: resolved.text,
@@ -170,6 +172,10 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   List<_ChatAction> _buildContextActions(String text) {
     final normalized = _normalizeForIntent(text);
     final actions = <_ChatAction>[];
+
+    if (_isAllArtifactsQuestion(normalized)) {
+      return actions;
+    }
 
     if (_isMapIntentQuestion(normalized)) {
       actions.add(
@@ -218,7 +224,14 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         break;
       case _ChatActionType.artifact:
         await _openArtifactFromText(
-          sourceMessage.sourceQuestion ?? sourceMessage.text,
+          action.value ?? sourceMessage.sourceQuestion ?? sourceMessage.text,
+        );
+        break;
+      case _ChatActionType.artifactRoute:
+        await _submitMessage(
+          _useVietnameseReplies
+              ? 'Chỉ đường đến hiện vật ${action.value ?? sourceMessage.sourceQuestion ?? sourceMessage.text}'
+              : 'Navigate to artifact ${action.value ?? sourceMessage.sourceQuestion ?? sourceMessage.text}',
         );
         break;
       case _ChatActionType.schemeOption:
@@ -293,7 +306,23 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   Future<void> _openArtifactFromText(String text) async {
     final artifactCode = _extractArtifactCode(text);
 
-    if (artifactCode == null) {
+    ArtifactDto? artifact;
+
+    if (artifactCode != null) {
+      try {
+        artifact = await BackendApi.instance.fetchArtifact(artifactCode);
+      } catch (_) {}
+    } else {
+      final museum = await _resolveMuseum(text);
+      if (museum != null) {
+        artifact = await _findSpecificArtifactForDetail(
+          _normalizeForIntent(text),
+          museum.id,
+        );
+      }
+    }
+
+    if (artifact == null) {
       if (!mounted) return;
       await Navigator.of(context).pushNamed(
         AppRoutes.search,
@@ -302,26 +331,17 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       return;
     }
 
-    try {
-      final artifact = await BackendApi.instance.fetchArtifact(artifactCode);
-      if (!mounted) return;
-      await Navigator.of(context).pushNamed(
-        AppRoutes.artifactDetail,
-        arguments: {
-          'title': artifact.title,
-          'location': AppSession.currentMuseumName.value,
-          'year': artifact.year,
-          'currentLocation': AppSession.currentMuseumName.value,
-          'audioAsset': artifact.audioAsset,
-        },
-      );
-    } catch (_) {
-      if (!mounted) return;
-      await Navigator.of(context).pushNamed(
-        AppRoutes.search,
-        arguments: {'query': artifactCode, 'showResults': true},
-      );
-    }
+    if (!mounted) return;
+    await Navigator.of(context).pushNamed(
+      AppRoutes.artifactDetail,
+      arguments: {
+        'title': artifact.title,
+        'location': AppSession.currentMuseumName.value,
+        'year': artifact.year,
+        'currentLocation': AppSession.currentMuseumName.value,
+        'audioAsset': artifact.audioAsset,
+      },
+    );
   }
 
   Future<_ResolvedReply> _resolveReplyForInput(String text) async {
@@ -345,6 +365,22 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       return _buildFontSizeReply(normalized, isVietnamese);
     }
 
+    // Handle "view my tickets" intent early – before navigation block,
+    // because some navigation keywords (e.g. "show me") can overlap.
+    if (_isViewTicketIntent(normalized)) {
+      const ticketsAction = _ChatAction(
+        type: _ChatActionType.tickets,
+        label: 'View My Tickets',
+        icon: Icons.confirmation_number_outlined,
+      );
+      return _ResolvedReply(
+        text: isVietnamese
+            ? 'Đây là vé của bạn! Nhấn bên dưới để xem chi tiết.'
+            : 'Here are your tickets! Tap below to view details.',
+        actions: <_ChatAction>[ticketsAction],
+      );
+    }
+
     final museum = await _resolveMuseum(text);
 
     // If the user is clearly asking a new question, reset any stale pending state.
@@ -362,6 +398,54 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       }
     }
 
+    // ── Artifact-list queries must be resolved BEFORE the navigation block
+    // because "show me" is also a keyword in _isDirectionsToPlaceQuestion.
+    if (museum != null && _isAllArtifactsQuestion(normalized)) {
+      // Check if the user is asking for artifacts of a specific exhibition
+      final exhibitions = await _fetchExhibitions(museum.id);
+      final specificEx = _findSpecificExhibition(normalized, exhibitions);
+      if (specificEx != null) {
+        return await _buildSpecificExhibitionReply(
+          exhibition: specificEx,
+          museum: museum,
+          isVietnamese: isVietnamese,
+        );
+      }
+      final floorLabel = _extractFloorLabel(normalized);
+      return await _buildAllArtifactsReply(
+        museum: museum,
+        isVietnamese: isVietnamese,
+        floorLabel: floorLabel,
+      );
+    }
+
+    if (_isExhibitionQuestion(normalized) && museum != null) {
+      final exhibitions = await _fetchExhibitions(museum.id);
+      if (exhibitions.isEmpty) {
+        return _ResolvedReply(
+          text: isVietnamese
+              ? 'Hiện chưa có triển lãm nào được liệt kê cho ${museum.name}.'
+              : 'There are currently no exhibitions listed for ${museum.name}.',
+        );
+      }
+      // Specific exhibition query
+      final specific = _findSpecificExhibition(normalized, exhibitions);
+      if (specific != null) {
+        return await _buildSpecificExhibitionReply(
+          exhibition: specific,
+          museum: museum,
+          isVietnamese: isVietnamese,
+        );
+      }
+
+      final floorLabel = _extractFloorLabel(normalized);
+      return _buildAllExhibitionsReply(
+        museum: museum,
+        isVietnamese: isVietnamese,
+        floorLabel: floorLabel,
+      );
+    }
+
     if (museum != null &&
         (_isAmbiguousMultiFloorQuery(normalized) ||
             _isLocationQuestion(normalized) ||
@@ -372,20 +456,6 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         _pendingRouteRequest = _PendingRouteRequest(
           isVietnamese: isVietnamese,
           ambiguousSpotType: spotType,
-        );
-        return _ResolvedReply(
-          text: isVietnamese
-              ? 'Bạn đang ở tầng nào vậy? Bạn có thể trả lời là tầng 1 hoặc tầng 2!'
-              : 'Which floor are you on? You can just say Floor 1 or Floor 2 😊',
-        );
-      }
-
-      // Known in-museum spot → ask floor first
-      final destination = _extractNavigationSpot(text, museum.id);
-      if (destination != null) {
-        _pendingRouteRequest = _PendingRouteRequest(
-          destination: destination,
-          isVietnamese: isVietnamese,
         );
         return _ResolvedReply(
           text: isVietnamese
@@ -412,7 +482,90 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         );
       }
 
-      // 3. Place not found in museum
+      // 3. Artifact route/location intent: mention exhibition, then ask user location.
+      final placeArtifactCode = _extractArtifactCode(text);
+      ArtifactDto? artifactForRoute;
+      if (placeArtifactCode != null) {
+        try {
+          artifactForRoute = await BackendApi.instance.fetchArtifact(
+            placeArtifactCode,
+          );
+        } catch (_) {}
+      } else if (_isDirectionsToPlaceQuestion(normalized)) {
+        artifactForRoute = await _findSpecificArtifactForDetail(
+          normalized,
+          museum.id,
+        );
+      }
+
+      if (artifactForRoute != null) {
+        final exhibition = await _findExhibitionForArtifact(
+          artifactForRoute,
+          museum.id,
+        );
+        final artifactSpot = exhibition != null
+            ? _findNavigationSpotByName(museum.id, exhibition.name)
+            : _findArtifactNavigationSpot(artifactForRoute.title, museum.id);
+        if (artifactSpot != null) {
+          _pendingRouteRequest = _PendingRouteRequest(
+            destination: artifactSpot,
+            isVietnamese: isVietnamese,
+          );
+          final exhibitionLine = exhibition != null
+              ? (isVietnamese
+                    ? '${artifactForRoute.title} (${artifactForRoute.artifactCode}) thuộc triển lãm ${exhibition.name}. '
+                    : '${artifactForRoute.title} (${artifactForRoute.artifactCode}) belongs to the exhibition ${exhibition.name}. ')
+              : (isVietnamese
+                    ? '${artifactForRoute.title} (${artifactForRoute.artifactCode}) nằm tại ${artifactSpot.name} (${artifactSpot.floor}). '
+                    : '${artifactForRoute.title} (${artifactForRoute.artifactCode}) is at ${artifactSpot.name} (${artifactSpot.floor}). ');
+          return _ResolvedReply(
+            text: isVietnamese
+                ? '${exhibitionLine}Bạn đang ở tầng nào vậy? Bạn có thể trả lời là tầng 1 hoặc tầng 2!'
+                : '${exhibitionLine}Which floor are you on? You can say Floor 1 or Floor 2!',
+          );
+        }
+      }
+
+      // 4. Known in-museum spot → ask floor first
+      final destination = _extractNavigationSpot(text, museum.id);
+      if (destination != null) {
+        _pendingRouteRequest = _PendingRouteRequest(
+          destination: destination,
+          isVietnamese: isVietnamese,
+        );
+        return _ResolvedReply(
+          text: isVietnamese
+              ? 'Bạn đang ở tầng nào vậy? Bạn có thể trả lời là tầng 1 hoặc tầng 2!'
+              : 'Which floor are you on? You can just say Floor 1 or Floor 2 😊',
+        );
+      }
+
+      // 5. Place not found – try exhibition name before giving up
+      try {
+        final exForNav = await _fetchExhibitions(museum.id);
+        final matchedEx = _findSpecificExhibition(normalized, exForNav);
+        if (matchedEx != null) {
+          final exSpot = _findNavigationSpotByName(museum.id, matchedEx.name);
+          if (exSpot != null) {
+            _pendingRouteRequest = _PendingRouteRequest(
+              destination: exSpot,
+              isVietnamese: isVietnamese,
+            );
+            return _ResolvedReply(
+              text: isVietnamese
+                  ? '${matchedEx.name} nằm tại ${matchedEx.location}. '
+                        'Bạn đang ở tầng nào vậy? Bạn có thể trả lời là tầng 1 hoặc tầng 2!'
+                  : '${matchedEx.name} is at ${matchedEx.location}. '
+                        'Which floor are you on? You can say Floor 1 or Floor 2!',
+            );
+          }
+          return _ResolvedReply(
+            text: isVietnamese
+                ? '${matchedEx.name} nằm tại ${matchedEx.location}.'
+                : '${matchedEx.name} is located at ${matchedEx.location}.',
+          );
+        }
+      } catch (_) {}
       return _ResolvedReply(
         text: isVietnamese
             ? 'Địa điểm đó không có trong bản đồ của ${museum.name}.'
@@ -421,32 +574,66 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     }
 
     final artifactCode = _extractArtifactCode(text);
+
+    // Directions to artifact by code → find its navigation spot and start route flow
+    if (artifactCode != null &&
+        _isDirectionsToPlaceQuestion(normalized) &&
+        museum != null) {
+      try {
+        final artifact = await BackendApi.instance.fetchArtifact(artifactCode);
+        final exhibition = await _findExhibitionForArtifact(
+          artifact,
+          museum.id,
+        );
+        final spot = exhibition != null
+            ? _findNavigationSpotByName(museum.id, exhibition.name)
+            : _findArtifactNavigationSpot(artifact.title, museum.id);
+        if (spot != null) {
+          _pendingRouteRequest = _PendingRouteRequest(
+            destination: spot,
+            isVietnamese: isVietnamese,
+          );
+          return _ResolvedReply(
+            text: isVietnamese
+                ? '${artifact.title} (${artifact.artifactCode})${exhibition != null ? ' thuộc triển lãm ${exhibition.name}.' : ' nằm tại ${spot.name} (${spot.floor}).'} '
+                      'Bạn đang ở tầng nào vậy? Bạn có thể trả lời là tầng 1 hoặc tầng 2!'
+                : '${artifact.title} (${artifact.artifactCode})${exhibition != null ? ' belongs to the exhibition ${exhibition.name}.' : ' is at ${spot.name} (${spot.floor}).'} '
+                      'Which floor are you on? You can say Floor 1 or Floor 2!',
+          );
+        }
+      } catch (_) {
+        // fall through to regular artifact info
+      }
+    }
+
+    ArtifactDto? artifactDetail;
     if (artifactCode != null) {
-      final artifact = await BackendApi.instance.fetchArtifact(artifactCode);
-      return _ResolvedReply(
-        text:
-            'Artifact: ${artifact.title} (${artifact.artifactCode}). '
-            'Year: ${artifact.year}. ${artifact.description}',
+      artifactDetail = await BackendApi.instance.fetchArtifact(artifactCode);
+    } else if (museum != null) {
+      artifactDetail = await _findSpecificArtifactForDetail(
+        normalized,
+        museum.id,
       );
     }
 
-    if (_isExhibitionQuestion(normalized) && museum != null) {
-      final exhibitions = await BackendApi.instance.fetchExhibitions(museum.id);
-      if (exhibitions.isEmpty) {
-        return _ResolvedReply(
-          text: isVietnamese
-              ? 'Hiện chưa có triển lãm nào được liệt kê cho ${museum.name}.'
-              : 'There are currently no exhibitions listed for ${museum.name}.',
+    if (artifactDetail != null) {
+      return await _buildArtifactDetailReply(
+        artifact: artifactDetail,
+        museum: museum,
+        isVietnamese: isVietnamese,
+      );
+    }
+
+    // Floor-specific queries: "what exhibitions/artifacts are on Floor 1?"
+    if (museum != null && _isFloorSpecificQuery(normalized)) {
+      final floorLabel = _extractFloorLabel(normalized);
+      if (floorLabel != null) {
+        return _buildFloorQueryReply(
+          floorLabel: floorLabel,
+          museum: museum,
+          isVietnamese: isVietnamese,
         );
       }
-      final lines = exhibitions
-          .map((e) => '- ${e.name} (Location: ${e.location})')
-          .join('\n');
-      return _ResolvedReply(
-        text: isVietnamese
-            ? 'Các triển lãm tại ${museum.name}:\n$lines'
-            : 'Exhibitions at ${museum.name}:\n$lines',
-      );
     }
 
     if (_isRouteQuestion(normalized) && museum != null) {
@@ -492,6 +679,21 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                     'ticket ${museum.baseTicketPrice} VND.',
         );
       }
+    }
+
+    // Last-resort: check if user mentions a specific exhibition name
+    if (museum != null) {
+      try {
+        final allExhibitions = await _fetchExhibitions(museum.id);
+        final specificEx = _findSpecificExhibition(normalized, allExhibitions);
+        if (specificEx != null) {
+          return await _buildSpecificExhibitionReply(
+            exhibition: specificEx,
+            museum: museum,
+            isVietnamese: isVietnamese,
+          );
+        }
+      } catch (_) {}
     }
 
     return _ResolvedReply(text: await BackendApi.instance.askAi(text));
@@ -701,21 +903,351 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     final normalized = _normalizeForIntent(text);
     if (_containsAny(normalized, <String>[
       'floor 1',
-      'tang 1',
-      'level 1',
+      'floor a',
+      'floor one',
+      'first floor',
       '1st floor',
+      'tang 1',
+      'tang a',
+      'tang mot',
+      'level 1',
+      'level a',
+      'khu a',
+      'block a',
+      'tren tang 1',
+      'o tang 1',
     ])) {
       return 'Floor 1';
     }
     if (_containsAny(normalized, <String>[
       'floor 2',
-      'tang 2',
-      'level 2',
+      'floor b',
+      'floor two',
+      'second floor',
       '2nd floor',
+      'tang 2',
+      'tang b',
+      'tang hai',
+      'level 2',
+      'level b',
+      'khu b',
+      'block b',
+      'tren tang 2',
+      'o tang 2',
     ])) {
       return 'Floor 2';
     }
     return null;
+  }
+
+  /// True when user asks for a list of ALL artifacts (optionally filtered by floor).
+  static bool _isAllArtifactsQuestion(String text) {
+    final hasArtifact = _containsAny(text, <String>[
+      'artifact',
+      'artifacts',
+      'hien vat',
+      'cac hien vat',
+      'nhung hien vat',
+      'danh sach hien vat',
+      'list artifact',
+      'all artifact',
+      'show artifact',
+      'show me artifact',
+      'liet ke hien vat',
+      'hien vat o day',
+    ]);
+    if (!hasArtifact) return false;
+    return _containsAny(text, <String>[
+      'all',
+      'list',
+      'show',
+      'danh sach',
+      'liet ke',
+      'nhung',
+      'cac',
+      'tat ca',
+      'what',
+      'which',
+      'tell me',
+      'give me',
+      'show me',
+      'museum',
+      'bao tang',
+      'floor',
+      'tang',
+      'level',
+      'o day',
+    ]);
+  }
+
+  /// Build a reply listing artifacts, optionally filtered to a specific floor.
+  Future<_ResolvedReply> _buildAllArtifactsReply({
+    required MuseumDto museum,
+    required bool isVietnamese,
+    String? floorLabel, // null → all floors
+  }) async {
+    List<ArtifactDto> artifacts = <ArtifactDto>[];
+    try {
+      artifacts = await BackendApi.instance.fetchArtifacts(museum.id);
+    } catch (_) {}
+
+    if (artifacts.isEmpty) {
+      return _ResolvedReply(
+        text: isVietnamese
+            ? 'Hiện chưa có dữ liệu hiện vật cho ${museum.name}.'
+            : 'No artifact data available for ${museum.name}.',
+      );
+    }
+
+    // If floor requested, filter by navigation spot floor
+    List<ArtifactDto> filtered;
+    if (floorLabel != null) {
+      filtered = artifacts.where((a) {
+        final spot = _findArtifactNavigationSpot(a.title, museum.id);
+        return spot != null && spot.floor == floorLabel;
+      }).toList();
+      // Also match by artifact code if spot not found but spot aliases contain code
+      if (filtered.isEmpty) {
+        // fallback: use navigation spots that are on that floor and match code
+        final spots = _museumNavigationSpots[museum.id] ?? <_NavigationSpot>[];
+        final floorSpotAliases = spots
+            .where((s) => s.floor == floorLabel)
+            .expand((s) => s.aliases)
+            .toSet();
+        filtered = artifacts
+            .where(
+              (a) => floorSpotAliases.contains(a.artifactCode.toLowerCase()),
+            )
+            .toList();
+      }
+    } else {
+      filtered = artifacts;
+    }
+
+    if (filtered.isEmpty) {
+      return _ResolvedReply(
+        text: isVietnamese
+            ? 'Không tìm thấy hiện vật nào trên ${floorLabel ?? 'tầng này'}.'
+            : 'No artifacts found on ${floorLabel ?? 'this floor'}.',
+      );
+    }
+
+    // Build a reverse map: artifactCode → exhibition name (for Museum 1)
+    final Map<String, String> codeToExhibition = <String, String>{};
+    if (museum.id == 1) {
+      for (final entry in _museum1ExhibitionArtifacts.entries) {
+        for (final code in entry.value) {
+          codeToExhibition[code] = entry.key;
+        }
+      }
+    }
+
+    final lines = filtered
+        .map((a) {
+          final exName = codeToExhibition[a.artifactCode];
+          final exSuffix = exName != null
+              ? (isVietnamese ? ' — $exName' : ' — $exName')
+              : '';
+          return '• ${a.title} (${a.artifactCode})$exSuffix';
+        })
+        .join('\n');
+
+    final header = floorLabel != null
+        ? (isVietnamese
+              ? '🏺 Hiện vật trên $floorLabel tại ${museum.name}:'
+              : '🏺 Artifacts on $floorLabel at ${museum.name}:')
+        : (isVietnamese
+              ? '🏺 Danh sách hiện vật tại ${museum.name} (${filtered.length} hiện vật):'
+              : '🏺 All artifacts at ${museum.name} (${filtered.length} artifacts):');
+    return _ResolvedReply(
+      text: '$header\n$lines',
+      suppressDefaultActions: true,
+    );
+  }
+
+  Future<ArtifactDto?> _findSpecificArtifactForDetail(
+    String normalized,
+    int museumId,
+  ) async {
+    List<ArtifactDto> artifacts = <ArtifactDto>[];
+    try {
+      artifacts = await BackendApi.instance.fetchArtifacts(museumId);
+    } catch (_) {
+      return null;
+    }
+
+    if (artifacts.isEmpty) {
+      return null;
+    }
+
+    return _findSpecificArtifact(normalized, artifacts);
+  }
+
+  static ArtifactDto? _findSpecificArtifact(
+    String normalized,
+    List<ArtifactDto> artifacts,
+  ) {
+    const stopwords = <String>{
+      'artifact',
+      'artifacts',
+      'hien',
+      'vat',
+      'detail',
+      'details',
+      'about',
+      'info',
+      'information',
+      'chi',
+      'tiet',
+      'thong',
+      'tin',
+      've',
+      'cua',
+      'show',
+      'tell',
+      'give',
+      'xem',
+      'cho',
+      'toi',
+    };
+
+    ArtifactDto? bestMatch;
+    var bestScore = 0;
+    var bestLength = 0;
+
+    for (final artifact in artifacts) {
+      final normalizedTitle = _normalizeForIntent(artifact.title);
+
+      if (normalized.contains(normalizedTitle)) {
+        final score = 1000 + normalizedTitle.length;
+        if (score > bestScore) {
+          bestScore = score;
+          bestLength = normalizedTitle.length;
+          bestMatch = artifact;
+        }
+        continue;
+      }
+
+      if (normalizedTitle.contains(normalized) && normalized.length >= 6) {
+        final score = 900 + normalized.length;
+        if (score > bestScore) {
+          bestScore = score;
+          bestLength = normalizedTitle.length;
+          bestMatch = artifact;
+        }
+        continue;
+      }
+
+      final titleWords = normalizedTitle
+          .split(RegExp(r'[^a-z0-9]+'))
+          .where((word) => word.length > 2 && !stopwords.contains(word))
+          .toList();
+      if (titleWords.isEmpty) {
+        continue;
+      }
+
+      final matchCount = titleWords.where(normalized.contains).length;
+      final requiredMatches = titleWords.length == 1
+          ? 1
+          : (titleWords.length / 2).ceil();
+      if (matchCount >= requiredMatches) {
+        final score = matchCount * 10 + normalizedTitle.length;
+        if (score > bestScore) {
+          bestScore = score;
+          bestLength = normalizedTitle.length;
+          bestMatch = artifact;
+        }
+      }
+    }
+
+    return bestMatch;
+  }
+
+  Future<ExhibitionDto?> _findExhibitionForArtifact(
+    ArtifactDto artifact,
+    int museumId,
+  ) async {
+    final exhibitions = await _fetchExhibitions(museumId);
+
+    if (museumId == 1) {
+      for (final entry in _museum1ExhibitionArtifacts.entries) {
+        if (!entry.value.contains(artifact.artifactCode)) {
+          continue;
+        }
+        for (final exhibition in exhibitions) {
+          if (exhibition.name == entry.key) {
+            return exhibition;
+          }
+        }
+      }
+    }
+
+    final artifactSpot = _findArtifactNavigationSpot(artifact.title, museumId);
+    if (artifactSpot == null) {
+      return null;
+    }
+
+    for (final exhibition in exhibitions) {
+      final exhibitionSpot = _findNavigationSpotByName(
+        museumId,
+        exhibition.name,
+      );
+      if (exhibitionSpot != null &&
+          exhibitionSpot.floor == artifactSpot.floor) {
+        return exhibition;
+      }
+    }
+
+    return null;
+  }
+
+  Future<_ResolvedReply> _buildArtifactDetailReply({
+    required ArtifactDto artifact,
+    required MuseumDto? museum,
+    required bool isVietnamese,
+  }) async {
+    final spot = museum != null
+        ? _findArtifactNavigationSpot(artifact.title, museum.id)
+        : null;
+    final exhibition = museum != null
+        ? await _findExhibitionForArtifact(artifact, museum.id)
+        : null;
+    final location = spot != null
+        ? '${spot.name} (${spot.floor})'
+        : (museum?.name ?? (isVietnamese ? 'Chưa rõ' : 'Unknown'));
+    final routeTarget = exhibition != null && museum != null
+        ? _findNavigationSpotByName(museum.id, exhibition.name)
+        : spot;
+    final actions = <_ChatAction>[
+      _ChatAction(
+        type: _ChatActionType.artifact,
+        label: isVietnamese ? 'Xem chi tiết' : 'View Detail',
+        icon: Icons.account_balance_outlined,
+        value: artifact.artifactCode,
+      ),
+      _ChatAction(
+        type: _ChatActionType.artifactRoute,
+        label: isVietnamese ? 'Chỉ đường đến hiện vật' : 'Navigate to Artifact',
+        icon: Icons.near_me_outlined,
+        value: artifact.artifactCode,
+      ),
+    ];
+
+    return _ResolvedReply(
+      text: isVietnamese
+          ? 'Hiện vật: ${artifact.title} (${artifact.artifactCode})\n'
+                '${exhibition != null ? 'Triển lãm: ${exhibition.name}\n' : ''}'
+                'Năm: ${artifact.year}\n'
+                'Vị trí: $location\n'
+                'Mô tả: ${artifact.description}'
+          : 'Artifact: ${artifact.title} (${artifact.artifactCode})\n'
+                '${exhibition != null ? 'Exhibition: ${exhibition.name}\n' : ''}'
+                'Year: ${artifact.year}\n'
+                'Location: $location\n'
+                'Description: ${artifact.description}',
+      actions: actions,
+      suppressDefaultActions: true,
+    );
   }
 
   static bool _isDirectionsToPlaceQuestion(String text) {
@@ -788,6 +1320,316 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     return null;
   }
 
+  /// Find the navigation spot that matches an artifact title (for navigation purposes).
+  _NavigationSpot? _findArtifactNavigationSpot(
+    String artifactTitle,
+    int museumId,
+  ) {
+    final spot = _findNavigationSpotByName(museumId, artifactTitle);
+    if (spot != null) return spot;
+    final normalizedTitle = _normalizeForIntent(artifactTitle);
+    final spots = _museumNavigationSpots[museumId] ?? const <_NavigationSpot>[];
+    for (final s in spots) {
+      final ns = _normalizeForIntent(s.name);
+      if (ns.contains(normalizedTitle) || normalizedTitle.contains(ns)) {
+        return s;
+      }
+    }
+    return null;
+  }
+
+  /// Returns local exhibitions for museums with hardcoded data, else fetches from API.
+  Future<List<ExhibitionDto>> _fetchExhibitions(int museumId) async {
+    if (_localExhibitionsMap.containsKey(museumId)) {
+      return _localExhibitionsMap[museumId]!;
+    }
+    return BackendApi.instance.fetchExhibitions(museumId);
+  }
+
+  /// Find an exhibition whose name is mentioned in [normalized] query text.
+  static ExhibitionDto? _findSpecificExhibition(
+    String normalized,
+    List<ExhibitionDto> exhibitions,
+  ) {
+    // Stopwords to ignore when scoring word overlap
+    const stopwords = <String>{
+      'the', 'a', 'an', 'of', 'in', 'at', 'on', 'and', 'or', 'to', 'for',
+      'is', 'are', 'was', 'were', 'be', 'been', 'being', 'with', 'by',
+      // Vietnamese stopwords (normalized / diacritic-stripped)
+      'cua', 've', 'tai', 'cho', 'va', 'la', 'co', 'cac', 'nhung', 'tren',
+      'trong', 'theo', 'thi', 'den', 'duoc', 'nay',
+    };
+
+    ExhibitionDto? bestMatch;
+    var bestScore = 0;
+    var bestLen = 0;
+
+    int scorePhrase(String candidate) {
+      if (candidate.isEmpty) {
+        return 0;
+      }
+
+      if (normalized.contains(candidate)) {
+        return 1000 + candidate.length;
+      }
+
+      final candidateWords = candidate
+          .split(RegExp(r'\s+'))
+          .where((w) => w.length > 2 && !stopwords.contains(w))
+          .toList();
+      if (candidateWords.isEmpty) {
+        return 0;
+      }
+
+      final matchCount = candidateWords.where(normalized.contains).length;
+      final requiredMatches = candidateWords.length == 1
+          ? 1
+          : (candidateWords.length / 2).ceil();
+      if (matchCount < requiredMatches) {
+        return 0;
+      }
+
+      return matchCount * 10 + candidateWords.length;
+    }
+
+    for (final ex in exhibitions) {
+      final normalizedName = _normalizeForIntent(ex.name);
+      final viAliases = _exhibitionViAliases[ex.name] ?? const <String>[];
+
+      final candidates = <String>[normalizedName, ...viAliases];
+      for (final candidate in candidates) {
+        final score = scorePhrase(candidate);
+        if (score == 0) {
+          continue;
+        }
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestLen = candidate.length;
+          bestMatch = ex;
+        } else if (score == bestScore && candidate.length > bestLen) {
+          bestLen = candidate.length;
+          bestMatch = ex;
+        }
+      }
+    }
+    return bestMatch;
+  }
+
+  /// Build a rich reply for a specific exhibition query.
+  Future<_ResolvedReply> _buildSpecificExhibitionReply({
+    required ExhibitionDto exhibition,
+    required MuseumDto museum,
+    required bool isVietnamese,
+  }) async {
+    final spot = _findNavigationSpotByName(museum.id, exhibition.name);
+    final actions = <_ChatAction>[];
+    if (spot != null) {
+      actions.add(
+        _ChatAction(
+          type: _ChatActionType.map,
+          label: isVietnamese ? 'Đến triển lãm này' : 'Go to Exhibition',
+          icon: Icons.near_me_outlined,
+          toLocationName: spot.name,
+        ),
+      );
+    }
+
+    // Use per-exhibition artifact codes if available (Museum 1),
+    // otherwise fall back to floor-based matching.
+    final exhibitionCodes = museum.id == 1
+        ? _museum1ExhibitionArtifacts[exhibition.name]
+        : null;
+    String artifactLine = '';
+    if (exhibitionCodes != null && exhibitionCodes.isNotEmpty) {
+      // Build artifact list from the known codes without an API call
+      final codeList = exhibitionCodes.join(', ');
+      artifactLine = isVietnamese
+          ? '\n🏺 Hiện vật: $codeList'
+          : '\n🏺 Artifacts: $codeList';
+      // Try to enrich with titles from API
+      try {
+        final allArtifacts = await BackendApi.instance.fetchArtifacts(
+          museum.id,
+        );
+        final matched = allArtifacts
+            .where((a) => exhibitionCodes.contains(a.artifactCode))
+            .toList();
+        if (matched.isNotEmpty) {
+          final lines = matched
+              .map((a) => '${a.title} (${a.artifactCode})')
+              .join('\n• ');
+          artifactLine = isVietnamese
+              ? '\n🏺 Hiện vật:\n• $lines'
+              : '\n🏺 Artifacts:\n• $lines';
+        }
+      } catch (_) {}
+    } else {
+      // Fallback: find artifacts with a spot on the same floor
+      try {
+        final artifacts = await BackendApi.instance.fetchArtifacts(museum.id);
+        final floorArtifacts = artifacts.where((a) {
+          final aSpot = _findArtifactNavigationSpot(a.title, museum.id);
+          return aSpot != null && spot != null && aSpot.floor == spot.floor;
+        }).toList();
+        if (floorArtifacts.isNotEmpty) {
+          final lines = floorArtifacts
+              .map((a) => '${a.title} (${a.artifactCode})')
+              .join('\n• ');
+          artifactLine = isVietnamese
+              ? '\n🏺 Hiện vật:\n• $lines'
+              : '\n🏺 Artifacts:\n• $lines';
+        }
+      } catch (_) {}
+    }
+
+    final navHint = spot != null
+        ? (isVietnamese
+              ? '\n\nNhấn bên dưới nếu bạn muốn được hướng dẫn đến đây!'
+              : '\n\nTap below if you want to navigate there!')
+        : '';
+
+    return _ResolvedReply(
+      text: isVietnamese
+          ? '🏛 ${exhibition.name}\n📍 Vị trí: ${exhibition.location}$artifactLine$navHint'
+          : '🏛 ${exhibition.name}\n📍 Location: ${exhibition.location}$artifactLine$navHint',
+      actions: actions,
+      suppressDefaultActions: true,
+    );
+  }
+
+  /// Build a reply listing exhibitions and artifacts on a specific floor.
+  Future<_ResolvedReply> _buildFloorQueryReply({
+    required String floorLabel,
+    required MuseumDto museum,
+    required bool isVietnamese,
+  }) async {
+    final spots =
+        _museumNavigationSpots[museum.id] ?? const <_NavigationSpot>[];
+    final floorSpots = spots.where((s) => s.floor == floorLabel).toList();
+
+    List<ExhibitionDto> exhibitions = <ExhibitionDto>[];
+    List<ArtifactDto> artifacts = <ArtifactDto>[];
+    try {
+      exhibitions = await _fetchExhibitions(museum.id);
+      artifacts = await BackendApi.instance.fetchArtifacts(museum.id);
+    } catch (_) {}
+
+    final floorExhibitions = exhibitions
+        .where(
+          (e) => floorSpots.any(
+            (s) => _normalizeForIntent(s.name) == _normalizeForIntent(e.name),
+          ),
+        )
+        .toList();
+
+    final floorArtifacts = artifacts.where((a) {
+      final normalizedTitle = _normalizeForIntent(a.title);
+      return floorSpots.any((s) {
+        final ns = _normalizeForIntent(s.name);
+        return ns == normalizedTitle ||
+            ns.contains(normalizedTitle) ||
+            normalizedTitle.contains(ns);
+      });
+    }).toList();
+
+    final sb = StringBuffer();
+    if (isVietnamese) {
+      sb.writeln('$floorLabel tại ${museum.name}:');
+      if (floorExhibitions.isNotEmpty) {
+        sb.writeln('\n🏛 Triển lãm:');
+        for (final e in floorExhibitions) {
+          sb.writeln('• ${e.name} (${e.location})');
+        }
+      }
+      if (floorArtifacts.isNotEmpty) {
+        sb.writeln('\n🏺 Hiện vật:');
+        for (final a in floorArtifacts) {
+          sb.writeln('• ${a.title} (${a.artifactCode})');
+        }
+      }
+      if (floorExhibitions.isEmpty && floorArtifacts.isEmpty) {
+        sb.writeln('Hiện chưa có thông tin cụ thể về tầng này.');
+      }
+    } else {
+      sb.writeln('$floorLabel at ${museum.name}:');
+      if (floorExhibitions.isNotEmpty) {
+        sb.writeln('\n🏛 Exhibitions:');
+        for (final e in floorExhibitions) {
+          sb.writeln('• ${e.name} (${e.location})');
+        }
+      }
+      if (floorArtifacts.isNotEmpty) {
+        sb.writeln('\n🏺 Artifacts:');
+        for (final a in floorArtifacts) {
+          sb.writeln('• ${a.title} (${a.artifactCode})');
+        }
+      }
+      if (floorExhibitions.isEmpty && floorArtifacts.isEmpty) {
+        sb.writeln('No specific information available for this floor.');
+      }
+    }
+    return _ResolvedReply(
+      text: sb.toString().trim(),
+      suppressDefaultActions: true,
+    );
+  }
+
+  Future<_ResolvedReply> _buildAllExhibitionsReply({
+    required MuseumDto museum,
+    required bool isVietnamese,
+    String? floorLabel,
+  }) async {
+    List<ExhibitionDto> exhibitions = <ExhibitionDto>[];
+    try {
+      exhibitions = await _fetchExhibitions(museum.id);
+    } catch (_) {}
+
+    if (exhibitions.isEmpty) {
+      return _ResolvedReply(
+        text: isVietnamese
+            ? 'Hiện chưa có triển lãm nào được liệt kê cho ${museum.name}.'
+            : 'There are currently no exhibitions listed for ${museum.name}.',
+        suppressDefaultActions: true,
+      );
+    }
+
+    final filtered = floorLabel == null
+        ? exhibitions
+        : exhibitions.where((exhibition) {
+            if (_normalizeForIntent(
+              exhibition.location,
+            ).contains(_normalizeForIntent(floorLabel))) {
+              return true;
+            }
+            final spot = _findNavigationSpotByName(museum.id, exhibition.name);
+            return spot != null && spot.floor == floorLabel;
+          }).toList();
+
+    if (filtered.isEmpty) {
+      return _ResolvedReply(
+        text: isVietnamese
+            ? 'Không tìm thấy triển lãm nào trên $floorLabel tại ${museum.name}.'
+            : 'No exhibitions found on $floorLabel at ${museum.name}.',
+        suppressDefaultActions: true,
+      );
+    }
+
+    final lines = filtered.map((e) => '• ${e.name} (${e.location})').join('\n');
+    final header = floorLabel == null
+        ? (isVietnamese
+              ? '🏛 Các triển lãm tại ${museum.name} (${filtered.length} triển lãm):'
+              : '🏛 Exhibitions at ${museum.name} (${filtered.length} exhibitions):')
+        : (isVietnamese
+              ? '🏛 Các triển lãm trên $floorLabel tại ${museum.name}:'
+              : '🏛 Exhibitions on $floorLabel at ${museum.name}:');
+
+    return _ResolvedReply(
+      text: '$header\n$lines',
+      suppressDefaultActions: true,
+    );
+  }
+
   String? _extractArtifactCode(String text) {
     final codeRegex = RegExp(r'\b[A-Za-z]{2,4}\s?-\s?\d{3}\b');
     final match = codeRegex.firstMatch(text);
@@ -828,9 +1670,34 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       'exhibitions',
       'exhibit',
       'exhibits',
+      'all exhibitions',
+      'all exhibits',
+      'show all exhibitions',
+      'show me all exhibitions',
+      'list all exhibitions',
+      'what exhibitions',
+      'which exhibitions',
+      'museum exhibitions',
+      'all museums',
       'trien lam',
       'trung bay',
-      'show',
+      'khu trung bay',
+      'khu trien lam',
+      'cac trien lam',
+      'cac khu',
+      'nhung trien lam',
+      'tat ca trien lam',
+      'tat ca trung bay',
+      'liet ke trien lam',
+      'liet ke trung bay',
+      'trien lam trong bao tang',
+      'tat ca bao tang',
+      'danh sach trien lam',
+      'list exhibition',
+      'list of exhibition',
+      'show exhibition',
+      'show me exhibition',
+      'all exhibition',
     ]);
   }
 
@@ -863,12 +1730,93 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
 
   static bool _isTicketPriceQuestion(String text) {
     return _containsAny(text, <String>[
-      'ticket',
-      'price',
+      'ticket price',
+      'ticket cost',
+      'ticket fee',
+      'how much',
       'entry fee',
+      'admission fee',
+      'admission cost',
+      'price',
       'gia ve',
       've bao nhieu',
       've vao cong',
+      'phi vao cua',
+      'tien ve',
+      'bao nhieu tien',
+    ]);
+  }
+
+  static bool _isViewTicketIntent(String text) {
+    return _containsAny(text, <String>[
+      'my ticket',
+      'my tickets',
+      'view ticket',
+      'view tickets',
+      'show ticket',
+      'show my ticket',
+      'see ticket',
+      'see my ticket',
+      'check my ticket',
+      'open ticket',
+      'xem ve',
+      'xem ve cua toi',
+      've cua toi',
+      'kiem tra ve',
+      'danh sach ve',
+    ]);
+  }
+
+  static bool _isFloorSpecificQuery(String normalized) {
+    final hasFloor = _containsAny(normalized, <String>[
+      'floor 1',
+      'floor 2',
+      'floor a',
+      'floor b',
+      'floor one',
+      'floor two',
+      'tang 1',
+      'tang 2',
+      'tang a',
+      'tang b',
+      'tang mot',
+      'tang hai',
+      'level 1',
+      'level 2',
+      'level a',
+      'level b',
+      '1st floor',
+      '2nd floor',
+      'first floor',
+      'second floor',
+      'tren tang 1',
+      'tren tang 2',
+      'o tang 1',
+      'o tang 2',
+    ]);
+    if (!hasFloor) return false;
+    return _containsAny(normalized, <String>[
+      'exhibition',
+      'exhibit',
+      'artifact',
+      'artifacts',
+      'hien vat',
+      'trien lam',
+      'trung bay',
+      'what',
+      'which',
+      'show',
+      'list',
+      'all',
+      'tell',
+      'give',
+      'co gi',
+      'nhung gi',
+      'co nhung gi',
+      'o day co',
+      'co gi o',
+      'danh sach',
+      'liet ke',
     ]);
   }
 
@@ -953,6 +1901,8 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         _isFontSizeChangeIntent(normalized)) {
       return true;
     }
+    // View ticket intent
+    if (_isViewTicketIntent(normalized)) return true;
     return false;
   }
 
@@ -1003,6 +1953,8 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
           'information',
           'thong tin bao tang',
           'bao tang',
+          'tell me about',
+          'cho toi biet ve',
         ]);
   }
 
@@ -2295,6 +3247,7 @@ enum _ChatActionType {
   map,
   tickets,
   artifact,
+  artifactRoute,
   schemeOption,
   themeOption,
   languageOption,
@@ -2326,11 +3279,13 @@ class _ResolvedReply {
     required this.text,
     this.actions = const <_ChatAction>[],
     this.mapAction,
+    this.suppressDefaultActions = false,
   });
 
   final String text;
   final List<_ChatAction> actions;
   final _ChatAction? mapAction;
+  final bool suppressDefaultActions;
 }
 
 class _MuseumLocationInfo {
@@ -2383,6 +3338,118 @@ class _NavigationSpot {
   final List<String> aliases;
 }
 
+// ── Local exhibition data (overrides API for specific museums) ────────────────
+// Museum 1 — Independence Palace
+const List<ExhibitionDto> _independencePalaceExhibitions = <ExhibitionDto>[
+  // Floor 1 — Public & Ceremonial Spaces
+  ExhibitionDto(
+    id: 101,
+    name: 'Fall of Saigon: April 30, 1975',
+    location: 'Floor 1 — Public & Ceremonial Spaces',
+    museumId: 1,
+  ),
+  ExhibitionDto(
+    id: 102,
+    name: 'Presidential Power & Governance',
+    location: 'Floor 1 — Public & Ceremonial Spaces',
+    museumId: 1,
+  ),
+  ExhibitionDto(
+    id: 103,
+    name: 'Diplomacy & State Ceremony',
+    location: 'Floor 1 — Public & Ceremonial Spaces',
+    museumId: 1,
+  ),
+  ExhibitionDto(
+    id: 104,
+    name: 'Presidential Lifestyle',
+    location: 'Floor 1 — Public & Ceremonial Spaces',
+    museumId: 1,
+  ),
+  // Floor 2 — War Operations & Secret Infrastructure
+  ExhibitionDto(
+    id: 105,
+    name: 'War Command Bunker',
+    location: 'Floor 2 — War Operations & Secret Infrastructure',
+    museumId: 1,
+  ),
+  ExhibitionDto(
+    id: 106,
+    name: 'Air Warfare & Evacuation',
+    location: 'Floor 2 — War Operations & Secret Infrastructure',
+    museumId: 1,
+  ),
+];
+
+/// Maps exhibition name → artifact codes for Museum 1.
+const Map<String, List<String>> _museum1ExhibitionArtifacts =
+    <String, List<String>>{
+      'Fall of Saigon: April 30, 1975': <String>[
+        'IP-001',
+        'IP-002',
+        'IP-007',
+        'IP-006',
+      ],
+      'Presidential Power & Governance': <String>['IP-009', 'IP-015', 'IP-013'],
+      'Diplomacy & State Ceremony': <String>['IP-008', 'IP-010'],
+      'Presidential Lifestyle': <String>['IP-004', 'IP-012'],
+      'War Command Bunker': <String>['IP-005', 'IP-011'],
+      'Air Warfare & Evacuation': <String>['IP-003'],
+    };
+
+const Map<int, List<ExhibitionDto>> _localExhibitionsMap =
+    <int, List<ExhibitionDto>>{1: _independencePalaceExhibitions};
+
+/// Vietnamese keyword aliases for each exhibition (already diacritic-normalized).
+/// Keys match exhibition names in [_independencePalaceExhibitions].
+const Map<String, List<String>> _exhibitionViAliases = <String, List<String>>{
+  'Fall of Saigon: April 30, 1975': <String>[
+    'sup do sai gon',
+    '30 thang 4',
+    'giai phong sai gon',
+    'ngay 30 thang 4',
+    'tran danh sai gon',
+    'sup do',
+  ],
+  'Presidential Power & Governance': <String>[
+    'quyen luc tong thong',
+    'phong hop noi cac',
+    'noi cac',
+    'quan tri quoc gia',
+    'quyen hanh tong thong',
+  ],
+  'Diplomacy & State Ceremony': <String>[
+    'ngoai giao',
+    'le nghi quoc gia',
+    'le nghi nha nuoc',
+    'phong nghi le',
+    'le nghi chinh thuc',
+  ],
+  'Presidential Lifestyle': <String>[
+    'cuoc song tong thong',
+    'doi song tong thong',
+    'phong cach song tong thong',
+    'noi that tong thong',
+  ],
+  'War Command Bunker': <String>[
+    'ham chi huy',
+    'ham ngam chi huy',
+    'trung tam chi huy',
+    'bo chi huy',
+    'ham ngam',
+    'bunker',
+  ],
+  'Air Warfare & Evacuation': <String>[
+    'khong chien',
+    'di tan',
+    'cuoc khong kich',
+    'may bay truc thang',
+    'truc thang',
+    'san bay truc thang',
+    'mai nha',
+  ],
+};
+
 final Map<int, List<_NavigationSpot>>
 _museumNavigationSpots = <int, List<_NavigationSpot>>{
   1: <_NavigationSpot>[
@@ -2390,17 +3457,91 @@ _museumNavigationSpots = <int, List<_NavigationSpot>>{
       'main entrance',
       'entrance',
       'cua chinh',
+      'loi vao chinh',
     ]),
-    _spot('War History Gallery', 'Floor 1', <String>['war history gallery']),
-    _spot('Presidential Throne', 'Floor 1', <String>[
-      'presidential throne',
-      'throne',
+    // ── Exhibition 1: Fall of Saigon: April 30, 1975 ──────────────────
+    _spot('Fall of Saigon: April 30, 1975', 'Floor 1', <String>[
+      'fall of saigon',
+      'april 30',
+      '30 thang 4',
+      'giai phong',
     ]),
-    _spot('T-54 Tank', 'Floor 1', <String>['t-54 tank', 'tank t-54', 'tank']),
-    _spot('Diplomatic Reception Hall', 'Floor 1', <String>[
-      'diplomatic reception hall',
-      'reception hall',
+    _spot('Tank 390', 'Floor 1', <String>['tank 390', 'xe tang 390', 'ip-001']),
+    _spot('Tank 843', 'Floor 1', <String>['tank 843', 'xe tang 843', 'ip-002']),
+    _spot('Jeep M151A2', 'Floor 1', <String>[
+      'jeep m151a2',
+      'jeep',
+      'm151',
+      'ip-007',
     ]),
+    _spot('F-5E Bombing Marks', 'Floor 1', <String>[
+      'f-5e bombing marks',
+      'f-5e',
+      'bombing marks',
+      'ip-006',
+    ]),
+    // ── Exhibition 2: Presidential Power & Governance ─────────────────
+    _spot('Presidential Power & Governance', 'Floor 1', <String>[
+      'presidential power',
+      'governance',
+      'quyen luc tong thong',
+    ]),
+    _spot('Cabinet Room Table', 'Floor 1', <String>[
+      'cabinet room table',
+      'cabinet room',
+      'ban hop noi cac',
+      'ip-009',
+    ]),
+    _spot('Vice President\'s Desk', 'Floor 1', <String>[
+      "vice president's desk",
+      'vice president desk',
+      'ban pho tong thong',
+      'ip-015',
+    ]),
+    _spot('National Security Council Maps', 'Floor 1', <String>[
+      'national security council maps',
+      'security council maps',
+      'ban do hoi dong an ninh',
+      'ip-013',
+    ]),
+    // ── Exhibition 3: Diplomacy & State Ceremony ──────────────────────
+    _spot('Diplomacy & State Ceremony', 'Floor 1', <String>[
+      'diplomacy',
+      'state ceremony',
+      'le nghi quoc gia',
+      'ngoai giao',
+    ]),
+    _spot('Binh Ngo Dai Cao Lacquer Painting', 'Floor 1', <String>[
+      'binh ngo dai cao',
+      'binh ngo dai cao lacquer painting',
+      'tranh son mai binh ngo dai cao',
+      'ip-008',
+    ]),
+    _spot('The Golden Dragon Tapestry', 'Floor 1', <String>[
+      'golden dragon tapestry',
+      'the golden dragon tapestry',
+      'tham rong vang',
+      'ip-010',
+    ]),
+    // ── Exhibition 4: Presidential Lifestyle ─────────────────────────
+    _spot('Presidential Lifestyle', 'Floor 1', <String>[
+      'presidential lifestyle',
+      'cuoc song tong thong',
+    ]),
+    _spot('Mercedes-Benz 200 W110', 'Floor 1', <String>[
+      'mercedes-benz 200 w110',
+      'mercedes benz',
+      'mercedes',
+      'xe mercedes',
+      'ip-004',
+    ]),
+    _spot('The Presidential Bed', 'Floor 1', <String>[
+      'presidential bed',
+      'the presidential bed',
+      'giuong tong thong',
+      'ip-012',
+    ]),
+    // ── Shared Floor 1 facilities ─────────────────────────────────────
     _spot('Restroom - Floor 1', 'Floor 1', <String>[
       'restroom floor 1',
       'toilet floor 1',
@@ -2418,22 +3559,40 @@ _museumNavigationSpots = <int, List<_NavigationSpot>>{
       'stair',
       'cau thang',
     ]),
-    _spot('Presidential Office Tour', 'Floor 2', <String>[
-      'presidential office tour',
-      'presidential office',
+    // ── Exhibition 5: War Command Bunker ─────────────────────────────
+    _spot('War Command Bunker', 'Floor 2', <String>[
+      'war command bunker',
+      'command bunker',
+      'ham chi huy',
     ]),
-    _spot('Historical Documents Room', 'Floor 2', <String>[
-      'historical documents room',
-      'documents room',
+    _spot('War Command Bunker Map', 'Floor 2', <String>[
+      'war command bunker map',
+      'command bunker map',
+      'ban do ham chi huy',
+      'ip-005',
     ]),
-    _spot('Independence Archive', 'Floor 2', <String>[
-      'independence archive',
-      'archive',
+    _spot('Telecommunications Center', 'Floor 2', <String>[
+      'telecommunications center',
+      'telecommunications',
+      'trung tam vien thong',
+      'ip-011',
     ]),
-    _spot('Command Communication Room', 'Floor 2', <String>[
-      'command communication room',
-      'communication room',
+    // ── Exhibition 6: Air Warfare & Evacuation ────────────────────────
+    _spot('Air Warfare & Evacuation', 'Floor 2', <String>[
+      'air warfare',
+      'evacuation',
+      'khong chien',
+      'di tan',
     ]),
+    _spot('UH-1 Helicopter', 'Floor 2', <String>[
+      'uh-1 helicopter',
+      'uh-1',
+      'uh1',
+      'helicopter',
+      'truc thang',
+      'ip-003',
+    ]),
+    // ── Shared Floor 2 facilities ─────────────────────────────────────
     _spot('Souvenir Shop', 'Floor 2', <String>['souvenir shop', 'shop']),
     _spot('Rooftop Cafe', 'Floor 2', <String>[
       'rooftop cafe',

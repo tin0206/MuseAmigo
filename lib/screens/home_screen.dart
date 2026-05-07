@@ -33,21 +33,28 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoadingArtifacts = false;
 
   static const Map<String, String> _ipLocationMap = {
-    'IP-001': 'Front Lawn - Main Gate Courtyard',
-    'IP-002': 'Front Lawn - Side Gate Courtyard',
-    'IP-003': 'Rooftop Helipad',
-    'IP-004': 'Outdoor Vehicle Display Area',
-    'IP-005': 'Basement Command Bunker',
-    'IP-006': 'Rooftop Terrace',
-    'IP-007': 'Front Courtyard Military Display',
-    'IP-008': 'First Floor - Ambassador\'s Chamber',
-    'IP-009': 'First Floor - Cabinet Room',
-    'IP-010': 'Second Floor - State Banquet Hall',
-    'IP-011': 'Basement Telecommunications Room',
-    'IP-012': 'Second Floor - Presidential Bedroom',
-    'IP-013': 'Basement Tactical Command Room',
+    // Exhibition 1 — Fall of Saigon: April 30, 1975 (Floor 1)
+    'IP-001': 'Fall of Saigon Exhibition — Front Lawn (Tank 390)',
+    'IP-002': 'Fall of Saigon Exhibition — Front Lawn (Tank 843)',
+    'IP-007': 'Fall of Saigon Exhibition — Front Courtyard (Jeep M151A2)',
+    'IP-006': 'Fall of Saigon Exhibition — Rooftop Terrace (F-5E Marks)',
+    // Exhibition 2 — Presidential Power & Governance (Floor 1)
+    'IP-009': 'Presidential Power Exhibition — First Floor Cabinet Room',
+    'IP-015': 'Presidential Power Exhibition — Second Floor VP Office',
+    'IP-013': 'Presidential Power Exhibition — Basement Command Room',
+    // Exhibition 3 — Diplomacy & State Ceremony (Floor 1)
+    'IP-008': 'Diplomacy Exhibition — First Floor Ambassador\'s Chamber',
+    'IP-010': 'Diplomacy Exhibition — Second Floor State Banquet Hall',
+    // Exhibition 4 — Presidential Lifestyle (Floor 1)
+    'IP-004': 'Presidential Lifestyle Exhibition — Outdoor Vehicle Area',
+    'IP-012': 'Presidential Lifestyle Exhibition — Second Floor Bedroom',
+    // Exhibition 5 — War Command Bunker (Floor 2)
+    'IP-005': 'War Command Bunker — Basement Command Center',
+    'IP-011': 'War Command Bunker — Basement Telecommunications Room',
+    // Exhibition 6 — Air Warfare & Evacuation (Floor 2)
+    'IP-003': 'Air Warfare Exhibition — Rooftop Helipad',
+    // Unassigned
     'IP-014': 'Basement Cinema Room',
-    'IP-015': 'Second Floor - Vice President Office',
   };
 
   static const List<Color> _artifactColors = [
@@ -135,18 +142,32 @@ class _HomeScreenState extends State<HomeScreen> {
     switch (museumId) {
       case 1:
         return const [
+          // Floor 1 — Public & Ceremonial Spaces
           _AreaItem(
             label: 'Fall of Saigon: April 30, 1975',
-            sublabel: 'Floor 1',
+            sublabel: 'Floor 1 · IP-001, IP-002, IP-007, IP-006',
           ),
           _AreaItem(
             label: 'Presidential Power & Governance',
-            sublabel: 'Floor 1',
+            sublabel: 'Floor 1 · IP-009, IP-015, IP-013',
           ),
-          _AreaItem(label: 'Diplomacy & State Ceremony', sublabel: 'Floor 1'),
-          _AreaItem(label: 'Presidential Lifestyle', sublabel: 'Floor 1'),
-          _AreaItem(label: 'War Command Bunker', sublabel: 'Floor 2'),
-          _AreaItem(label: 'Air Warfare & Evacuation', sublabel: 'Floor 2'),
+          _AreaItem(
+            label: 'Diplomacy & State Ceremony',
+            sublabel: 'Floor 1 · IP-008, IP-010',
+          ),
+          _AreaItem(
+            label: 'Presidential Lifestyle',
+            sublabel: 'Floor 1 · IP-004, IP-012',
+          ),
+          // Floor 2 — War Operations & Secret Infrastructure
+          _AreaItem(
+            label: 'War Command Bunker',
+            sublabel: 'Floor 2 · IP-005, IP-011',
+          ),
+          _AreaItem(
+            label: 'Air Warfare & Evacuation',
+            sublabel: 'Floor 2 · IP-003',
+          ),
         ];
       default:
         return _areasForMuseum(museumId);
