@@ -218,7 +218,7 @@ class _TicketList extends StatelessWidget {
     return ListView.separated(
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       itemCount: tickets.length,
-      separatorBuilder: (_, _) => SizedBox(height: 20),
+      separatorBuilder: (_, __) => SizedBox(height: 20),
       itemBuilder: (context, i) => _TicketCard(ticket: tickets[i]),
     );
   }
@@ -514,7 +514,6 @@ class _TicketCard extends StatelessWidget {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-<<<<<<< HEAD
                             QrImageView(
                               data: ticket.id,
                               version: QrVersions.auto,
@@ -523,18 +522,7 @@ class _TicketCard extends StatelessWidget {
                             const SizedBox(height: 8),
                             Text(
                               ticket.id,
-                              style: const TextStyle(
-=======
-                            Icon(
-                              Icons.qr_code_2_rounded,
-                              size: 102,
-                              color: themeNotifier.textSecondaryColor,
-                            ),
-                            SizedBox(height: 8),
-                            Text(
-                              '#AVLBQWJ05',
                               style: TextStyle(
->>>>>>> 68566d439f6e998550310f3bcde60c1553ea4de3
                                 fontSize: 14,
                                 color: themeNotifier.textSecondaryColor,
                               ),
