@@ -312,6 +312,21 @@ class BackendApi {
     return json['reply'] as String? ?? '';
   }
 
+  Future<List<ArtifactDto>> fetchArtifacts(int museumId) async {
+    final response = await http.get(_uri('/museums/$museumId/artifacts'));
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final json = await _readJson(response);
+      _throwForResponse(response, json);
+    }
+    final decoded = jsonDecode(response.body);
+    if (decoded is! List) {
+      throw ApiException('Unexpected artifact list format');
+    }
+    return decoded
+        .map((e) => ArtifactDto.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
   Future<List<ExhibitionDto>> fetchExhibitions(int museumId) async {
     final response = await http.get(_uri('/museums/$museumId/exhibitions'));
     if (response.statusCode < 200 || response.statusCode >= 300) {

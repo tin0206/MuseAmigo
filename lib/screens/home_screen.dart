@@ -1,5 +1,7 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:museamigo/app_routes.dart';
+import 'package:museamigo/services/backend_api.dart';
 import 'package:museamigo/l10n/translations.dart';
 import 'package:museamigo/profile_notifier.dart';
 import 'package:museamigo/language_notifier.dart';
@@ -15,6 +17,167 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  static final ScrollBehavior _horizontalScrollBehavior =
+      const MaterialScrollBehavior().copyWith(
+        dragDevices: {
+          PointerDeviceKind.touch,
+          PointerDeviceKind.mouse,
+          PointerDeviceKind.trackpad,
+          PointerDeviceKind.stylus,
+          PointerDeviceKind.invertedStylus,
+        },
+      );
+
+  // ── Artifact data from API ──────────────────────────────────────────────
+  List<ArtifactDto>? _loadedArtifacts;
+  bool _isLoadingArtifacts = false;
+
+  static const Map<String, String> _ipLocationMap = {
+    'IP-001': 'Front Lawn - Main Gate Courtyard',
+    'IP-002': 'Front Lawn - Side Gate Courtyard',
+    'IP-003': 'Rooftop Helipad',
+    'IP-004': 'Outdoor Vehicle Display Area',
+    'IP-005': 'Basement Command Bunker',
+    'IP-006': 'Rooftop Terrace',
+    'IP-007': 'Front Courtyard Military Display',
+    'IP-008': 'First Floor - Ambassador\'s Chamber',
+    'IP-009': 'First Floor - Cabinet Room',
+    'IP-010': 'Second Floor - State Banquet Hall',
+    'IP-011': 'Basement Telecommunications Room',
+    'IP-012': 'Second Floor - Presidential Bedroom',
+    'IP-013': 'Basement Tactical Command Room',
+    'IP-014': 'Basement Cinema Room',
+    'IP-015': 'Second Floor - Vice President Office',
+  };
+
+  static const List<Color> _artifactColors = [
+    Color(0xFF6B7A8D),
+    Color(0xFF8B5E3C),
+    Color(0xFFE8A04A),
+    Color(0xFF5E8A6E),
+    Color(0xFF4A6A8A),
+    Color(0xFF8A4A6A),
+    Color(0xFF7A5C3A),
+    Color(0xFF5E5E5E),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchArtifacts();
+    AppSession.currentMuseumId.addListener(_onMuseumChanged);
+  }
+
+  @override
+  void dispose() {
+    AppSession.currentMuseumId.removeListener(_onMuseumChanged);
+    super.dispose();
+  }
+
+  void _onMuseumChanged() {
+    setState(() => _loadedArtifacts = null);
+    _fetchArtifacts();
+  }
+
+  Future<void> _fetchArtifacts() async {
+    if (_isLoadingArtifacts) return;
+    final museumId = AppSession.currentMuseumId.value;
+    setState(() => _isLoadingArtifacts = true);
+    try {
+      final artifacts = await BackendApi.instance.fetchArtifacts(museumId);
+      if (mounted) {
+        setState(() {
+          _loadedArtifacts = artifacts;
+          _isLoadingArtifacts = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingArtifacts = false);
+    }
+  }
+
+  String _locationForArtifact(ArtifactDto a) {
+    if (a.museumId == 1) {
+      return _ipLocationMap[a.artifactCode] ?? 'Ground Floor';
+    }
+    return 'Ground Floor';
+  }
+
+  // Builds first-section artifacts from API data (first 4 items).
+  List<_ArtifactItem> _artifactsFromApi() {
+    final list = (_loadedArtifacts ?? []).take(4).toList();
+    return list.asMap().entries.map((e) {
+      final a = e.value;
+      return _ArtifactItem(
+        name: a.title,
+        period: a.year,
+        color: _artifactColors[e.key % _artifactColors.length],
+        location: _locationForArtifact(a),
+      );
+    }).toList();
+  }
+
+  // Builds second-section artifacts from API data (items 4–7).
+  List<_ArtifactItem> _secondArtifactsFromApi() {
+    final list = (_loadedArtifacts ?? []).skip(4).take(4).toList();
+    return list.asMap().entries.map((e) {
+      final a = e.value;
+      return _ArtifactItem(
+        name: a.title,
+        period: a.year,
+        color: _artifactColors[(e.key + 4) % _artifactColors.length],
+        location: _locationForArtifact(a),
+      );
+    }).toList();
+  }
+
+  List<_AreaItem> _exhibitionsForMuseum(int museumId) {
+    switch (museumId) {
+      case 1:
+        return const [
+          _AreaItem(
+            label: 'Fall of Saigon: April 30, 1975',
+            sublabel: 'Floor 1',
+          ),
+          _AreaItem(
+            label: 'Presidential Power & Governance',
+            sublabel: 'Floor 1',
+          ),
+          _AreaItem(label: 'Diplomacy & State Ceremony', sublabel: 'Floor 1'),
+          _AreaItem(label: 'Presidential Lifestyle', sublabel: 'Floor 1'),
+          _AreaItem(label: 'War Command Bunker', sublabel: 'Floor 2'),
+          _AreaItem(label: 'Air Warfare & Evacuation', sublabel: 'Floor 2'),
+        ];
+      default:
+        return _areasForMuseum(museumId);
+    }
+  }
+
+  List<_AreaItem> _floorsForMuseum(int museumId) {
+    switch (museumId) {
+      case 1:
+        return const [
+          _AreaItem(
+            label: 'Floor 1',
+            sublabel: 'Ceremony, governance, diplomacy',
+          ),
+          _AreaItem(
+            label: 'Floor 2',
+            sublabel: 'War operations & secret infrastructure',
+          ),
+        ];
+      default:
+        return const [
+          _AreaItem(label: 'Floor 1', sublabel: 'Main exhibition spaces'),
+          _AreaItem(label: 'Floor 2', sublabel: 'Upper galleries'),
+        ];
+    }
+  }
+
+  String _detailLocationForArtifact(_ArtifactItem item, String fallback) {
+    return item.location.isEmpty ? fallback : item.location;
+  }
+
   List<_AreaItem> _areasForMuseum(int museumId) {
     switch (museumId) {
       case 2: // War Remnants Museum
@@ -230,9 +393,15 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context, _) {
         final museumId = AppSession.currentMuseumId.value;
         final museumName = AppSession.currentMuseumName.value;
-        final areas = _areasForMuseum(museumId);
-        final artifacts = _artifactsForMuseum(museumId);
-        final secondFloorArtifacts = _secondFloorArtifactsForMuseum(museumId);
+        final exhibitions = _exhibitionsForMuseum(museumId);
+        final floors = _floorsForMuseum(museumId);
+        final bool useApi =
+            museumId == 1 &&
+            _loadedArtifacts != null &&
+            _loadedArtifacts!.isNotEmpty;
+        final artifacts = useApi
+            ? _artifactsFromApi()
+            : _artifactsForMuseum(museumId);
 
         return Scaffold(
           backgroundColor: themeNotifier.surfaceColor,
@@ -293,7 +462,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             shape: BoxShape.circle,
                             color: themeNotifier.surfaceColor,
                             border: Border.all(
-                              color: themeNotifier.surfaceColor.withValues(alpha: 0.8),
+                              color: themeNotifier.surfaceColor.withValues(
+                                alpha: 0.8,
+                              ),
                               width: 2,
                             ),
                             boxShadow: [
@@ -312,7 +483,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                 width: 44,
                                 height: 44,
                                 decoration: BoxDecoration(
-                                  color: themeNotifier.surfaceColor.withValues(alpha: 0.25),
+                                  color: themeNotifier.surfaceColor.withValues(
+                                    alpha: 0.25,
+                                  ),
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(
@@ -360,37 +533,41 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         SizedBox(height: 24),
-                        // ── Areas ─────────────────────────────────────────
+                        // ── Exhibitions ───────────────────────────────────
                         _SectionHeader(
-                          title: 'Areas'.tr,
+                          title: 'Exhibitions'.tr,
                           onSeeAll: () => Navigator.of(context).pushNamed(
                             AppRoutes.search,
                             arguments: {
-                              'initialFilter': 'All',
+                              'initialExhibition': 'All',
                               'showResults': true,
                             },
                           ),
                         ),
                         SizedBox(height: 12),
                         SizedBox(
-                          height: 180,
-                          child: ListView.separated(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: areas.length,
-                            separatorBuilder: (_, _) =>
-                                SizedBox(width: 14),
-                            itemBuilder: (context, i) {
-                              return _AreaCard(
-                                area: areas[i],
-                                onTap: () => Navigator.of(context).pushNamed(
-                                  AppRoutes.search,
-                                  arguments: {
-                                    'initialFilter': areas[i].label,
-                                    'showResults': true,
-                                  },
-                                ),
-                              );
-                            },
+                          height: 196,
+                          child: ScrollConfiguration(
+                            behavior: _horizontalScrollBehavior,
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              physics: const BouncingScrollPhysics(),
+                              itemCount: exhibitions.length,
+                              separatorBuilder: (_, _) => SizedBox(width: 14),
+                              itemBuilder: (context, i) {
+                                return _AreaCard(
+                                  area: exhibitions[i],
+                                  width: 228,
+                                  onTap: () => Navigator.of(context).pushNamed(
+                                    AppRoutes.search,
+                                    arguments: {
+                                      'initialExhibition': exhibitions[i].label,
+                                      'showResults': true,
+                                    },
+                                  ),
+                                );
+                              },
+                            ),
                           ),
                         ),
                         SizedBox(height: 28),
@@ -415,7 +592,10 @@ class _HomeScreenState extends State<HomeScreen> {
                               arguments: <String, dynamic>{
                                 'title': artifacts[i].name,
                                 'year': artifacts[i].period,
-                                'location': 'Ground Floor',
+                                'location': _detailLocationForArtifact(
+                                  artifacts[i],
+                                  'Floor 1',
+                                ),
                                 'currentLocation': museumName,
                                 'height': '~2.4 meters',
                                 'weight': '~39.7 tons',
@@ -426,33 +606,39 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         SizedBox(height: 20),
-                        // ── Floor 2 Highlights ────────────────────────────
+                        // ── Floors ────────────────────────────────────────
                         _SectionHeader(
-                          title: 'Floor 2 Highlights'.tr,
+                          title: 'Floors'.tr,
                           onSeeAll: () => Navigator.of(context).pushNamed(
                             AppRoutes.search,
                             arguments: {
-                              'initialFilter': 'Floor 2',
+                              'initialFilter': 'All',
                               'showResults': true,
                             },
                           ),
                         ),
                         SizedBox(height: 12),
-                        ...List.generate(
-                          secondFloorArtifacts.length,
-                          (i) => _ArtifactRow(
-                            item: secondFloorArtifacts[i],
-                            onTap: () => Navigator.of(context).pushNamed(
-                              AppRoutes.artifactDetail,
-                              arguments: <String, dynamic>{
-                                'title': secondFloorArtifacts[i].name,
-                                'year': secondFloorArtifacts[i].period,
-                                'location': 'Floor 2',
-                                'currentLocation': museumName,
-                                'height': '~2.4 meters',
-                                'weight': '~39.7 tons',
-                                'imageAsset': 'assets/images/museum.jpg',
-                                'audioAsset': AudioAssets.standardPath,
+                        SizedBox(
+                          height: 172,
+                          child: ScrollConfiguration(
+                            behavior: _horizontalScrollBehavior,
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              physics: const BouncingScrollPhysics(),
+                              itemCount: floors.length,
+                              separatorBuilder: (_, _) => SizedBox(width: 14),
+                              itemBuilder: (context, i) {
+                                return _AreaCard(
+                                  area: floors[i],
+                                  width: 228,
+                                  onTap: () => Navigator.of(context).pushNamed(
+                                    AppRoutes.search,
+                                    arguments: {
+                                      'initialFilter': floors[i].label,
+                                      'showResults': true,
+                                    },
+                                  ),
+                                );
                               },
                             ),
                           ),
@@ -516,16 +702,17 @@ class _AreaItem {
 }
 
 class _AreaCard extends StatelessWidget {
-  const _AreaCard({required this.area, required this.onTap});
+  const _AreaCard({required this.area, required this.onTap, this.width = 160});
   final _AreaItem area;
   final VoidCallback onTap;
+  final double width;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: SizedBox(
-        width: 160,
+        width: width,
         child: ClipRRect(
           borderRadius: BorderRadius.circular(16),
           child: Stack(
@@ -536,10 +723,7 @@ class _AreaCard extends StatelessWidget {
                 fit: BoxFit.cover,
                 errorBuilder: (_, _, _) => Container(
                   color: Colors.grey.shade300,
-                  child: Icon(
-                    Icons.image_not_supported_outlined,
-                    size: 40,
-                  ),
+                  child: Icon(Icons.image_not_supported_outlined, size: 40),
                 ),
               ),
               Container(
@@ -558,35 +742,63 @@ class _AreaCard extends StatelessWidget {
               Positioned(
                 left: 10,
                 right: 10,
-                bottom: 10,
+                bottom: 12,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.16),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        'Independent Palace'.tr,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.92),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 8),
                     Text(
                       area.label.tr,
-                      maxLines: 2,
+                      maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w700,
-                        fontSize: 13,
+                        fontSize: 15,
+                        height: 1.2,
                       ),
                     ),
-                    SizedBox(height: 2),
+                    SizedBox(height: 6),
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Icon(
                           Icons.location_on,
                           color: Colors.white.withValues(alpha: 0.7),
-                          size: 12,
+                          size: 13,
                         ),
-                        SizedBox(width: 2),
-                        Text(
-                          area.sublabel.tr,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.7),
-                            fontSize: 11,
+                        SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            area.sublabel.tr,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.78),
+                              fontSize: 11,
+                              height: 1.25,
+                            ),
                           ),
                         ),
                       ],
@@ -609,10 +821,12 @@ class _ArtifactItem {
     required this.name,
     required this.period,
     required this.color,
+    this.location = '',
   });
   final String name;
   final String period;
   final Color color;
+  final String location;
 }
 
 class _ArtifactRow extends StatelessWidget {

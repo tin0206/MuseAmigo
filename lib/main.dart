@@ -103,8 +103,12 @@ class MuseAmigoApp extends StatelessWidget {
                 builder: (_) => SearchScreen(
                   initialQuery: args?['query'] as String?,
                   showResults: args?['showResults'] as bool? ?? false,
-                  initialFilter: args?['filter'] as String?,
-                  initialExhibition: args?['exhibition'] as String?,
+                  initialFilter:
+                      args?['initialFilter'] as String? ??
+                      args?['filter'] as String?,
+                  initialExhibition:
+                      args?['initialExhibition'] as String? ??
+                      args?['exhibition'] as String?,
                 ),
               );
             }

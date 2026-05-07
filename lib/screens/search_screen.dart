@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:museamigo/app_routes.dart';
 import 'package:museamigo/session.dart';
 import 'package:museamigo/services/audio_assets.dart';
@@ -23,60 +24,134 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
+  static final ScrollBehavior _horizontalScrollBehavior =
+      const MaterialScrollBehavior().copyWith(
+        dragDevices: {
+          PointerDeviceKind.touch,
+          PointerDeviceKind.mouse,
+          PointerDeviceKind.trackpad,
+          PointerDeviceKind.stylus,
+          PointerDeviceKind.invertedStylus,
+        },
+      );
+
   late final TextEditingController _controller;
   bool _showingResults = false;
   String _activeQuery = '';
-  String _selectedFilterType = 'All';
-  String _selectedFilterExhibition = 'All';
-  String _activeFilterMode = 'floor'; // 'floor' or 'exhibition'
+  String _selectedFloorFilter = 'All';
+  String _selectedExhibitionFilter = 'All';
+  String _activeFilterMode = 'exhibitions';
   String _sortBy = 'default'; // 'default' or 'a-z'
 
-  static const _recentSearches = ['Tank', 'Weapons', 'Room', 'Exhibition'];
-  static const _trending = ['Garden', 'Tank', 'Weapons', 'Room', 'Exhibition'];
-  static const _filterTypes = ['All', 'B1', 'Floor 1', 'Floor 2', 'Hall'];
+  static const _recentSearches = [
+    'Fall of Saigon',
+    'War Command Bunker',
+    'Tank 390',
+    'UH-1 Helicopter',
+  ];
+  static const _trending = [
+    'Presidential Power & Governance',
+    'Diplomacy & State Ceremony',
+    'Floor 1',
+    'Floor 2',
+    'Air Warfare & Evacuation',
+  ];
+  static const _filterModes = ['Exhibitions', 'Floors'];
+  static const _floorFilters = ['All', 'Floor 1', 'Floor 2'];
   static const _filterExhibitions = [
     'All',
-    'Exhibition of paintings',
-    'Exhibition of weapons',
-    'Colonial History',
+    'Fall of Saigon: April 30, 1975',
+    'Presidential Power & Governance',
+    'Diplomacy & State Ceremony',
+    'Presidential Lifestyle',
+    'War Command Bunker',
+    'Air Warfare & Evacuation',
   ];
 
   static const _allResults = <_ResultItem>[
     _ResultItem(
-      title: "President's Office",
-      location: 'In the Hall',
+      title: 'Tank 390',
+      location: 'Main Gate Courtyard',
       floor: 'Floor 1',
-      exhibition: 'Exhibition of paintings',
+      exhibition: 'Fall of Saigon: April 30, 1975',
     ),
     _ResultItem(
-      title: 'The old war room',
-      location: 'Underground',
-      floor: 'B1',
-      exhibition: 'Exhibition of weapons',
-    ),
-    _ResultItem(
-      title: 'Roof of Reunification Palace',
-      location: 'In the Hall',
-      floor: 'Floor 2',
-      exhibition: 'Colonial History',
-    ),
-    _ResultItem(
-      title: "President's Office 1",
-      location: 'In the Hall',
+      title: 'Tank 843',
+      location: 'Side Gate Courtyard',
       floor: 'Floor 1',
-      exhibition: 'Exhibition of paintings',
+      exhibition: 'Fall of Saigon: April 30, 1975',
     ),
     _ResultItem(
-      title: 'The old war room 1',
-      location: 'Underground',
-      floor: 'B1',
-      exhibition: 'Exhibition of weapons',
+      title: 'Jeep M151A2',
+      location: 'Front Courtyard Military Display',
+      floor: 'Floor 1',
+      exhibition: 'Fall of Saigon: April 30, 1975',
     ),
     _ResultItem(
-      title: 'Roof of Reunification Palace 1',
-      location: 'In the Hall',
+      title: 'F-5E Bombing Marks',
+      location: 'Rooftop Terrace',
+      floor: 'Floor 1',
+      exhibition: 'Fall of Saigon: April 30, 1975',
+    ),
+    _ResultItem(
+      title: 'Cabinet Room Table',
+      location: 'Cabinet Room',
+      floor: 'Floor 1',
+      exhibition: 'Presidential Power & Governance',
+    ),
+    _ResultItem(
+      title: 'Vice President\'s Desk',
+      location: 'Vice President Office',
+      floor: 'Floor 1',
+      exhibition: 'Presidential Power & Governance',
+    ),
+    _ResultItem(
+      title: 'National Security Council Maps',
+      location: 'Tactical Command Room',
+      floor: 'Floor 1',
+      exhibition: 'Presidential Power & Governance',
+    ),
+    _ResultItem(
+      title: 'Binh Ngo Dai Cao Lacquer Painting',
+      location: 'Ambassador\'s Chamber',
+      floor: 'Floor 1',
+      exhibition: 'Diplomacy & State Ceremony',
+    ),
+    _ResultItem(
+      title: 'The Golden Dragon Tapestry',
+      location: 'State Banquet Hall',
+      floor: 'Floor 1',
+      exhibition: 'Diplomacy & State Ceremony',
+    ),
+    _ResultItem(
+      title: 'Mercedes-Benz 200 W110',
+      location: 'Outdoor Vehicle Display Area',
+      floor: 'Floor 1',
+      exhibition: 'Presidential Lifestyle',
+    ),
+    _ResultItem(
+      title: 'The Presidential Bed',
+      location: 'Presidential Bedroom',
+      floor: 'Floor 1',
+      exhibition: 'Presidential Lifestyle',
+    ),
+    _ResultItem(
+      title: 'War Command Bunker Map',
+      location: 'Command Bunker',
       floor: 'Floor 2',
-      exhibition: 'Colonial History',
+      exhibition: 'War Command Bunker',
+    ),
+    _ResultItem(
+      title: 'Telecommunications Center',
+      location: 'Telecommunications Room',
+      floor: 'Floor 2',
+      exhibition: 'War Command Bunker',
+    ),
+    _ResultItem(
+      title: 'UH-1 Helicopter',
+      location: 'Rooftop Helipad',
+      floor: 'Floor 2',
+      exhibition: 'Air Warfare & Evacuation',
     ),
   ];
 
@@ -85,19 +160,17 @@ class _SearchScreenState extends State<SearchScreen> {
     super.initState();
     _controller = TextEditingController(text: widget.initialQuery ?? '');
     _activeQuery = widget.initialQuery ?? '';
-    if (widget.initialFilter != null &&
-        _filterTypes.contains(widget.initialFilter)) {
-      _selectedFilterType = widget.initialFilter!;
-      _activeFilterMode = 'floor';
-    }
     if (widget.initialExhibition != null &&
         _filterExhibitions.contains(widget.initialExhibition)) {
-      _selectedFilterExhibition = widget.initialExhibition!;
-      if (widget.initialExhibition != 'All') {
-        _activeFilterMode = 'exhibition';
-      }
+      _selectedExhibitionFilter = widget.initialExhibition!;
+      _activeFilterMode = 'exhibitions';
     }
-    _showingResults = widget.showResults || (_activeQuery.isNotEmpty);
+    if (widget.initialFilter != null &&
+        _floorFilters.contains(widget.initialFilter)) {
+      _selectedFloorFilter = widget.initialFilter!;
+      _activeFilterMode = 'floors';
+    }
+    _showingResults = _shouldShowResults;
   }
 
   @override
@@ -109,7 +182,7 @@ class _SearchScreenState extends State<SearchScreen> {
   void _search(String query) {
     setState(() {
       _activeQuery = query;
-      _showingResults = query.isNotEmpty;
+      _showingResults = _shouldShowResults;
     });
   }
 
@@ -117,23 +190,40 @@ class _SearchScreenState extends State<SearchScreen> {
     _controller.clear();
     setState(() {
       _activeQuery = '';
-      _showingResults = false;
+      _showingResults = _shouldShowResults;
     });
+  }
+
+  bool get _shouldShowResults {
+    return widget.showResults ||
+        _activeQuery.isNotEmpty ||
+        _selectedFloorFilter != 'All' ||
+        _selectedExhibitionFilter != 'All';
   }
 
   List<_ResultItem> get _filteredResults {
     var results = List<_ResultItem>.from(_allResults);
-    if (_selectedFilterType != 'All') {
+    final q = _activeQuery.trim().toLowerCase();
+    if (q.isNotEmpty) {
       results = results
-          .where((r) => r.floor.contains(_selectedFilterType))
+          .where(
+            (r) =>
+                r.title.toLowerCase().contains(q) ||
+                r.location.toLowerCase().contains(q) ||
+                r.floor.toLowerCase().contains(q) ||
+                r.exhibition.toLowerCase().contains(q),
+          )
           .toList();
     }
-    if (_selectedFilterExhibition != 'All') {
+    if (_activeFilterMode == 'floors' && _selectedFloorFilter != 'All') {
+      results = results.where((r) => r.floor == _selectedFloorFilter).toList();
+    }
+    if (_activeFilterMode == 'exhibitions' &&
+        _selectedExhibitionFilter != 'All') {
       results = results
-          .where((r) => r.exhibition == _selectedFilterExhibition)
+          .where((r) => r.exhibition == _selectedExhibitionFilter)
           .toList();
     }
-    // Apply sorting
     if (_sortBy == 'a-z') {
       results.sort((a, b) => a.title.compareTo(b.title));
     }
@@ -161,7 +251,10 @@ class _SearchScreenState extends State<SearchScreen> {
               child: Row(
                 children: [
                   IconButton(
-                    icon: Icon(Icons.arrow_back, color: themeNotifier.surfaceColor),
+                    icon: Icon(
+                      Icons.arrow_back,
+                      color: themeNotifier.surfaceColor,
+                    ),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                   Expanded(
@@ -205,9 +298,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                 )
                               : null,
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(
-                            vertical: 12,
-                          ),
+                          contentPadding: EdgeInsets.symmetric(vertical: 12),
                         ),
                       ),
                     ),
@@ -216,25 +307,28 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             ),
             if (_showingResults) ...[
-              // ── Filter chips (Type) - Show only when in floor mode ────
-              if (_activeFilterMode == 'floor')
-                SizedBox(
-                  height: 50,
+              SizedBox(
+                height: 50,
+                child: ScrollConfiguration(
+                  behavior: _horizontalScrollBehavior,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    itemCount: _filterTypes.length,
+                    physics: const BouncingScrollPhysics(),
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    itemCount: _filterModes.length,
                     separatorBuilder: (_, _) => SizedBox(width: 8),
                     itemBuilder: (context, index) {
-                      final filter = _filterTypes[index];
-                      final selected = _selectedFilterType == filter;
+                      final mode = _filterModes[index];
+                      final selected =
+                          (_activeFilterMode == 'exhibitions' &&
+                              mode == 'Exhibitions') ||
+                          (_activeFilterMode == 'floors' && mode == 'Floors');
                       return GestureDetector(
                         onTap: () => setState(() {
-                          _selectedFilterType = filter;
-                          _activeFilterMode = 'floor';
+                          _activeFilterMode = mode == 'Exhibitions'
+                              ? 'exhibitions'
+                              : 'floors';
+                          _showingResults = _shouldShowResults;
                         }),
                         child: Container(
                           padding: EdgeInsets.symmetric(
@@ -253,7 +347,7 @@ class _SearchScreenState extends State<SearchScreen> {
                             ),
                           ),
                           child: Text(
-                            filter,
+                            mode,
                             style: TextStyle(
                               color: selected
                                   ? themeNotifier.surfaceColor
@@ -267,55 +361,115 @@ class _SearchScreenState extends State<SearchScreen> {
                     },
                   ),
                 ),
-              // ── Filter chips (Exhibition) - Show only when in exhibition mode ───
-              if (_activeFilterMode == 'exhibition')
+              ),
+              if (_activeFilterMode == 'floors')
                 SizedBox(
                   height: 50,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    itemCount: _filterExhibitions.length,
-                    separatorBuilder: (_, _) => SizedBox(width: 8),
-                    itemBuilder: (context, index) {
-                      final filter = _filterExhibitions[index];
-                      final selected = _selectedFilterExhibition == filter;
-                      return GestureDetector(
-                        onTap: () => setState(() {
-                          _selectedFilterExhibition = filter;
-                          _activeFilterMode = 'exhibition';
-                        }),
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: selected
-                                ? Theme.of(context).colorScheme.primary
-                                : themeNotifier.surfaceColor,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
+                  child: ScrollConfiguration(
+                    behavior: _horizontalScrollBehavior,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      itemCount: _floorFilters.length,
+                      separatorBuilder: (_, _) => SizedBox(width: 8),
+                      itemBuilder: (context, index) {
+                        final filter = _floorFilters[index];
+                        final selected = _selectedFloorFilter == filter;
+                        return GestureDetector(
+                          onTap: () => setState(() {
+                            _selectedFloorFilter = filter;
+                            _activeFilterMode = 'floors';
+                            _showingResults = _shouldShowResults;
+                          }),
+                          child: Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
                               color: selected
                                   ? Theme.of(context).colorScheme.primary
-                                  : themeNotifier.borderColor,
+                                  : themeNotifier.surfaceColor,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: selected
+                                    ? Theme.of(context).colorScheme.primary
+                                    : themeNotifier.borderColor,
+                              ),
+                            ),
+                            child: Text(
+                              filter,
+                              style: TextStyle(
+                                color: selected
+                                    ? themeNotifier.surfaceColor
+                                    : themeNotifier.textPrimaryColor,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
                             ),
                           ),
-                          child: Text(
-                            filter,
-                            style: TextStyle(
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              if (_activeFilterMode == 'exhibitions')
+                SizedBox(
+                  height: 50,
+                  child: ScrollConfiguration(
+                    behavior: _horizontalScrollBehavior,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      itemCount: _filterExhibitions.length,
+                      separatorBuilder: (_, _) => SizedBox(width: 8),
+                      itemBuilder: (context, index) {
+                        final filter = _filterExhibitions[index];
+                        final selected = _selectedExhibitionFilter == filter;
+                        return GestureDetector(
+                          onTap: () => setState(() {
+                            _selectedExhibitionFilter = filter;
+                            _activeFilterMode = 'exhibitions';
+                            _showingResults = _shouldShowResults;
+                          }),
+                          child: Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
                               color: selected
-                                  ? themeNotifier.surfaceColor
-                                  : themeNotifier.textPrimaryColor,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
+                                  ? Theme.of(context).colorScheme.primary
+                                  : themeNotifier.surfaceColor,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: selected
+                                    ? Theme.of(context).colorScheme.primary
+                                    : themeNotifier.borderColor,
+                              ),
+                            ),
+                            child: Text(
+                              filter,
+                              style: TextStyle(
+                                color: selected
+                                    ? themeNotifier.surfaceColor
+                                    : themeNotifier.textPrimaryColor,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
                 ),
               // ── Results count + sort ──────────────────────────────────
@@ -500,10 +654,17 @@ class _RecentRow extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: TextStyle(fontSize: 14, color: themeNotifier.textPrimaryColor),
+                style: TextStyle(
+                  fontSize: 14,
+                  color: themeNotifier.textPrimaryColor,
+                ),
               ),
             ),
-            Icon(Icons.search, size: 18, color: themeNotifier.textSecondaryColor),
+            Icon(
+              Icons.search,
+              size: 18,
+              color: themeNotifier.textSecondaryColor,
+            ),
           ],
         ),
       ),
@@ -523,7 +684,7 @@ class _ResultCard extends StatelessWidget {
       arguments: <String, dynamic>{
         'title': item.title,
         'year': '1947',
-        'location': item.floor,
+        'location': item.location,
         'currentLocation': AppSession.currentMuseumName.value,
         'height': '~2.4 meters',
         'weight': '~39.7 tons',
@@ -543,7 +704,9 @@ class _ResultCard extends StatelessWidget {
         margin: EdgeInsets.only(bottom: 12),
         padding: EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+          color: Theme.of(
+            context,
+          ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: themeNotifier.borderColor.withValues(alpha: 0.5),
@@ -633,10 +796,7 @@ class _ResultCard extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
-                padding: EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 10,
-                ),
+                padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),

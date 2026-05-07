@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:museamigo/l10n/translations.dart';
 import 'package:museamigo/session.dart';
@@ -21,11 +24,23 @@ class Museum3DMapScreen extends StatefulWidget {
 }
 
 class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
-  String _selectedFloor = 'Floor 1';
+  static final ScrollBehavior _horizontalScrollBehavior =
+      const MaterialScrollBehavior().copyWith(
+        dragDevices: {
+          PointerDeviceKind.touch,
+          PointerDeviceKind.mouse,
+          PointerDeviceKind.trackpad,
+          PointerDeviceKind.stylus,
+          PointerDeviceKind.invertedStylus,
+        },
+      );
+
+  late String _selectedFloor;
   bool _show3D = true;
   _RouteOption? _activeRoute;
   int _currentStopIndex = 0;
   bool _isPreviewRoute = false;
+  String? _selectedExhibition;
 
   final TextEditingController _searchController = TextEditingController();
   List<_LocationOption> _searchResults = [];
@@ -51,7 +66,28 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
   static const Color _cafeColor = Color(0xFF8B5E3C);
   static const Color _stairsColor = Color(0xFF60A5FA);
 
-  static const _floors = ['Floor 1', 'Floor 2'];
+  List<String> get _floors => _currentConfig.floors;
+
+  bool _isUtilityLocation(_MapLocation location) {
+    return location.name.contains('Entrance') ||
+        location.name.contains('Restroom') ||
+        location.name.contains('Stairs');
+  }
+
+  List<_MapLocation> _floorLegendLocations() {
+    return _currentConfig.locations
+        .where(
+          (location) =>
+              location.floor == _selectedFloor && !_isUtilityLocation(location),
+        )
+        .toList();
+  }
+
+  List<_MapLocation> _locationsForCurrentFloor() {
+    return _currentConfig.locations
+        .where((location) => location.floor == _selectedFloor)
+        .toList();
+  }
 
   _MuseumMapConfig get _currentConfig {
     final museumId = AppSession.currentMuseumId.value;
@@ -61,6 +97,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedFloor = _currentConfig.floors.first;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
         return;
@@ -164,83 +201,88 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
             // ── Floor filters + 3D toggle ──────────────────────────────
             SizedBox(
               height: 50,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                itemCount: _floors.length + 1,
-                separatorBuilder: (_, index) =>
-                    SizedBox(width: index == _floors.length - 1 ? 140 : 8),
-                itemBuilder: (context, index) {
-                  if (index == _floors.length) {
-                    // 3D Toggle button
+              child: ScrollConfiguration(
+                behavior: _horizontalScrollBehavior,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  itemCount: _floors.length + 1,
+                  separatorBuilder: (_, index) =>
+                      SizedBox(width: index == _floors.length - 1 ? 140 : 8),
+                  itemBuilder: (context, index) {
+                    if (index == _floors.length) {
+                      return GestureDetector(
+                        onTap: () => setState(() => _show3D = !_show3D),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: themeNotifier.surfaceColor,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: themeNotifier.borderColor,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.layers_outlined,
+                                size: 16,
+                                color: themeNotifier.textSecondaryColor,
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                '3D',
+                                style: TextStyle(
+                                  color: themeNotifier.textSecondaryColor,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+
+                    final floor = _floors[index];
+                    final selected = _selectedFloor == floor;
                     return GestureDetector(
-                      onTap: () => setState(() => _show3D = !_show3D),
+                      onTap: () => setState(() => _selectedFloor = floor),
                       child: Container(
                         padding: EdgeInsets.symmetric(
-                          horizontal: 12,
+                          horizontal: 16,
                           vertical: 5,
                         ),
                         decoration: BoxDecoration(
-                          color: themeNotifier.surfaceColor,
+                          color: selected
+                              ? Theme.of(context).colorScheme.primary
+                              : themeNotifier.surfaceColor,
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: themeNotifier.borderColor),
+                          border: Border.all(
+                            color: selected
+                                ? Theme.of(context).colorScheme.primary
+                                : themeNotifier.borderColor,
+                          ),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.layers_outlined,
-                              size: 16,
-                              color: themeNotifier.textSecondaryColor,
-                            ),
-                            SizedBox(width: 4),
-                            Text(
-                              '3D',
-                              style: TextStyle(
-                                color: themeNotifier.textSecondaryColor,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
+                        child: Text(
+                          floor.tr,
+                          style: TextStyle(
+                            color: selected
+                                ? themeNotifier.surfaceColor
+                                : themeNotifier.textPrimaryColor,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
                     );
-                  }
-
-                  final floor = _floors[index];
-                  final selected = _selectedFloor == floor;
-                  return GestureDetector(
-                    onTap: () => setState(() => _selectedFloor = floor),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: selected
-                            ? Theme.of(context).colorScheme.primary
-                            : themeNotifier.surfaceColor,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: selected
-                              ? Theme.of(context).colorScheme.primary
-                              : themeNotifier.borderColor,
-                        ),
-                      ),
-                      child: Text(
-                        floor.tr,
-                        style: TextStyle(
-                          color: selected
-                              ? themeNotifier.surfaceColor
-                              : themeNotifier.textPrimaryColor,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  );
-                },
+                  },
+                ),
               ),
             ),
             // ── 3D Map canvas ──────────────────────────────────────────
@@ -251,13 +293,12 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                     color: const Color(0xFF1A1A1A),
                     child: CustomPaint(
                       painter: Museum3DPainter(
-                        locations: _currentConfig.locations
-                            .where((loc) => loc.floor == _selectedFloor)
-                            .toList(),
+                        locations: _locationsForCurrentFloor(),
                         routePoints: _routePointsForCurrentFloor(),
                         visitedStopNames: _visitedStopNamesForCurrentFloor(),
                         currentStopName: _currentStopNameForCurrentFloor(),
                         show3D: _show3D,
+                        labelMaxWidth: 120,
                         markerColor: Theme.of(context).colorScheme.primary,
                       ),
                       size: Size.infinite,
@@ -367,18 +408,102 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
               Container(
                 color: themeNotifier.surfaceColor,
                 padding: EdgeInsets.fromLTRB(16, 12, 16, 16),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _LegendItem(
-                      color: Theme.of(context).colorScheme.primary,
-                      label: _currentConfig.artifactLegendLabel.tr,
+                    Row(
+                      children: [
+                        _LegendItem(
+                          color: Theme.of(context).colorScheme.primary,
+                          label: _currentConfig.artifactLegendLabel.tr,
+                        ),
+                        SizedBox(width: 16),
+                        _LegendItem(
+                          color: _restroomColor,
+                          label: 'Restrooms'.tr,
+                        ),
+                        SizedBox(width: 16),
+                        _LegendItem(color: _stairsColor, label: 'Stairs'.tr),
+                        SizedBox(width: 16),
+                        _LegendItem(color: _cafeColor, label: 'Cafes'.tr),
+                      ],
                     ),
-                    SizedBox(width: 16),
-                    _LegendItem(color: _restroomColor, label: 'Restrooms'.tr),
-                    SizedBox(width: 16),
-                    _LegendItem(color: _stairsColor, label: 'Stairs'.tr),
-                    SizedBox(width: 16),
-                    _LegendItem(color: _cafeColor, label: 'Cafes'.tr),
+                    if (AppSession.currentMuseumId.value == 1) ...[
+                      SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '${'Exhibitions on'.tr} ${_selectedFloor.tr}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: themeNotifier.textPrimaryColor,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 8),
+                      ScrollConfiguration(
+                        behavior: _horizontalScrollBehavior,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
+                          child: Row(
+                            children: _floorLegendLocations().map((location) {
+                              final selected =
+                                  _selectedExhibition == location.name;
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: GestureDetector(
+                                  onTap: () =>
+                                      _onExhibitionChipPressed(location.name),
+                                  onDoubleTap: () =>
+                                      _onExhibitionChipPressed(location.name),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: selected
+                                          ? (location.color ??
+                                                    Theme.of(
+                                                      context,
+                                                    ).colorScheme.primary)
+                                                .withValues(alpha: 0.28)
+                                          : (location.color ??
+                                                    Theme.of(
+                                                      context,
+                                                    ).colorScheme.primary)
+                                                .withValues(alpha: 0.14),
+                                      borderRadius: BorderRadius.circular(999),
+                                      border: Border.all(
+                                        width: selected ? 1.6 : 1,
+                                        color:
+                                            location.color ??
+                                            Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      location.name.tr,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: themeNotifier.textPrimaryColor,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -547,6 +672,214 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
     if (started == true && mounted) {
       _startNavigation(route);
     }
+  }
+
+  void _onExhibitionChipPressed(String exhibitionName) {
+    setState(() {
+      _selectedExhibition = exhibitionName;
+    });
+    _showExhibitionArtifactsPopup(exhibitionName);
+  }
+
+  List<_MapLocation> _spreadArtifactCluster(
+    List<_MapLocation> artifacts,
+    _MapLocation? anchor,
+  ) {
+    const double left = 0.20;
+    const double right = 0.80;
+    const double top = 0.12;
+    const double bottom = 0.72;
+
+    final n = artifacts.length;
+    if (n == 0) return [];
+
+    // Special case: 3 items → 2 on left column, 1 on right center
+    if (n == 3) {
+      final positions = [
+        (x: left, y: top),
+        (x: left, y: bottom),
+        (x: right, y: (top + bottom) / 2),
+      ];
+      return List.generate(n, (i) {
+        final artifact = artifacts[i];
+        return _MapLocation(
+          name: artifact.name,
+          floor: artifact.floor,
+          x: positions[i].x,
+          y: positions[i].y,
+          color: artifact.color,
+          mapLabel: _popupLabelForArtifact(artifact.name),
+        );
+      });
+    }
+
+    final cols = math.max(1, math.sqrt(n.toDouble()).ceil());
+    final rows = math.max(1, (n / cols).ceil());
+
+    final spread = <_MapLocation>[];
+    for (int i = 0; i < n; i++) {
+      final artifact = artifacts[i];
+      final row = i ~/ cols;
+      final col = i % cols;
+
+      // Center the last row if it has fewer items than cols
+      final itemsInRow = (row == rows - 1) ? (n - row * cols) : cols;
+      final stepX = cols > 1 ? (right - left) / (cols - 1) : 0.0;
+
+      double x;
+      if (itemsInRow == 1) {
+        x = (left + right) / 2;
+      } else {
+        final rowWidth = (itemsInRow - 1) * stepX;
+        final rowLeft = (left + right) / 2 - rowWidth / 2;
+        x = rowLeft + col * stepX;
+      }
+
+      final y = rows == 1
+          ? (top + bottom) / 2
+          : top + row * (bottom - top) / (rows - 1);
+
+      spread.add(
+        _MapLocation(
+          name: artifact.name,
+          floor: artifact.floor,
+          x: x,
+          y: y,
+          color: artifact.color,
+          mapLabel: _popupLabelForArtifact(artifact.name),
+        ),
+      );
+    }
+
+    return spread;
+  }
+
+  String _popupLabelForArtifact(String name) {
+    final codeMatch = RegExp(r'\(([^)]+)\)').firstMatch(name);
+    if (codeMatch == null) {
+      return name;
+    }
+    final code = codeMatch.group(1) ?? '';
+    final title = name.replaceAll(RegExp(r'\s*\([^)]+\)'), '').trim();
+    return '$title\n$code';
+  }
+
+  Future<void> _showExhibitionArtifactsPopup(String exhibitionName) async {
+    if (AppSession.currentMuseumId.value != 1 || !mounted) {
+      return;
+    }
+
+    final exhibitionLocation = _findLocationByName(exhibitionName);
+    final artifacts =
+        _independencePalaceArtifactsByExhibition[exhibitionName]
+            ?.where((artifact) => artifact.floor == _selectedFloor)
+            .toList() ??
+        const <_MapLocation>[];
+
+    final spreadArtifacts = _spreadArtifactCluster(
+      artifacts,
+      exhibitionLocation,
+    );
+
+    // Fixed entrance marker at bottom-center of popup
+    final entranceMarker = _MapLocation(
+      name: 'Entrance',
+      floor: _selectedFloor,
+      x: 0.5,
+      y: 0.88,
+      color: const Color(0xFF22C55E),
+      mapLabel: 'Entrance',
+    );
+
+    final popupLocations = <_MapLocation>[entranceMarker, ...spreadArtifacts];
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return Dialog(
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 24,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '${'Artifact Map'.tr} · ${_selectedFloor.tr}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: themeNotifier.textPrimaryColor,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      icon: Icon(
+                        Icons.close,
+                        color: themeNotifier.textSecondaryColor,
+                      ),
+                    ),
+                  ],
+                ),
+                Text(
+                  exhibitionName.tr,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: themeNotifier.textSecondaryColor,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: SizedBox(
+                    height: 300,
+                    width: double.infinity,
+                    child: Container(
+                      color: const Color(0xFF1A1A1A),
+                      child: CustomPaint(
+                        painter: Museum3DPainter(
+                          locations: popupLocations,
+                          routePoints: const <_MapLocation>[],
+                          visitedStopNames: const <String>{},
+                          currentStopName: null,
+                          show3D: _show3D,
+                          compactBackdrop: true,
+                          labelMaxWidth: 126,
+                          markerColor: Theme.of(
+                            dialogContext,
+                          ).colorScheme.primary,
+                        ),
+                        size: Size.infinite,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  artifacts.isEmpty
+                      ? 'No artifacts mapped on this floor yet.'.tr
+                      : '${artifacts.length} ${'artifacts'.tr}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: themeNotifier.textSecondaryColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _startNavigation(_RouteOption route) {
@@ -742,6 +1075,7 @@ class _MuseumMapConfig {
     required this.stopDescriptions,
     required this.locationOptions,
     required this.routes,
+    this.floors = const ['Floor 1', 'Floor 2'],
   });
 
   final String artifactLegendLabel;
@@ -749,6 +1083,7 @@ class _MuseumMapConfig {
   final Map<String, String> stopDescriptions;
   final List<_LocationOption> locationOptions;
   final List<_RouteOption> routes;
+  final List<String> floors;
 }
 
 // ── Route data ────────────────────────────────────────────────────────────
@@ -791,33 +1126,44 @@ class _RouteOption {
 
 Map<int, _MuseumMapConfig> _museumConfigs = <int, _MuseumMapConfig>{
   1: _MuseumMapConfig(
-    artifactLegendLabel: 'Artifacts',
+    artifactLegendLabel: 'Exhibitions',
+    floors: const ['Floor 1', 'Floor 2'],
     locations: <_MapLocation>[
-      _MapLocation(
-        name: 'War History Gallery',
-        floor: 'Floor 1',
-        x: 0.2,
-        y: 0.25,
-      ),
-      _MapLocation(
-        name: 'Presidential Throne',
-        floor: 'Floor 1',
-        x: 0.65,
-        y: 0.35,
-      ),
-      _MapLocation(name: 'T-54 Tank', floor: 'Floor 1', x: 0.4, y: 0.55),
-      _MapLocation(
-        name: 'Diplomatic Reception Hall',
-        floor: 'Floor 1',
-        x: 0.75,
-        y: 0.55,
-      ),
       _MapLocation(
         name: 'Main Entrance',
         floor: 'Floor 1',
-        x: 0.35,
-        y: 0.8,
+        x: 0.5,
+        y: 0.82,
         color: Color(0xFF22C55E),
+        mapLabel: 'Entrance',
+      ),
+      _MapLocation(
+        name: 'Fall of Saigon: April 30, 1975',
+        floor: 'Floor 1',
+        x: 0.22,
+        y: 0.26,
+        mapLabel: 'Fall of Saigon:\nApril 30, 1975',
+      ),
+      _MapLocation(
+        name: 'Presidential Power & Governance',
+        floor: 'Floor 1',
+        x: 0.74,
+        y: 0.24,
+        mapLabel: 'Presidential Power\n& Governance',
+      ),
+      _MapLocation(
+        name: 'Diplomacy & State Ceremony',
+        floor: 'Floor 1',
+        x: 0.24,
+        y: 0.58,
+        mapLabel: 'Diplomacy &\nState Ceremony',
+      ),
+      _MapLocation(
+        name: 'Presidential Lifestyle',
+        floor: 'Floor 1',
+        x: 0.74,
+        y: 0.58,
+        mapLabel: 'Presidential\nLifestyle',
       ),
       _MapLocation(
         name: 'Restroom - Floor 1',
@@ -825,6 +1171,7 @@ Map<int, _MuseumMapConfig> _museumConfigs = <int, _MuseumMapConfig>{
         x: 0.14,
         y: 0.72,
         color: _Museum3DMapScreenState._restroomColor,
+        mapLabel: 'WC',
       ),
       _MapLocation(
         name: 'Stairs - Floor 1',
@@ -832,77 +1179,54 @@ Map<int, _MuseumMapConfig> _museumConfigs = <int, _MuseumMapConfig>{
         x: 0.88,
         y: 0.76,
         color: _Museum3DMapScreenState._stairsColor,
+        mapLabel: 'Stairs',
       ),
       _MapLocation(
-        name: 'Presidential Office Tour',
-        floor: 'Floor 2',
-        x: 0.18,
-        y: 0.2,
-      ),
-      _MapLocation(
-        name: 'Historical Documents Room',
-        floor: 'Floor 2',
-        x: 0.65,
-        y: 0.3,
-      ),
-      _MapLocation(
-        name: 'Independence Archive',
-        floor: 'Floor 2',
-        x: 0.55,
-        y: 0.44,
-      ),
-      _MapLocation(
-        name: 'Command Communication Room',
-        floor: 'Floor 2',
-        x: 0.78,
-        y: 0.42,
-      ),
-      _MapLocation(
-        name: 'Souvenir Shop',
-        floor: 'Floor 2',
-        x: 0.4,
-        y: 0.55,
-        color: Color(0xFFF59E0B),
-      ),
-      _MapLocation(
-        name: 'Rooftop Cafe',
+        name: 'War Command Bunker',
         floor: 'Floor 2',
         x: 0.3,
-        y: 0.78,
-        color: Color(0xFF8B5E3C),
+        y: 0.34,
+        mapLabel: 'War Command\nBunker',
+      ),
+      _MapLocation(
+        name: 'Air Warfare & Evacuation',
+        floor: 'Floor 2',
+        x: 0.72,
+        y: 0.34,
+        mapLabel: 'Air Warfare &\nEvacuation',
       ),
       _MapLocation(
         name: 'Restroom - Floor 2',
         floor: 'Floor 2',
-        x: 0.12,
-        y: 0.7,
+        x: 0.14,
+        y: 0.72,
         color: _Museum3DMapScreenState._restroomColor,
+        mapLabel: 'WC',
       ),
       _MapLocation(
         name: 'Stairs - Floor 2',
         floor: 'Floor 2',
         x: 0.88,
-        y: 0.72,
+        y: 0.76,
         color: _Museum3DMapScreenState._stairsColor,
+        mapLabel: 'Stairs',
       ),
     ],
     stopDescriptions: <String, String>{
       'Main Entrance':
-          'Start from the main entrance, then follow the route markers to your next stop.',
-      'T-54 Tank':
-          'T-54 tank No. 843 is a legendary Vietnam People\'s Army tank linked to April 30, 1975 history.',
-      'War History Gallery':
-          'Explore archival photographs, documents, and wartime artifacts connected to the final days of the Republic of Vietnam.',
-      'Presidential Throne':
-          'This ceremonial throne was used in formal receptions and represents the political symbolism of the palace.',
-      'Diplomatic Reception Hall':
-          'This hall hosted official diplomatic meetings and ceremonial welcomes for state visitors.',
-      'Presidential Office Tour':
-          'Walk through the preserved presidential working area and see the original office setting.',
-      'Independence Archive':
-          'This area presents curated documents and visual records related to the palace and the reunification period.',
-      'Rooftop Cafe':
-          'Take a break with a panoramic rooftop view before continuing your visit.',
+          'Start from the main entrance and continue through the exhibition route of Independence Palace.',
+      'Fall of Saigon: April 30, 1975':
+          'This highlight exhibition presents Tank 390, Tank 843, Jeep M151A2, and F-5E bombing marks as the narrative of April 30, 1975 unfolds.',
+      'Presidential Power & Governance':
+          'A decision-making zone focused on the Cabinet Room Table, Vice President\'s Desk, and National Security Council Maps.',
+      'Diplomacy & State Ceremony':
+          'A ceremonial exhibition centered on the Binh Ngo Dai Cao lacquer painting and The Golden Dragon Tapestry.',
+      'Presidential Lifestyle':
+          'A domestic and symbolic power exhibition featuring the Mercedes-Benz 200 W110 and The Presidential Bed.',
+      'War Command Bunker':
+          'A bunker-centered exhibition covering the War Command Bunker Map and Telecommunications Center.',
+      'Air Warfare & Evacuation':
+          'A centerpiece exhibition about the UH-1 Helicopter, rooftop evacuation, and the final days of the war.',
     },
     locationOptions: _buildIndependencePalaceLocationOptions(),
     routes: _independencePalaceRoutes,
@@ -1175,91 +1499,163 @@ Map<int, _MuseumMapConfig> _museumConfigs = <int, _MuseumMapConfig>{
   ),
 };
 
+const Map<String, List<_MapLocation>>
+_independencePalaceArtifactsByExhibition = {
+  'Fall of Saigon: April 30, 1975': <_MapLocation>[
+    _MapLocation(name: 'Tank 390 (IP-001)', floor: 'Floor 1', x: 0.16, y: 0.2),
+    _MapLocation(name: 'Tank 843 (IP-002)', floor: 'Floor 1', x: 0.29, y: 0.18),
+    _MapLocation(
+      name: 'Jeep M151A2 (IP-007)',
+      floor: 'Floor 1',
+      x: 0.21,
+      y: 0.34,
+    ),
+    _MapLocation(
+      name: 'F-5E Bombing Marks (IP-006)',
+      floor: 'Floor 1',
+      x: 0.33,
+      y: 0.3,
+    ),
+  ],
+  'Presidential Power & Governance': <_MapLocation>[
+    _MapLocation(
+      name: 'Cabinet Room Table (IP-009)',
+      floor: 'Floor 1',
+      x: 0.67,
+      y: 0.2,
+    ),
+    _MapLocation(
+      name: 'Vice President\'s Desk (IP-015)',
+      floor: 'Floor 1',
+      x: 0.79,
+      y: 0.18,
+    ),
+    _MapLocation(
+      name: 'National Security Council Maps (IP-013)',
+      floor: 'Floor 1',
+      x: 0.73,
+      y: 0.34,
+    ),
+  ],
+  'Diplomacy & State Ceremony': <_MapLocation>[
+    _MapLocation(
+      name: 'Binh Ngo Dai Cao Lacquer Painting (IP-008)',
+      floor: 'Floor 1',
+      x: 0.18,
+      y: 0.5,
+    ),
+    _MapLocation(
+      name: 'The Golden Dragon Tapestry (IP-010)',
+      floor: 'Floor 1',
+      x: 0.29,
+      y: 0.64,
+    ),
+  ],
+  'Presidential Lifestyle': <_MapLocation>[
+    _MapLocation(
+      name: 'Mercedes-Benz 200 W110 (IP-004)',
+      floor: 'Floor 1',
+      x: 0.68,
+      y: 0.5,
+    ),
+    _MapLocation(
+      name: 'The Presidential Bed (IP-012)',
+      floor: 'Floor 1',
+      x: 0.8,
+      y: 0.63,
+    ),
+  ],
+  'War Command Bunker': <_MapLocation>[
+    _MapLocation(
+      name: 'War Command Bunker Map (IP-005)',
+      floor: 'Floor 2',
+      x: 0.26,
+      y: 0.3,
+    ),
+    _MapLocation(
+      name: 'Telecommunications Center (IP-011)',
+      floor: 'Floor 2',
+      x: 0.36,
+      y: 0.42,
+    ),
+  ],
+  'Air Warfare & Evacuation': <_MapLocation>[
+    _MapLocation(
+      name: 'UH-1 Helicopter (IP-003)',
+      floor: 'Floor 2',
+      x: 0.74,
+      y: 0.3,
+    ),
+  ],
+};
+
 List<_LocationOption> _buildIndependencePalaceLocationOptions() =>
     <_LocationOption>[
-      _LocationOption(
-        name: 'War History Gallery',
-        subtitle: 'Hall A — Floor 1',
-        icon: Icons.location_on,
-        iconColor: Colors.redAccent,
-      ),
-      _LocationOption(
-        name: 'Presidential Throne',
-        subtitle: 'Hall B — Floor 1',
-        icon: Icons.location_on,
-        iconColor: Colors.redAccent,
-      ),
-      _LocationOption(
-        name: 'T-54 Tank',
-        subtitle: 'Hall C — Floor 1',
-        icon: Icons.location_on,
-        iconColor: Colors.redAccent,
-      ),
-      _LocationOption(
-        name: 'Diplomatic Reception Hall',
-        subtitle: 'Central Hall — Floor 1',
-        icon: Icons.visibility_outlined,
-        iconColor: Colors.redAccent,
-      ),
       _LocationOption(
         name: 'Main Entrance',
         subtitle: 'Entrance — Floor 1',
         icon: Icons.meeting_room_outlined,
-        iconColor: themeNotifier.textSecondaryColor,
+        iconColor: const Color(0xFF22C55E),
+      ),
+      _LocationOption(
+        name: 'Fall of Saigon: April 30, 1975',
+        subtitle: 'Highlight Exhibition — Floor 1',
+        icon: Icons.history_edu_outlined,
+        iconColor: Colors.redAccent,
+      ),
+      _LocationOption(
+        name: 'Presidential Power & Governance',
+        subtitle: 'Decision-Making Center — Floor 1',
+        icon: Icons.account_balance_outlined,
+        iconColor: Colors.redAccent,
+      ),
+      _LocationOption(
+        name: 'Diplomacy & State Ceremony',
+        subtitle: 'Diplomatic Hall — Floor 1',
+        icon: Icons.auto_awesome_outlined,
+        iconColor: Colors.redAccent,
+      ),
+      _LocationOption(
+        name: 'Presidential Lifestyle',
+        subtitle: 'Private Quarters — Floor 1',
+        icon: Icons.king_bed_outlined,
+        iconColor: Colors.redAccent,
       ),
       _LocationOption(
         name: 'Restroom - Floor 1',
-        subtitle: 'South Wing — Floor 1',
+        subtitle: 'Facilities — Floor 1',
         icon: Icons.wc_outlined,
         iconColor: Color(0xFFF59E0B),
       ),
       _LocationOption(
         name: 'Stairs - Floor 1',
-        subtitle: 'East Wing — Floor 1',
+        subtitle: 'Transition — Floor 1',
         icon: Icons.stairs_outlined,
         iconColor: Color(0xFF60A5FA),
       ),
       _LocationOption(
-        name: 'Presidential Office Tour',
-        subtitle: 'Upper Gallery — Floor 2',
-        icon: Icons.visibility_outlined,
+        name: 'War Command Bunker',
+        subtitle: 'Command Center — Floor 2',
+        icon: Icons.security_outlined,
         iconColor: Colors.redAccent,
       ),
       _LocationOption(
-        name: 'Independence Archive',
-        subtitle: 'Archive Wing — Floor 2',
-        icon: Icons.location_on,
-        iconColor: Colors.redAccent,
-      ),
-      _LocationOption(
-        name: 'Historical Documents Room',
-        subtitle: 'Gallery Hall — Floor 2',
-        icon: Icons.location_on,
-        iconColor: Colors.redAccent,
-      ),
-      _LocationOption(
-        name: 'Command Communication Room',
-        subtitle: 'Command Wing — Floor 2',
-        icon: Icons.visibility_outlined,
+        name: 'Air Warfare & Evacuation',
+        subtitle: 'Helipad Centerpiece — Floor 2',
+        icon: Icons.flight_takeoff_outlined,
         iconColor: Colors.redAccent,
       ),
       _LocationOption(
         name: 'Restroom - Floor 2',
-        subtitle: 'South Wing — Floor 2',
+        subtitle: 'Facilities — Floor 2',
         icon: Icons.wc_outlined,
         iconColor: Color(0xFFF59E0B),
       ),
       _LocationOption(
         name: 'Stairs - Floor 2',
-        subtitle: 'East Wing — Floor 2',
+        subtitle: 'Transition — Floor 2',
         icon: Icons.stairs_outlined,
         iconColor: Color(0xFF60A5FA),
-      ),
-      _LocationOption(
-        name: 'Rooftop Cafe',
-        subtitle: 'Rooftop — Floor 2',
-        icon: Icons.coffee_outlined,
-        iconColor: Color(0xFF8B5E3C),
       ),
     ];
 
@@ -1478,75 +1874,108 @@ List<_LocationOption> _buildCityMuseumLocationOptions() => <_LocationOption>[
 
 const _independencePalaceRoutes = <_RouteOption>[
   _RouteOption(
-    emoji: '⭐',
-    name: 'Museum Highlights',
-    description: 'See the most iconic exhibits in a quick tour',
-    duration: '45 min',
+    emoji: '⚡',
+    name: 'Floor 1 Highlights',
+    description: 'A fast route through the ceremonial and public-facing spaces',
+    duration: '30 min',
     stopsCount: 4,
     stops: [
       _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
-      _RouteStop(name: 'T-54 Tank', subtitle: 'Hall C · Floor 1'),
-      _RouteStop(name: 'War History Gallery', subtitle: 'Hall A · Floor 1'),
-      _RouteStop(name: 'Presidential Throne', subtitle: 'Hall B · Floor 1'),
+      _RouteStop(
+        name: 'Fall of Saigon: April 30, 1975',
+        subtitle: 'Highlight Exhibition · Floor 1',
+      ),
+      _RouteStop(
+        name: 'Diplomacy & State Ceremony',
+        subtitle: 'Diplomatic Hall · Floor 1',
+      ),
+      _RouteStop(
+        name: 'Presidential Lifestyle',
+        subtitle: 'Private Quarters · Floor 1',
+      ),
     ],
   ),
   _RouteOption(
     emoji: '🏛',
-    name: 'Full Experience',
-    description: 'Complete tour covering both floors',
-    duration: '2 hours',
-    stopsCount: 9,
-    stops: [
-      _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
-      _RouteStop(name: 'War History Gallery', subtitle: 'Hall A · Floor 1'),
-      _RouteStop(name: 'Presidential Throne', subtitle: 'Hall B · Floor 1'),
-      _RouteStop(name: 'T-54 Tank', subtitle: 'Hall C · Floor 1'),
-      _RouteStop(
-        name: 'Diplomatic Reception Hall',
-        subtitle: 'Central Hall · Floor 1',
-      ),
-      _RouteStop(
-        name: 'Presidential Office Tour',
-        subtitle: 'Upper Gallery · Floor 2',
-      ),
-      _RouteStop(
-        name: 'Historical Documents Room',
-        subtitle: 'Gallery Hall · Floor 2',
-      ),
-      _RouteStop(
-        name: 'Independence Archive',
-        subtitle: 'Archive Wing · Floor 2',
-      ),
-      _RouteStop(name: 'Rooftop Cafe', subtitle: 'Rooftop · Floor 2'),
-    ],
-  ),
-  _RouteOption(
-    emoji: '🇰',
-    name: 'War History Path',
-    description: 'Deep dive into wartime history and artifacts',
-    duration: '1.5 hours',
+    name: 'Public & Ceremonial Route',
+    description:
+        'Follow governance, diplomacy, and presidential lifestyle across Floor 1',
+    duration: '90 min',
     stopsCount: 5,
     stops: [
       _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
-      _RouteStop(name: 'War History Gallery', subtitle: 'Hall A · Floor 1'),
-      _RouteStop(name: 'T-54 Tank', subtitle: 'Hall C · Floor 1'),
-      _RouteStop(name: 'Presidential Throne', subtitle: 'Hall B · Floor 1'),
       _RouteStop(
-        name: 'Independence Archive',
-        subtitle: 'Archive Wing · Floor 2',
+        name: 'Presidential Power & Governance',
+        subtitle: 'Decision-Making Center · Floor 1',
+      ),
+      _RouteStop(
+        name: 'Diplomacy & State Ceremony',
+        subtitle: 'Diplomatic Hall · Floor 1',
+      ),
+      _RouteStop(
+        name: 'Presidential Lifestyle',
+        subtitle: 'Private Quarters · Floor 1',
+      ),
+      _RouteStop(
+        name: 'Fall of Saigon: April 30, 1975',
+        subtitle: 'Highlight Exhibition · Floor 1',
       ),
     ],
   ),
   _RouteOption(
-    emoji: '⚡',
-    name: 'Quick Visit',
-    description: 'Perfect for visitors with limited time',
-    duration: '25 min',
-    stopsCount: 3,
+    emoji: '🕵',
+    name: 'War Operations & Bunker',
+    description:
+        'Focus on secret command infrastructure and the evacuation narrative on Floor 2',
+    duration: '60 min',
+    stopsCount: 4,
     stops: [
       _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
-      _RouteStop(name: 'T-54 Tank', subtitle: 'Hall C · Floor 1'),
-      _RouteStop(name: 'Presidential Throne', subtitle: 'Hall B · Floor 1'),
+      _RouteStop(name: 'Stairs - Floor 1', subtitle: 'Transition · Floor 1'),
+      _RouteStop(
+        name: 'War Command Bunker',
+        subtitle: 'Command Center · Floor 2',
+      ),
+      _RouteStop(
+        name: 'Air Warfare & Evacuation',
+        subtitle: 'Helipad Centerpiece · Floor 2',
+      ),
+    ],
+  ),
+  _RouteOption(
+    emoji: '🌟',
+    name: 'Full Palace Narrative',
+    description:
+        'Complete walkthrough of all six exhibitions across two thematic floors',
+    duration: '2 hours',
+    stopsCount: 8,
+    stops: [
+      _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
+      _RouteStop(
+        name: 'Fall of Saigon: April 30, 1975',
+        subtitle: 'Highlight Exhibition · Floor 1',
+      ),
+      _RouteStop(
+        name: 'Presidential Power & Governance',
+        subtitle: 'Decision-Making Center · Floor 1',
+      ),
+      _RouteStop(
+        name: 'Diplomacy & State Ceremony',
+        subtitle: 'Diplomatic Hall · Floor 1',
+      ),
+      _RouteStop(
+        name: 'Presidential Lifestyle',
+        subtitle: 'Private Quarters · Floor 1',
+      ),
+      _RouteStop(name: 'Stairs - Floor 1', subtitle: 'Transition · Floor 1'),
+      _RouteStop(
+        name: 'War Command Bunker',
+        subtitle: 'Command Center · Floor 2',
+      ),
+      _RouteStop(
+        name: 'Air Warfare & Evacuation',
+        subtitle: 'Helipad Centerpiece · Floor 2',
+      ),
     ],
   ),
 ];
@@ -2438,6 +2867,8 @@ class Museum3DPainter extends CustomPainter {
   final Set<String> visitedStopNames;
   final String? currentStopName;
   final bool show3D;
+  final bool compactBackdrop;
+  final double labelMaxWidth;
   final Color markerColor;
 
   Museum3DPainter({
@@ -2446,6 +2877,8 @@ class Museum3DPainter extends CustomPainter {
     required this.visitedStopNames,
     required this.currentStopName,
     required this.show3D,
+    this.compactBackdrop = false,
+    this.labelMaxWidth = 84,
     required this.markerColor,
   });
 
@@ -2460,8 +2893,12 @@ class Museum3DPainter extends CustomPainter {
 
     canvas.drawRect(Offset.zero & size, fillPaint);
 
-    // Draw basic 3D floor plan
-    _draw3DFloor(canvas, size, paint, fillPaint);
+    if (compactBackdrop) {
+      _drawFocusPanel(canvas, size);
+    } else {
+      // Draw basic 3D floor plan
+      _draw3DFloor(canvas, size, paint, fillPaint);
+    }
 
     // Draw active route path if available
     _drawRoutePath(canvas, size);
@@ -2470,6 +2907,27 @@ class Museum3DPainter extends CustomPainter {
     for (final location in locations) {
       _drawLocationMarker(canvas, size, location);
     }
+  }
+
+  void _drawFocusPanel(Canvas canvas, Size size) {
+    final panelRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(
+        size.width * 0.1,
+        size.height * 0.08,
+        size.width * 0.8,
+        size.height * 0.84,
+      ),
+      const Radius.circular(12),
+    );
+
+    canvas.drawRRect(panelRect, Paint()..color = const Color(0xFF1B2638));
+    canvas.drawRRect(
+      panelRect,
+      Paint()
+        ..color = const Color(0xFF2E3C53)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2,
+    );
   }
 
   void _drawRoutePath(Canvas canvas, Size size) {
@@ -2574,20 +3032,37 @@ class Museum3DPainter extends CustomPainter {
 
     canvas.drawCircle(Offset(x, y), 6, markerPaint);
 
-    // Draw location label
+    final label = location.mapLabel ?? location.name;
     final textPainter = TextPainter(
       text: TextSpan(
-        text: location.name.tr,
+        text: label.tr,
         style: TextStyle(
           color: Color(0xFFFFFFFF),
-          fontSize: 11,
-          fontWeight: FontWeight.w500,
+          fontSize: compactBackdrop
+              ? (label.contains('\n') ? 11 : 12)
+              : (label.contains('\n') ? 10 : 11),
+          fontWeight: FontWeight.w600,
+          height: 1.15,
         ),
       ),
+      textAlign: TextAlign.center,
       textDirection: TextDirection.ltr,
     );
-    textPainter.layout();
-    textPainter.paint(canvas, Offset(x - textPainter.width / 2, y + 12));
+    textPainter.layout(maxWidth: labelMaxWidth);
+
+    final labelOffset = Offset(x - textPainter.width / 2 - 5, y + 10);
+    final labelRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(
+        labelOffset.dx,
+        labelOffset.dy - 2,
+        textPainter.width + 10,
+        textPainter.height + 6,
+      ),
+      const Radius.circular(8),
+    );
+
+    canvas.drawRRect(labelRect, Paint()..color = const Color(0xAA0F172A));
+    textPainter.paint(canvas, Offset(labelOffset.dx + 5, labelOffset.dy + 1));
   }
 
   @override
@@ -2596,7 +3071,9 @@ class Museum3DPainter extends CustomPainter {
         oldDelegate.routePoints != routePoints ||
         oldDelegate.visitedStopNames != visitedStopNames ||
         oldDelegate.currentStopName != currentStopName ||
-        oldDelegate.show3D != show3D;
+        oldDelegate.show3D != show3D ||
+        oldDelegate.compactBackdrop != compactBackdrop ||
+        oldDelegate.labelMaxWidth != labelMaxWidth;
   }
 }
 
@@ -2606,6 +3083,7 @@ class _MapLocation {
   final double x; // 0.0 to 1.0
   final double y; // 0.0 to 1.0
   final Color? color; // override marker color
+  final String? mapLabel;
 
   const _MapLocation({
     required this.name,
@@ -2613,6 +3091,7 @@ class _MapLocation {
     required this.x,
     required this.y,
     this.color,
+    this.mapLabel,
   });
 }
 
