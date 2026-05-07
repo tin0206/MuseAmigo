@@ -555,4 +555,42 @@ class BackendApi {
       _throwForResponse(response, json);
     }
   }
+
+  Future<Map<String, dynamic>> createPayment({
+    required int userId,
+    required int museumId,
+    required String ticketType,
+  }) async {
+    final response = await http.post(
+      _uri('/payments/create'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'user_id': userId,
+        'museum_id': museumId,
+        'ticket_type': ticketType,
+      }),
+    );
+    final json = await _readJson(response);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      _throwForResponse(response, json);
+    }
+    return json;
+  }
+
+  Future<Map<String, dynamic>> checkPaymentStatus(int orderId) async {
+    final response = await http.get(_uri('/payments/$orderId/status'));
+    final json = await _readJson(response);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      _throwForResponse(response, json);
+    }
+    return json;
+  }
+
+  Future<void> simulatePaymentWebhook(int orderId) async {
+    final response = await http.post(_uri('/payments/$orderId/webhook'));
+    final json = await _readJson(response);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      _throwForResponse(response, json);
+    }
+  }
 }

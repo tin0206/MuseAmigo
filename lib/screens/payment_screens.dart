@@ -1,19 +1,24 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:museamigo/app_routes.dart';
 import 'package:museamigo/l10n/translations.dart';
+import 'package:museamigo/services/backend_api.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
 class TicketPaymentInfo {
-  const TicketPaymentInfo({
+  TicketPaymentInfo({
     required this.museumName,
     required this.ticketLabel,
     required this.price,
+    this.qrCode = '#AVLBQWJ05',
   });
 
   final String museumName;
   final String ticketLabel;
   final String price;
+  String qrCode;
 }
 
 // ─── Card Payment Sheet ───────────────────────────────────────────────────────
@@ -174,14 +179,85 @@ class _CardPaymentSheetState extends State<CardPaymentSheet> {
 
 // ─── QR Payment Sheet ─────────────────────────────────────────────────────────
 
-class QrPaymentSheet extends StatelessWidget {
-  const QrPaymentSheet({super.key, required this.ticket, required this.onPay});
+class QrPaymentSheet extends StatefulWidget {
+  const QrPaymentSheet({
+    super.key,
+    required this.ticket,
+    required this.qrUrl,
+    required this.orderId,
+    required this.onSuccess,
+  });
 
   final TicketPaymentInfo ticket;
-  final VoidCallback onPay;
+  final String qrUrl;
+  final int orderId;
+  final ValueChanged<String> onSuccess;
 
-  // TODO: implement QR payment verification API
-  void _handleQrPayment() {}
+  @override
+  State<QrPaymentSheet> createState() => _QrPaymentSheetState();
+}
+
+class _QrPaymentSheetState extends State<QrPaymentSheet> {
+  Timer? _timer;
+  bool _isProcessing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _startPolling();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _startPolling() {
+    _timer = Timer.periodic(const Duration(seconds: 3), (timer) async {
+      try {
+        final res = await BackendApi.instance.checkPaymentStatus(widget.orderId);
+        if (res['status'] == 'PAID' && res['ticket'] != null) {
+          timer.cancel();
+          final ticketQr = res['ticket']['qr_code'] as String;
+          widget.onSuccess(ticketQr);
+        }
+      } catch (_) {}
+    });
+  }
+
+  void _simulateWebhook() async {
+    try {
+      await BackendApi.instance.simulatePaymentWebhook(widget.orderId);
+      // The polling will automatically pick up the PAID status in the next tick
+    } catch (_) {}
+  }
+
+  void _openAppAndSimulate(String appName) {
+    setState(() => _isProcessing = true);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Đang mở ứng dụng $appName...'.tr),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) _simulateWebhook();
+    });
+  }
+
+  void _simulateSaveQr() async {
+    setState(() => _isProcessing = true);
+    await Future.delayed(const Duration(milliseconds: 800)); // Simulate delay
+    if (!mounted) return;
+    setState(() => _isProcessing = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Mã QR đã được lưu vào thư viện ảnh!'.tr),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -193,10 +269,12 @@ class QrPaymentSheet extends StatelessWidget {
             color: Colors.white,
             borderRadius: BorderRadius.circular(22),
           ),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+          child: Stack(
+            children: [
+              SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // ── Header row ──────────────────────────────────────────
                 Row(
@@ -246,10 +324,15 @@ class QrPaymentSheet extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      const Icon(
-                        Icons.qr_code_2,
-                        size: 130,
-                        color: Color(0xFFAAAAAA),
+                      Image.network(
+                        widget.qrUrl,
+                        width: 130,
+                        height: 130,
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Icons.qr_code_2,
+                          size: 130,
+                          color: Color(0xFFAAAAAA),
+                        ),
                       ),
                       const SizedBox(height: 12),
                       Text(
@@ -262,7 +345,7 @@ class QrPaymentSheet extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        ticket.price,
+                        widget.ticket.price,
                         style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.w700,
@@ -281,12 +364,26 @@ class QrPaymentSheet extends StatelessWidget {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          '${ticket.ticketLabel} - ${ticket.museumName.tr}',
+                          '${widget.ticket.ticketLabel} - ${widget.ticket.museumName.tr}',
                           style: const TextStyle(
                             fontSize: 13,
                             color: Color(0xFF4D5562),
                           ),
                           textAlign: TextAlign.center,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        onPressed: _isProcessing ? null : _simulateSaveQr,
+                        icon: const Icon(Icons.download_rounded, size: 18),
+                        label: Text('Lưu mã QR'.tr),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Theme.of(context).colorScheme.primary,
+                          side: BorderSide(color: Theme.of(context).colorScheme.primary),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          visualDensity: VisualDensity.compact,
                         ),
                       ),
                     ],
@@ -305,13 +402,26 @@ class QrPaymentSheet extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    const _QrPayApp(
+                    _QrPayApp(
                       label: 'VNPay',
                       icon: Icons.account_balance_wallet,
+                      onTap: () => _openAppAndSimulate('VNPay'),
                     ),
-                    const _QrPayApp(label: 'MoMo', icon: Icons.wallet),
-                    const _QrPayApp(label: 'ZaloPay', icon: Icons.payment),
-                    _QrPayApp(label: 'Banking'.tr, icon: Icons.account_balance),
+                    _QrPayApp(
+                      label: 'MoMo',
+                      icon: Icons.wallet,
+                      onTap: () => _openAppAndSimulate('MoMo'),
+                    ),
+                    _QrPayApp(
+                      label: 'ZaloPay',
+                      icon: Icons.payment,
+                      onTap: () => _openAppAndSimulate('ZaloPay'),
+                    ),
+                    _QrPayApp(
+                      label: 'Banking'.tr,
+                      icon: Icons.account_balance,
+                      onTap: () => _openAppAndSimulate('Banking'.tr),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -370,11 +480,22 @@ class QrPaymentSheet extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 14),
+                OutlinedButton.icon(
+                  onPressed: _simulateWebhook,
+                  icon: const Icon(Icons.bug_report),
+                  label: const Text('Simulate Successful Payment (Dev Mode)'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.green,
+                    side: const BorderSide(color: Colors.green),
+                    minimumSize: const Size.fromHeight(50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
                 FilledButton(
-                  onPressed: () {
-                    _handleQrPayment();
-                    onPay();
-                  },
+                  onPressed: _isProcessing ? null : () => Navigator.of(context).pop(),
                   style: FilledButton.styleFrom(
                     backgroundColor: Theme.of(context).colorScheme.primary,
                     minimumSize: const Size.fromHeight(50),
@@ -383,7 +504,7 @@ class QrPaymentSheet extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    'Done'.tr,
+                    'Cancel'.tr,
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -393,41 +514,63 @@ class QrPaymentSheet extends StatelessWidget {
               ],
             ),
           ),
-        ),
+          if (_isProcessing)
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                child: const Center(
+                  child: CircularProgressIndicator(),
+                ),
+              ),
+            ),
+        ],
       ),
+    ),
+  ),
     );
   }
 }
 
 class _QrPayApp extends StatelessWidget {
-  const _QrPayApp({required this.label, required this.icon});
+  const _QrPayApp({required this.label, required this.icon, this.onTap});
 
   final String label;
   final IconData icon;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          width: 58,
-          height: 58,
-          decoration: BoxDecoration(
-            color: const Color(0xFFF0F0F2),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Icon(
-            icon,
-            color: Theme.of(context).colorScheme.primary,
-            size: 26,
-          ),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Padding(
+        padding: const EdgeInsets.all(4.0),
+        child: Column(
+          children: [
+            Container(
+              width: 58,
+              height: 58,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0F0F2),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(
+                icon,
+                color: Theme.of(context).colorScheme.primary,
+                size: 26,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 12, color: Color(0xFF4D5562)),
+            ),
+          ],
         ),
-        const SizedBox(height: 6),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 12, color: Color(0xFF4D5562)),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -616,18 +759,18 @@ class _TicketResultSheet extends StatelessWidget {
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.qr_code_2,
-                            size: 140,
-                            color: Color(0xFFCCCCCC),
+                        child: Center(
+                          child: QrImageView(
+                            data: ticket.qrCode,
+                            version: QrVersions.auto,
+                            size: 140.0,
                           ),
                         ),
                       ),
                       const SizedBox(height: 8),
-                      const Text(
-                        '#AVLBQWJ05',
-                        style: TextStyle(
+                      Text(
+                        ticket.qrCode,
+                        style: const TextStyle(
                           fontWeight: FontWeight.w700,
                           letterSpacing: 1.2,
                         ),

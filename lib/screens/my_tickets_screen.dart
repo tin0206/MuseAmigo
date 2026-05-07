@@ -3,6 +3,7 @@ import 'package:museamigo/language_notifier.dart';
 import 'package:museamigo/l10n/translations.dart';
 import 'package:museamigo/services/backend_api.dart';
 import 'package:museamigo/session.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 class MyTicketsScreen extends StatefulWidget {
   const MyTicketsScreen({super.key});
@@ -512,15 +513,15 @@ class _TicketCard extends StatelessWidget {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(
-                              Icons.qr_code_2_rounded,
-                              size: 102,
-                              color: Color(0xFF9CA3AF),
+                            QrImageView(
+                              data: ticket.id,
+                              version: QrVersions.auto,
+                              size: 102.0,
                             ),
                             const SizedBox(height: 8),
-                            const Text(
-                              '#AVLBQWJ05',
-                              style: TextStyle(
+                            Text(
+                              ticket.id,
+                              style: const TextStyle(
                                 fontSize: 14,
                                 color: Color(0xFF6B7280),
                               ),

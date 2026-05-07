@@ -362,19 +362,50 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
     BuildContext context,
     TicketPaymentInfo info,
     _Museum museum,
-  ) {
+  ) async {
+    showCheckingPaymentDialog(context); // Show loading while creating payment
+    int? orderId;
+    String? qrUrl;
+    try {
+      final res = await BackendApi.instance.createPayment(
+        userId: AppSession.userId.value ?? 1,
+        museumId: museum.id,
+        ticketType: info.ticketLabel,
+      );
+      orderId = res['order_id'];
+      qrUrl = res['qr_url'];
+    } catch (_) {}
+    
+    if (!context.mounted) return;
+    Navigator.of(context).pop(); // Close checking dialog
+
+    if (orderId == null || qrUrl == null) {
+      // Fallback
+      _runPaymentFlow(context, info, museum, info.ticketLabel);
+      return;
+    }
+
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => QrPaymentSheet(
         ticket: info,
-        onPay: () {
+        qrUrl: qrUrl!,
+        orderId: orderId!,
+        onSuccess: (ticketQr) {
+          info.qrCode = ticketQr;
           // Pop QR sheet, payment-method sheet, and ticket-selection sheet.
           Navigator.of(context).pop();
           Navigator.of(context).pop();
           Navigator.of(context).pop();
-          _runPaymentFlow(context, info, museum, info.ticketLabel);
+          
+          showPaymentSuccessDialog(context);
+          Future.delayed(const Duration(seconds: 2), () {
+            if (!context.mounted) return;
+            Navigator.of(context).pop();
+            showTicketSheet(context, info);
+          });
         },
       ),
     );
@@ -410,11 +441,12 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
   ) async {
     showCheckingPaymentDialog(context);
     try {
-      await BackendApi.instance.purchaseTicket(
+      final ticketDto = await BackendApi.instance.purchaseTicket(
         userId: AppSession.userId.value ?? 1,
         museumId: museum.id,
         ticketType: ticketType,
       );
+      info.qrCode = ticketDto.qrCode;
     } catch (_) {
       // Keep existing success flow for demo mode when backend is unavailable.
     }
