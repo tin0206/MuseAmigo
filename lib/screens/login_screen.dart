@@ -132,23 +132,37 @@ class _LoginScreenState extends State<LoginScreen> {
         name: result.fullName,
         email: _emailController.text.trim(),
       );
-      
+      final languageRaw = result.language.trim().toLowerCase();
+      final resolvedLanguage =
+          (languageRaw == 'vi' || languageRaw == 'vietnamese')
+          ? 'Vietnamese'
+          : 'English';
+
       // Apply settings from backend
-      languageNotifier.setLanguage(result.language);
-      
+      languageNotifier.setLanguage(resolvedLanguage);
+
+      final themeRaw = result.theme.trim().toLowerCase();
+      themeNotifier.setThemeMode(
+        themeRaw == 'dark' ? ThemeMode.dark : ThemeMode.light,
+      );
+
       final fontSizeStr = result.fontSize.toLowerCase();
       FontSizeLevel fontSizeLevel = FontSizeLevel.medium;
       if (fontSizeStr == 'small') fontSizeLevel = FontSizeLevel.small;
       if (fontSizeStr == 'large') fontSizeLevel = FontSizeLevel.large;
       fontSizeNotifier.setLevel(fontSizeLevel);
-      
+
       try {
-        if (result.scheme.startsWith('0x') || result.scheme.startsWith('0X')) {
-          themeNotifier.setPrimaryColor(Color(int.parse(result.scheme)));
+        final rawScheme = result.scheme.trim();
+        late final int colorValue;
+        if (rawScheme.startsWith('0x') || rawScheme.startsWith('0X')) {
+          colorValue = int.parse(rawScheme);
         } else {
-          // fallback
-          themeNotifier.setPrimaryColor(Color(int.parse('0xFFCC353A')));
+          final cleanHex = rawScheme.replaceAll('#', '');
+          final normalizedHex = cleanHex.length == 6 ? 'FF$cleanHex' : cleanHex;
+          colorValue = int.parse('0x$normalizedHex');
         }
+        themeNotifier.setPrimaryColor(Color(colorValue));
       } catch (e) {
         // fallback
         themeNotifier.setPrimaryColor(Color(int.parse('0xFFCC353A')));
@@ -162,7 +176,7 @@ class _LoginScreenState extends State<LoginScreen> {
         context,
       ).showSnackBar(SnackBar(content: Text('Network error: ${e.message}')));
       return;
-    } on TimeoutException catch (e) {
+    } on TimeoutException {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Login timeout. Please try again.')),
@@ -203,7 +217,19 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: Text(
+          'MuseAmigo',
+          style: TextStyle(color: colorScheme.onPrimary),
+        ),
+        backgroundColor: colorScheme.primary,
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 22),
@@ -213,9 +239,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 14),
-                  const Text(
+                  Text(
                     'Welcome Back',
-                    style: TextStyle(
+                    style: textTheme.titleLarge?.copyWith(
                       fontSize: 38,
                       fontWeight: FontWeight.w700,
                       height: 1.2,
@@ -224,9 +250,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 12),
                   Text(
                     'Log in to continue your journey through museum'.tr,
-                    style: TextStyle(
+                    style: textTheme.bodyMedium?.copyWith(
                       fontSize: 22,
-                      color: Colors.blueGrey.shade700,
+                      color: colorScheme.onSurface.withValues(alpha: 0.7),
                       height: 1.45,
                     ),
                   ),
@@ -252,7 +278,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         _obscurePassword
                             ? Icons.visibility_outlined
                             : Icons.visibility_off_outlined,
-                        color: Colors.blueGrey.shade300,
+                        color: colorScheme.onSurface.withValues(alpha: 0.5),
                       ),
                     ),
                   ),
@@ -270,15 +296,16 @@ class _LoginScreenState extends State<LoginScreen> {
                             });
                           },
                           visualDensity: VisualDensity.compact,
-                          activeColor: Theme.of(context).colorScheme.primary,
+                          activeColor: colorScheme.primary,
                         ),
                       ),
                       const SizedBox(width: 10),
-                      const Text(
+                      Text(
                         'Remember me',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
+                          color: colorScheme.onSurface,
                         ),
                       ),
                       const Spacer(),
@@ -287,7 +314,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: Text(
                           'Forgot Password?',
                           style: TextStyle(
-                            color: Theme.of(context).colorScheme.primary,
+                            color: colorScheme.primary,
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
                           ),
@@ -302,18 +329,19 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: FilledButton(
                       onPressed: _isSubmitting ? null : _submitLogin,
                       style: FilledButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: colorScheme.onPrimary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
                       child: _isSubmitting
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 24,
                               height: 24,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2.5,
-                                color: Colors.white,
+                                color: colorScheme.onPrimary,
                               ),
                             )
                           : const Text(
@@ -331,17 +359,21 @@ class _LoginScreenState extends State<LoginScreen> {
                       crossAxisAlignment: WrapCrossAlignment.center,
                       spacing: 4,
                       children: [
-                        const Text(
+                        Text(
                           'Don\'t have an account?',
-                          style: TextStyle(fontSize: 17),
+                          style: TextStyle(
+                            fontSize: 17,
+                            color: colorScheme.onSurface,
+                          ),
                         ),
                         InkWell(
                           onTap: _openSignUp,
-                          child: const Text(
+                          child: Text(
                             'Sign Up',
                             style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w700,
+                              color: colorScheme.onSurface,
                               decoration: TextDecoration.underline,
                             ),
                           ),

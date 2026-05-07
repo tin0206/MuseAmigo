@@ -5,6 +5,7 @@ import 'package:museamigo/services/audio_assets.dart';
 import 'package:museamigo/app_routes.dart';
 import 'package:museamigo/session.dart';
 import 'package:museamigo/achievement_notifier.dart';
+import 'package:museamigo/theme_notifier.dart';
 
 class ArtifactScanScreen extends StatefulWidget {
   const ArtifactScanScreen({super.key});
@@ -139,31 +140,31 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
     final value = await showDialog<String>(
       context: context,
       builder: (ctx) => Dialog(
-        backgroundColor: Colors.white,
+        backgroundColor: themeNotifier.surfaceColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+          padding: EdgeInsets.fromLTRB(16, 16, 16, 14),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Enter Artifact Code',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF171A21),
+                  color: themeNotifier.textPrimaryColor,
                 ),
               ),
-              const SizedBox(height: 8),
-              const Text(
+              SizedBox(height: 8),
+              Text(
                 'Type the code shown near the artifact.',
-                style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+                style: TextStyle(fontSize: 13, color: themeNotifier.textSecondaryColor),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF3F4F6),
+                  color: themeNotifier.backgroundColor,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: TextField(
@@ -179,26 +180,26 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
                   ),
                 ),
               ),
-              const SizedBox(height: 14),
+              SizedBox(height: 14),
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => Navigator.of(ctx).pop(),
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFFE5E7EB)),
+                        side: BorderSide(color: themeNotifier.borderColor),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding: EdgeInsets.symmetric(vertical: 12),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Cancel',
-                        style: TextStyle(color: Color(0xFF374151)),
+                        style: TextStyle(color: themeNotifier.textSecondaryColor),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  SizedBox(width: 10),
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
@@ -208,13 +209,13 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Theme.of(context).colorScheme.primary,
-                        foregroundColor: Colors.white,
+                        foregroundColor: themeNotifier.surfaceColor,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding: EdgeInsets.symmetric(vertical: 12),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Submit',
                         style: TextStyle(fontWeight: FontWeight.w700),
                       ),
@@ -244,7 +245,7 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
         appBar: AppBar(
           backgroundColor: Colors.black,
           leading: IconButton(
-            icon: const Icon(Icons.close, color: Colors.white),
+            icon: Icon(Icons.close, color: themeNotifier.surfaceColor),
             onPressed: () {
               setState(() {
                 _isScanning = false;
@@ -269,14 +270,14 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
       backgroundColor: const Color(0xFF030A16),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 10, 14, 22),
+          padding: EdgeInsets.fromLTRB(14, 10, 14, 22),
           child: Column(
             children: [
               Align(
                 alignment: Alignment.centerLeft,
                 child: IconButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.chevron_left_rounded),
+                  icon: Icon(Icons.chevron_left_rounded),
                   style: IconButton.styleFrom(
                     backgroundColor: Colors.white.withValues(alpha: 0.15),
                     foregroundColor: Colors.white,
@@ -295,22 +296,22 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
                           height: 240,
                           child: Stack(
                             children: [
-                              const Positioned(
+                              Positioned(
                                 left: 10,
                                 top: 6,
                                 child: _ScanCorner(top: true, left: true),
                               ),
-                              const Positioned(
+                              Positioned(
                                 right: 10,
                                 top: 6,
                                 child: _ScanCorner(top: true, left: false),
                               ),
-                              const Positioned(
+                              Positioned(
                                 left: 10,
                                 bottom: 6,
                                 child: _ScanCorner(top: false, left: true),
                               ),
-                              const Positioned(
+                              Positioned(
                                 right: 10,
                                 bottom: 6,
                                 child: _ScanCorner(top: false, left: false),
@@ -326,7 +327,7 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
                                         alpha: 0.8,
                                       ),
                                     ),
-                                    const SizedBox(height: 12),
+                                    SizedBox(height: 12),
                                     Text(
                                       'Tap to Scan QR Code',
                                       style: TextStyle(
@@ -342,7 +343,7 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
                               ),
                               AnimatedBuilder(
                                 animation: _scanController,
-                                builder: (_, __) {
+                                builder: (_, _) {
                                   final top =
                                       30 + (_scanController.value * 156);
                                   return Positioned(
@@ -385,7 +386,7 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
                           ),
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      SizedBox(height: 24),
                       TextButton(
                         onPressed: () => _showEnterCodeDialog(context),
                         child: Text(

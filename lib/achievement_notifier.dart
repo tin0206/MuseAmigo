@@ -413,17 +413,17 @@ class AchievementNotifier extends ChangeNotifier {
           fontSizeNotifier,
           languageNotifier,
         ]),
-        builder: (dialogCtx, __) {
+        builder: (dialogCtx, _) {
           final primary = themeNotifier.primaryColor;
           final scale = fontSizeNotifier.scale;
           return Dialog(
-            backgroundColor: Colors.white,
-            insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+            backgroundColor: themeNotifier.surfaceColor,
+            insetPadding: EdgeInsets.symmetric(horizontal: 24),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(24),
             ),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+              padding: EdgeInsets.fromLTRB(20, 24, 20, 24),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -434,23 +434,23 @@ class AchievementNotifier extends ChangeNotifier {
                       color: primary,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.emoji_events_rounded,
-                      color: Colors.white,
+                      color: themeNotifier.surfaceColor,
                       size: 46,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   Text(
                     '🎉 ${"Congratulations!".tr}',
                     style: TextStyle(
                       fontSize: 26 * scale,
                       fontWeight: FontWeight.w800,
-                      color: const Color(0xFF171A21),
+                      color: themeNotifier.textPrimaryColor,
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   RichText(
                     textAlign: TextAlign.center,
                     text: TextSpan(
@@ -471,11 +471,11 @@ class AchievementNotifier extends ChangeNotifier {
                             fontSize: 16 * scale,
                           ),
                         ),
-                        const TextSpan(text: '!'),
+                        TextSpan(text: '!'),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -487,12 +487,12 @@ class AchievementNotifier extends ChangeNotifier {
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: primary,
-                        foregroundColor: Colors.white,
+                        foregroundColor: themeNotifier.surfaceColor,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        padding: EdgeInsets.symmetric(vertical: 13),
                       ),
                       child: Text(
                         'View Badge'.tr,
@@ -586,7 +586,7 @@ class BannerQueue {
 class AnimatedBanner extends StatefulWidget {
   final String message;
 
-  const AnimatedBanner({Key? key, required this.message}) : super(key: key);
+  const AnimatedBanner({super.key, required this.message});
 
   @override
   State<AnimatedBanner> createState() => _AnimatedBannerState();
@@ -632,7 +632,7 @@ class _AnimatedBannerState extends State<AnimatedBanner>
         child: Material(
           color: Colors.transparent,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
@@ -650,13 +650,13 @@ class _AnimatedBannerState extends State<AnimatedBanner>
             ),
             child: Row(
               children: [
-                const Icon(Icons.emoji_events, color: Colors.white, size: 32),
-                const SizedBox(width: 16),
+                Icon(Icons.emoji_events, color: themeNotifier.surfaceColor, size: 32),
+                SizedBox(width: 16),
                 Expanded(
                   child: Text(
                     widget.message,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: themeNotifier.surfaceColor,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       shadows: [

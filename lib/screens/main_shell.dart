@@ -10,6 +10,7 @@ import 'package:museamigo/widgets/app_bottom_nav.dart';
 import 'package:museamigo/l10n/translations.dart';
 import 'package:museamigo/language_notifier.dart';
 import 'package:museamigo/achievement_notifier.dart';
+import 'package:museamigo/theme_notifier.dart';
 
 /// Shell widget that hosts all bottom-nav tab screens in an [IndexedStack].
 /// Switching tabs never destroys a screen — state is fully preserved.
@@ -73,11 +74,11 @@ class _MainShellState extends State<MainShell> {
       context: context,
       barrierDismissible: true,
       builder: (ctx) => Dialog(
-        backgroundColor: Colors.white,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 18),
+        backgroundColor: themeNotifier.surfaceColor,
+        insetPadding: EdgeInsets.symmetric(horizontal: 18),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          padding: EdgeInsets.fromLTRB(16, 14, 16, 14),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -88,29 +89,29 @@ class _MainShellState extends State<MainShell> {
                   color: Theme.of(context).colorScheme.primary,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.auto_awesome,
-                  color: Colors.white,
+                  color: themeNotifier.surfaceColor,
                   size: 34,
                 ),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10),
               Text(
                 'Congratulations!'.tr,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 34,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF171A21),
+                  color: themeNotifier.textPrimaryColor,
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 6),
+              SizedBox(height: 6),
               RichText(
                 textAlign: TextAlign.center,
                 text: TextSpan(
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
-                    color: Color(0xFF6B7280),
+                    color: themeNotifier.textSecondaryColor,
                     height: 1.35,
                   ),
                   children: [
@@ -126,10 +127,10 @@ class _MainShellState extends State<MainShell> {
                   ],
                 ),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10),
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(
+                padding: EdgeInsets.symmetric(
                   horizontal: 12,
                   vertical: 10,
                 ),
@@ -141,17 +142,17 @@ class _MainShellState extends State<MainShell> {
                   '✨ This artifact now has enhanced storytelling and 3D viewing available'
                       .tr,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Color(0xFF7B42D9),
                     fontWeight: FontWeight.w600,
                     fontSize: 13,
                   ),
                 ),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10),
               Text(
                 '🎉 Added to your collection'.tr,
-                style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+                style: TextStyle(fontSize: 13, color: themeNotifier.textSecondaryColor),
               ),
             ],
           ),

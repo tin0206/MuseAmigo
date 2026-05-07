@@ -4,6 +4,7 @@ import 'package:museamigo/l10n/translations.dart';
 import 'package:museamigo/session.dart';
 import 'package:museamigo/language_notifier.dart';
 import 'package:museamigo/achievement_notifier.dart';
+import 'package:museamigo/theme_notifier.dart';
 
 class JourneyScreen extends StatefulWidget {
   const JourneyScreen({super.key});
@@ -42,7 +43,11 @@ class _JourneyScreenState extends State<JourneyScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([languageNotifier, achievementNotifier]),
+      listenable: Listenable.merge([
+        languageNotifier,
+        achievementNotifier,
+        themeNotifier,
+      ]),
       builder: (context, _) {
         // ── STEP 4: REMOVE STALE DATA SOURCES (ONLY READ FROM NOTIFIER) ──
         final totalPoints = achievementNotifier.totalPoints;
@@ -60,10 +65,10 @@ class _JourneyScreenState extends State<JourneyScreen> {
         final maxArtifacts = achievementNotifier.maxArtifacts;
 
         return Scaffold(
-          backgroundColor: const Color(0xFFF3F4F6),
+          backgroundColor: themeNotifier.backgroundColor,
           body: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
+              padding: EdgeInsets.fromLTRB(14, 14, 14, 8),
               child: Column(
                 children: [
                   Row(
@@ -74,21 +79,21 @@ class _JourneyScreenState extends State<JourneyScreen> {
                           children: [
                             Text(
                               'My Journey'.tr,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 30,
                                 fontWeight: FontWeight.w700,
-                                color: Color(0xFF171A21),
+                                color: themeNotifier.textPrimaryColor,
                               ),
                             ),
-                            const SizedBox(height: 2),
+                            SizedBox(height: 2),
                             ValueListenableBuilder<String>(
                               valueListenable: AppSession.currentMuseumName,
                               builder: (context, name, _) {
                                 return Text(
                                   name.tr,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 14,
-                                    color: Color(0xFF6B7280),
+                                    color: themeNotifier.textSecondaryColor,
                                   ),
                                 );
                               },
@@ -102,25 +107,25 @@ class _JourneyScreenState extends State<JourneyScreen> {
                           backgroundColor: Theme.of(
                             context,
                           ).colorScheme.primary,
-                          foregroundColor: Colors.white,
+                          foregroundColor: themeNotifier.surfaceColor,
                           elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(22),
                           ),
-                          padding: const EdgeInsets.symmetric(
+                          padding: EdgeInsets.symmetric(
                             horizontal: 12,
                             vertical: 8,
                           ),
                         ),
-                        icon: const Icon(Icons.logout_rounded, size: 16),
+                        icon: Icon(Icons.logout_rounded, size: 16),
                         label: Text(
                           'Finish journey'.tr,
-                          style: const TextStyle(fontWeight: FontWeight.w700),
+                          style: TextStyle(fontWeight: FontWeight.w700),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   Row(
                     children: [
                       Expanded(
@@ -130,7 +135,7 @@ class _JourneyScreenState extends State<JourneyScreen> {
                           active: true,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       Expanded(
                         child: _StatCard(
                           value: '$totalPoints',
@@ -140,39 +145,37 @@ class _JourneyScreenState extends State<JourneyScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   _ProgressCard(
                     unlockedCount: unlockedCount,
                     maxArtifacts: maxArtifacts,
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   Row(
                     children: [
                       Expanded(
                         child: Text(
                           'Achievements'.tr,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF171A21),
+                            color: themeNotifier.textPrimaryColor,
                           ),
                         ),
                       ),
                       Text(
-                        '${unlockedCount}/${milestones.length}',
+                        '$unlockedCount/${milestones.length}',
 
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
-                          color: Color(0xFF6B7280),
+                          color: themeNotifier.textSecondaryColor,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   if (achievementNotifier.isLoading)
-                    const Expanded(
-                      child: Center(child: CircularProgressIndicator()),
-                    )
+                    Expanded(child: Center(child: CircularProgressIndicator()))
                   else
                     Expanded(
                       child: ListView.builder(
@@ -180,7 +183,7 @@ class _JourneyScreenState extends State<JourneyScreen> {
                         itemBuilder: (context, index) {
                           final milestone = milestones[index];
                           return Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
+                            padding: EdgeInsets.only(bottom: 8),
                             child: _AchievementTile(
                               title: milestone.name.tr,
                               subtitle: milestone.description.tr,
@@ -214,109 +217,123 @@ class _JourneyScreenState extends State<JourneyScreen> {
     final leave = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => Dialog(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-          child: Stack(
-            children: [
-              Positioned(
-                top: 0,
-                right: 0,
-                child: IconButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  icon: const Icon(Icons.close, color: Color(0xFF6B7280)),
-                ),
-              ),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 70,
-                    height: 70,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFF0A1A),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.warning_amber_rounded,
-                      color: Colors.white,
-                      size: 42,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  Text(
-                    'Are you sure?'.tr,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF171A21),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'If you leave, you will not able to re-enter without a new ticket or you will have to contact the museum\'s manager for further assistance.'
-                        .tr,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      color: Color(0xFF2F343C),
-                      height: 1.45,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () => Navigator.of(context).pop(false),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFE3E3E5),
-                            foregroundColor: const Color(0xFF171A21),
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                          child: Text(
-                            'Cancel'.tr,
-                            style: const TextStyle(fontWeight: FontWeight.w700),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () => Navigator.of(context).pop(true),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFFF0A1A),
-                            foregroundColor: Colors.white,
-                            elevation: 3,
-                            shadowColor: const Color(0x33FF0A1A),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                          child: Text(
-                            'Leave'.tr,
-                            style: const TextStyle(fontWeight: FontWeight.w700),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ],
+      builder: (ctx) {
+        final scheme = Theme.of(ctx).colorScheme;
+        final primary = scheme.primary;
+
+        return Dialog(
+          backgroundColor: scheme.surface,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
           ),
-        ),
-      ),
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+            child: Stack(
+              children: [
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: IconButton(
+                    onPressed: () => Navigator.of(ctx).pop(false),
+                    icon: Icon(
+                      Icons.close,
+                      color: scheme.onSurface.withValues(alpha: 0.65),
+                    ),
+                  ),
+                ),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 70,
+                      height: 70,
+                      decoration: BoxDecoration(
+                        color: primary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.warning_amber_rounded,
+                        color: Colors.white,
+                        size: 42,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      'Are you sure?'.tr,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: scheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'If you leave, you will not able to re-enter without a new ticket or you will have to contact the museum\'s manager for further assistance.'
+                          .tr,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: scheme.onSurface.withValues(alpha: 0.82),
+                        height: 1.45,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => Navigator.of(ctx).pop(false),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: primary.withValues(alpha: 0.1),
+                              foregroundColor: primary,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            child: Text(
+                              'Cancel'.tr,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => Navigator.of(ctx).pop(true),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: primary,
+                              foregroundColor: scheme.onPrimary,
+                              elevation: 2,
+                              shadowColor: primary.withValues(alpha: 0.25),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            child: Text(
+                              'Leave'.tr,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
 
     if (leave == true && context.mounted) {
@@ -339,11 +356,11 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: active
             ? Theme.of(context).colorScheme.primary
-            : const Color(0xFFE5E5E7),
+            : themeNotifier.borderColor,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
@@ -355,17 +372,19 @@ class _StatCard extends StatelessWidget {
               fontSize: 30,
               fontWeight: FontWeight.w700,
               color: active
-                  ? Colors.white
+                  ? themeNotifier.surfaceColor
                   : Theme.of(context).colorScheme.primary,
               height: 1,
             ),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: 4),
           Text(
             label,
             style: TextStyle(
               fontSize: 12,
-              color: active ? Colors.white : const Color(0xFF6B7280),
+              color: active
+                  ? themeNotifier.surfaceColor
+                  : themeNotifier.textSecondaryColor,
             ),
           ),
         ],
@@ -390,9 +409,9 @@ class _ProgressCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFE5E5E7),
+        color: themeNotifier.borderColor,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
@@ -403,40 +422,43 @@ class _ProgressCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   'Collection Progress'.tr,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF171A21),
+                    color: themeNotifier.textPrimaryColor,
                   ),
                 ),
               ),
               Text(
                 '$unlockedCount/$maxArtifacts',
-                style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
+                style: TextStyle(
+                  fontSize: 11,
+                  color: themeNotifier.textSecondaryColor,
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: EdgeInsets.symmetric(horizontal: 12),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(3),
               child: LinearProgressIndicator(
                 minHeight: 6,
                 value: _progressValue,
-                backgroundColor: const Color(0xFFD6D8DD),
+                backgroundColor: themeNotifier.borderColor,
                 valueColor: AlwaysStoppedAnimation<Color>(
                   Theme.of(context).colorScheme.primary,
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: EdgeInsets.symmetric(horizontal: 12),
             child: Row(
               children: [
-                const Expanded(flex: 2, child: SizedBox()),
+                Expanded(flex: 2, child: SizedBox()),
                 _ProgressStep(
                   label: '2',
                   icon: unlockedCount >= 2
@@ -444,7 +466,7 @@ class _ProgressCard extends StatelessWidget {
                       : Icons.lock_outline,
                   active: unlockedCount >= 2,
                 ),
-                const Expanded(flex: 3, child: SizedBox()),
+                Expanded(flex: 3, child: SizedBox()),
                 _ProgressStep(
                   label: '5',
                   icon: unlockedCount >= 5
@@ -452,7 +474,7 @@ class _ProgressCard extends StatelessWidget {
                       : Icons.lock_outline,
                   active: unlockedCount >= 5,
                 ),
-                const Expanded(flex: 5, child: SizedBox()),
+                Expanded(flex: 5, child: SizedBox()),
                 _ProgressStep(
                   label: '10',
                   icon: unlockedCount >= 10
@@ -460,7 +482,7 @@ class _ProgressCard extends StatelessWidget {
                       : Icons.lock_outline,
                   active: unlockedCount >= 10,
                 ),
-                const Expanded(flex: 5, child: SizedBox()),
+                Expanded(flex: 5, child: SizedBox()),
                 _ProgressStep(
                   label: '15',
                   icon: unlockedCount >= 15
@@ -496,17 +518,22 @@ class _ProgressStep extends StatelessWidget {
           radius: 12,
           backgroundColor: active
               ? Theme.of(context).colorScheme.primary
-              : const Color(0xFFD8DADE),
+              : themeNotifier.borderColor,
           child: Icon(
             icon,
             size: 13,
-            color: active ? Colors.white : const Color(0xFF8C93A1),
+            color: active
+                ? themeNotifier.surfaceColor
+                : themeNotifier.textSecondaryColor,
           ),
         ),
-        const SizedBox(height: 2),
+        SizedBox(height: 2),
         Text(
           label,
-          style: const TextStyle(fontSize: 10, color: Color(0xFF6B7280)),
+          style: TextStyle(
+            fontSize: 10,
+            color: themeNotifier.textSecondaryColor,
+          ),
         ),
       ],
     );
@@ -534,15 +561,17 @@ class _AchievementTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final borderColor = unlocked
         ? Theme.of(context).colorScheme.primary
-        : const Color(0xFFE5E5E7);
+        : themeNotifier.borderColor;
     final titleColor = unlocked
         ? Theme.of(context).colorScheme.primary
-        : const Color(0xFF9CA3AF);
+        : themeNotifier.textSecondaryColor;
 
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: unlocked ? Colors.white : const Color(0xFFE5E5E7),
+        color: unlocked
+            ? themeNotifier.surfaceColor
+            : themeNotifier.borderColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: borderColor),
       ),
@@ -552,14 +581,16 @@ class _AchievementTile extends StatelessWidget {
             radius: 18,
             backgroundColor: unlocked
                 ? Theme.of(context).colorScheme.primary
-                : const Color(0xFFD9DCE2),
+                : themeNotifier.borderColor,
             child: Icon(
               icon,
-              color: unlocked ? Colors.white : const Color(0xFF9CA3AF),
+              color: unlocked
+                  ? themeNotifier.surfaceColor
+                  : themeNotifier.textSecondaryColor,
               size: 18,
             ),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -572,22 +603,22 @@ class _AchievementTile extends StatelessWidget {
                     color: titleColor,
                   ),
                 ),
-                const SizedBox(height: 2),
+                SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: Color(0xFF6B7280),
+                    color: themeNotifier.textSecondaryColor,
                   ),
                 ),
                 if (!unlocked) ...[
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(3),
                     child: LinearProgressIndicator(
                       value: progress,
                       minHeight: 4,
-                      backgroundColor: const Color(0xFFD6D8DD),
+                      backgroundColor: themeNotifier.borderColor,
                       valueColor: AlwaysStoppedAnimation<Color>(
                         Theme.of(
                           context,
@@ -611,9 +642,9 @@ class _AchievementTile extends StatelessWidget {
           else
             Text(
               points,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
-                color: Color(0xFF9CA3AF),
+                color: themeNotifier.textSecondaryColor,
                 fontWeight: FontWeight.w600,
               ),
             ),

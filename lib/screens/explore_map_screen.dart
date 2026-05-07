@@ -98,6 +98,9 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
     return ListenableBuilder(
       listenable: languageNotifier,
       builder: (context, _) {
@@ -115,13 +118,31 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                             m.name.tr.toLowerCase().contains(query),
                       )
                       .toList();
+                      
+            Widget tileLayer = TileLayer(
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'com.example.museamigo',
+            );
+            
+            if (isDark) {
+              tileLayer = ColorFiltered(
+                colorFilter: const ColorFilter.matrix([
+                  -1,  0,  0, 0, 255,
+                   0, -1,  0, 0, 255,
+                   0,  0, -1, 0, 255,
+                   0,  0,  0, 1,   0,
+                ]),
+                child: tileLayer,
+              );
+            }
+            
             return Scaffold(
-              backgroundColor: Colors.white,
+              backgroundColor: theme.scaffoldBackgroundColor,
               body: SafeArea(
                 child: Column(
                   children: [
                     Container(
-                      color: Theme.of(context).colorScheme.primary,
+                      color: theme.colorScheme.primary,
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
                       child: Row(
                         children: [
@@ -132,19 +153,20 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                                 horizontal: 12,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: theme.cardColor,
                                 borderRadius: BorderRadius.circular(30),
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     Icons.search,
-                                    color: Colors.black87,
+                                    color: theme.iconTheme.color,
                                   ),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: TextField(
                                       controller: _searchController,
+                                      style: TextStyle(color: theme.textTheme.bodyMedium?.color),
                                       onChanged: (_) {
                                         setState(() {});
                                         final q = _searchController.text
@@ -166,6 +188,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                                       },
                                       decoration: InputDecoration(
                                         hintText: 'Where do you want to go?'.tr,
+                                        hintStyle: TextStyle(color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.5)),
                                         border: InputBorder.none,
                                       ),
                                     ),
@@ -183,7 +206,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                               width: 48,
                               height: 48,
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: theme.cardColor,
                                 borderRadius: BorderRadius.circular(24),
                               ),
                               child: const ClipOval(
@@ -207,11 +230,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                           initialZoom: 14.0,
                         ),
                         children: [
-                          TileLayer(
-                            urlTemplate:
-                                'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                            userAgentPackageName: 'com.example.museamigo',
-                          ),
+                          tileLayer,
                           MarkerLayer(
                             markers: filteredMuseums
                                 .map(
@@ -236,14 +255,14 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                     if (query.isNotEmpty && filteredMuseums.isEmpty)
                       Container(
                         width: double.infinity,
-                        color: const Color(0xFFFFF4E5),
+                        color: theme.colorScheme.errorContainer,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 10,
                         ),
                         child: Text(
                           '${'No museum found for'.tr} "$query"',
-                          style: const TextStyle(color: Color(0xFF8A5A00)),
+                          style: TextStyle(color: theme.colorScheme.onErrorContainer),
                         ),
                       ),
                   ],
@@ -466,6 +485,7 @@ class _MuseumMarker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Stack(
       alignment: Alignment.center,
       children: [
@@ -473,7 +493,7 @@ class _MuseumMarker extends StatelessWidget {
           width: 54,
           height: 54,
           decoration: BoxDecoration(
-            color: const Color(0xFF7D5EF7).withValues(alpha: 0.22),
+            color: theme.colorScheme.primary.withValues(alpha: 0.22),
             shape: BoxShape.circle,
           ),
         ),
@@ -481,19 +501,19 @@ class _MuseumMarker extends StatelessWidget {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: theme.cardColor,
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF7D5EF7).withValues(alpha: 0.45),
+                color: theme.colorScheme.primary.withValues(alpha: 0.45),
                 blurRadius: 16,
                 spreadRadius: 2,
               ),
             ],
           ),
-          child: const Icon(
+          child: Icon(
             Icons.account_balance,
-            color: Color(0xFF7D5EF7),
+            color: theme.colorScheme.primary,
             size: 22,
           ),
         ),
@@ -517,12 +537,13 @@ class _MuseumDetailSheetState extends State<_MuseumDetailSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(10),
         child: Container(
           decoration: BoxDecoration(
-            color: const Color(0xFFF3F3F4),
+            color: theme.cardColor,
             borderRadius: BorderRadius.circular(22),
           ),
           child: SingleChildScrollView(
@@ -542,11 +563,12 @@ class _MuseumDetailSheetState extends State<_MuseumDetailSheet> {
                         fit: BoxFit.cover,
                         errorBuilder: (_, _, _) => Container(
                           height: 260,
-                          color: Colors.grey.shade300,
+                          color: theme.colorScheme.surfaceContainerHighest,
                           alignment: Alignment.center,
-                          child: const Icon(
+                          child: Icon(
                             Icons.image_not_supported_outlined,
                             size: 52,
+                            color: theme.iconTheme.color,
                           ),
                         ),
                       ),
@@ -555,9 +577,9 @@ class _MuseumDetailSheetState extends State<_MuseumDetailSheet> {
                       top: 12,
                       right: 12,
                       child: CircleAvatar(
-                        backgroundColor: Colors.white,
+                        backgroundColor: theme.scaffoldBackgroundColor,
                         child: IconButton(
-                          icon: const Icon(Icons.close, color: Colors.black87),
+                          icon: Icon(Icons.close, color: theme.iconTheme.color),
                           onPressed: () => Navigator.of(context).pop(),
                         ),
                       ),
@@ -571,7 +593,7 @@ class _MuseumDetailSheetState extends State<_MuseumDetailSheet> {
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w700,
-                      color: Theme.of(context).colorScheme.primary,
+                      color: theme.colorScheme.primary,
                     ),
                   ),
                 ),
@@ -579,10 +601,10 @@ class _MuseumDetailSheetState extends State<_MuseumDetailSheet> {
                   padding: const EdgeInsets.fromLTRB(24, 8, 24, 14),
                   child: Text(
                     widget.museum.description.tr,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 17,
                       height: 1.45,
-                      color: Color(0xFF4D5562),
+                      color: theme.textTheme.bodyMedium?.color,
                     ),
                   ),
                 ),
@@ -616,14 +638,14 @@ class _MuseumDetailSheetState extends State<_MuseumDetailSheet> {
                       vertical: 12,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFE8E8EA),
+                      color: theme.colorScheme.surfaceContainer,
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Row(
                       children: [
                         Icon(
                           Icons.download_rounded,
-                          color: Theme.of(context).colorScheme.primary,
+                          color: theme.colorScheme.primary,
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -638,8 +660,8 @@ class _MuseumDetailSheetState extends State<_MuseumDetailSheet> {
                               ),
                               Text(
                                 'Map & Audio Guides'.tr,
-                                style: const TextStyle(
-                                  color: Color(0xFF6F7886),
+                                style: TextStyle(
+                                  color: theme.textTheme.bodySmall?.color,
                                 ),
                               ),
                             ],
@@ -652,9 +674,7 @@ class _MuseumDetailSheetState extends State<_MuseumDetailSheet> {
                               _downloadOffline = value;
                             });
                           },
-                          activeTrackColor: Theme.of(
-                            context,
-                          ).colorScheme.primary,
+                          activeTrackColor: theme.colorScheme.primary,
                         ),
                       ],
                     ),
@@ -672,8 +692,8 @@ class _MuseumDetailSheetState extends State<_MuseumDetailSheet> {
                                 (route) => false,
                               ),
                           style: FilledButton.styleFrom(
-                            backgroundColor: const Color(0xFFE4E4E6),
-                            foregroundColor: const Color(0xFF171A21),
+                            backgroundColor: theme.colorScheme.surfaceContainerHigh,
+                            foregroundColor: theme.textTheme.bodyLarge?.color,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -691,9 +711,7 @@ class _MuseumDetailSheetState extends State<_MuseumDetailSheet> {
                         child: FilledButton.icon(
                           onPressed: widget.onBuyTicket,
                           style: FilledButton.styleFrom(
-                            backgroundColor: Theme.of(
-                              context,
-                            ).colorScheme.primary,
+                            backgroundColor: theme.colorScheme.primary,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -731,12 +749,13 @@ class _TicketSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(10),
         child: Container(
           decoration: BoxDecoration(
-            color: const Color(0xFFF3F3F4),
+            color: theme.cardColor,
             borderRadius: BorderRadius.circular(22),
           ),
           child: Padding(
@@ -751,7 +770,7 @@ class _TicketSheet extends StatelessWidget {
                       'Tickets'.tr,
                       style: TextStyle(
                         fontSize: 42,
-                        color: Theme.of(context).colorScheme.primary,
+                        color: theme.colorScheme.primary,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -759,14 +778,15 @@ class _TicketSheet extends StatelessWidget {
                     IconButton(
                       onPressed: () => Navigator.of(context).pop(),
                       icon: const Icon(Icons.close, size: 30),
+                      color: theme.iconTheme.color,
                     ),
                   ],
                 ),
                 Text(
                   museumName.tr,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 22,
-                    color: Color(0xFF6D7785),
+                    color: theme.textTheme.bodySmall?.color,
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -782,7 +802,7 @@ class _TicketSheet extends StatelessWidget {
                           vertical: 16,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE5E5E7),
+                          color: theme.colorScheme.surfaceContainer,
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Row(
@@ -801,9 +821,9 @@ class _TicketSheet extends StatelessWidget {
                                   const SizedBox(height: 4),
                                   Text(
                                     option.countText,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 14,
-                                      color: Color(0xFF6D7785),
+                                      color: theme.textTheme.bodySmall?.color,
                                     ),
                                   ),
                                 ],
@@ -817,9 +837,9 @@ class _TicketSheet extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            const Icon(
+                            Icon(
                               Icons.chevron_right,
-                              color: Color(0xFF949CAA),
+                              color: theme.iconTheme.color,
                             ),
                           ],
                         ),
@@ -849,12 +869,13 @@ class _PaymentMethodSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(10),
         child: Container(
           decoration: BoxDecoration(
-            color: const Color(0xFFF3F3F4),
+            color: theme.cardColor,
             borderRadius: BorderRadius.circular(22),
           ),
           child: Padding(
@@ -870,13 +891,14 @@ class _PaymentMethodSheet extends StatelessWidget {
                       icon: const Icon(Icons.arrow_back, size: 18),
                       label: Text('Return'.tr),
                       style: TextButton.styleFrom(
-                        foregroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor: theme.colorScheme.primary,
                       ),
                     ),
                     const Spacer(),
                     IconButton(
                       onPressed: () => Navigator.of(context).pop(),
                       icon: const Icon(Icons.close, size: 30),
+                      color: theme.iconTheme.color,
                     ),
                   ],
                 ),
@@ -884,7 +906,7 @@ class _PaymentMethodSheet extends StatelessWidget {
                   'Payment methods'.tr,
                   style: TextStyle(
                     fontSize: 42,
-                    color: Theme.of(context).colorScheme.primary,
+                    color: theme.colorScheme.primary,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -895,7 +917,7 @@ class _PaymentMethodSheet extends StatelessWidget {
                     vertical: 12,
                   ),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary,
+                    color: theme.colorScheme.primary,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -903,8 +925,8 @@ class _PaymentMethodSheet extends StatelessWidget {
                       Expanded(
                         child: Text(
                           ticket.label,
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: theme.colorScheme.onPrimary,
                             fontWeight: FontWeight.w700,
                             fontSize: 17,
                           ),
@@ -912,8 +934,8 @@ class _PaymentMethodSheet extends StatelessWidget {
                       ),
                       Text(
                         ticket.price,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: theme.colorScheme.onPrimary,
                           fontWeight: FontWeight.w700,
                           fontSize: 17,
                         ),
@@ -934,7 +956,7 @@ class _PaymentMethodSheet extends StatelessWidget {
                           vertical: 16,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE5E5E7),
+                          color: theme.colorScheme.surfaceContainer,
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Row(
@@ -942,7 +964,7 @@ class _PaymentMethodSheet extends StatelessWidget {
                             Icon(
                               method.icon,
                               size: 30,
-                              color: Theme.of(context).colorScheme.primary,
+                              color: theme.colorScheme.primary,
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -959,17 +981,17 @@ class _PaymentMethodSheet extends StatelessWidget {
                                   const SizedBox(height: 4),
                                   Text(
                                     method.subtitle,
-                                    style: const TextStyle(
-                                      color: Color(0xFF6D7785),
+                                    style: TextStyle(
+                                      color: theme.textTheme.bodySmall?.color,
                                       fontSize: 14,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                            const Icon(
+                            Icon(
                               Icons.chevron_right,
-                              color: Color(0xFF949CAA),
+                              color: theme.iconTheme.color,
                             ),
                           ],
                         ),
@@ -1017,17 +1039,18 @@ class _MuseumMetaItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Icon(icon, color: const Color(0xFFA0A8B4), size: 20),
+            Icon(icon, color: theme.iconTheme.color, size: 20),
             const SizedBox(width: 6),
             Flexible(
               child: Text(
                 label,
-                style: const TextStyle(fontSize: 14, color: Color(0xFF758193)),
+                style: TextStyle(fontSize: 14, color: theme.textTheme.bodySmall?.color),
                 overflow: TextOverflow.ellipsis,
               ),
             ),

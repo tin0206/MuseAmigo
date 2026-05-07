@@ -5,6 +5,7 @@ import 'package:museamigo/widgets/auth_form_widgets.dart';
 import 'package:museamigo/session.dart';
 import 'package:museamigo/profile_notifier.dart';
 import 'package:museamigo/achievement_notifier.dart';
+import 'package:museamigo/theme_notifier.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -130,18 +131,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
+          padding: EdgeInsets.symmetric(horizontal: 20),
           child: Center(
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 10),
-                  const Text(
+                  SizedBox(height: 10),
+                  Text(
                     'Create Your Account',
                     style: TextStyle(fontSize: 30, fontWeight: FontWeight.w700),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   Text(
                     'Start your personalized journey through the museum.',
                     style: TextStyle(
@@ -150,7 +151,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       height: 1.35,
                     ),
                   ),
-                  const SizedBox(height: 18),
+                  SizedBox(height: 18),
                   const FieldLabel(
                     text: 'Full Name',
                     fontSize: 19,
@@ -161,12 +162,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     hintText: 'Enter your name',
                     fontSize: 17,
                     hintFontSize: 17,
-                    contentPadding: const EdgeInsets.symmetric(
+                    contentPadding: EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 13,
                     ),
                   ),
-                  const SizedBox(height: 14),
+                  SizedBox(height: 14),
                   const FieldLabel(
                     text: 'Email',
                     fontSize: 19,
@@ -177,12 +178,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     hintText: 'Enter your email',
                     fontSize: 17,
                     hintFontSize: 17,
-                    contentPadding: const EdgeInsets.symmetric(
+                    contentPadding: EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 13,
                     ),
                   ),
-                  const SizedBox(height: 14),
+                  SizedBox(height: 14),
                   const FieldLabel(
                     text: 'Password',
                     fontSize: 19,
@@ -194,7 +195,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     obscureText: _obscurePassword,
                     fontSize: 17,
                     hintFontSize: 17,
-                    contentPadding: const EdgeInsets.symmetric(
+                    contentPadding: EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 13,
                     ),
@@ -212,7 +213,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 14),
+                  SizedBox(height: 14),
                   const FieldLabel(
                     text: 'Confirm Password',
                     fontSize: 19,
@@ -224,7 +225,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     obscureText: _obscureConfirmPassword,
                     fontSize: 17,
                     hintFontSize: 17,
-                    contentPadding: const EdgeInsets.symmetric(
+                    contentPadding: EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 13,
                     ),
@@ -242,7 +243,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 14),
+                  SizedBox(height: 14),
                   Row(
                     children: [
                       SizedBox(
@@ -259,12 +260,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           activeColor: Theme.of(context).colorScheme.primary,
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      SizedBox(width: 10),
                       Expanded(
                         child: Text.rich(
                           TextSpan(
                             text: 'I Agree to the ',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
                             ),
@@ -275,7 +276,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                   color: Theme.of(context).colorScheme.primary,
                                 ),
                               ),
-                              const TextSpan(text: ' and '),
+                              TextSpan(text: ' and '),
                               TextSpan(
                                 text: 'Conditions',
                                 style: TextStyle(
@@ -288,7 +289,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 18),
+                  SizedBox(height: 18),
                   SizedBox(
                     width: double.infinity,
                     height: 58,
@@ -301,15 +302,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         ),
                       ),
                       child: _isSubmitting
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 22,
                               height: 22,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2.5,
-                                color: Colors.white,
+                                color: themeNotifier.surfaceColor,
                               ),
                             )
-                          : const Text(
+                          : Text(
                               'Sign Up',
                               style: TextStyle(
                                 fontSize: 21,
@@ -318,19 +319,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             ),
                     ),
                   ),
-                  const SizedBox(height: 14),
+                  SizedBox(height: 14),
                   Center(
                     child: Wrap(
                       spacing: 4,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        const Text(
+                        Text(
                           'Already have an account?',
                           style: TextStyle(fontSize: 15),
                         ),
                         InkWell(
                           onTap: () => Navigator.of(context).pop(),
-                          child: const Text(
+                          child: Text(
                             'Log In',
                             style: TextStyle(
                               fontSize: 15,
@@ -342,7 +343,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  SizedBox(height: 6),
                 ],
               ),
             ),

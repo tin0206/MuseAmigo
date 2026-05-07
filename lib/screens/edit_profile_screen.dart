@@ -3,6 +3,7 @@ import 'package:museamigo/profile_notifier.dart';
 import 'package:museamigo/session.dart';
 import 'package:museamigo/services/backend_api.dart';
 import 'package:museamigo/l10n/translations.dart';
+import 'package:museamigo/theme_notifier.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -39,7 +40,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final email = data['email'] as String? ?? '';
       profileNotifier.setUser(name: fullName, email: email);
       _nameCtrl.text = fullName;
-    } on ApiException catch (e) {
+    } on ApiException {
       if (!mounted) return;
       // Silently fallback to session data
       _nameCtrl.text = AppSession.fullName.value;
@@ -105,36 +106,36 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: themeNotifier.surfaceColor,
       body: SafeArea(
         child: Column(
           children: [
             // Header
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 4, 0),
+              padding: EdgeInsets.fromLTRB(16, 12, 4, 0),
               child: Row(
                 children: [
                   Expanded(
                     child: Text(
                       'Edit Profile'.tr,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF171A21),
+                        color: themeNotifier.textPrimaryColor,
                       ),
                     ),
                   ),
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close, size: 22),
-                    color: const Color(0xFF6B7280),
+                    icon: Icon(Icons.close, size: 22),
+                    color: themeNotifier.textSecondaryColor,
                   ),
                 ],
               ),
             ),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 14),
+                padding: EdgeInsets.fromLTRB(20, 8, 20, 14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -149,7 +150,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: const Color(0xFFE5E7EB),
+                                    color: themeNotifier.borderColor,
                                     width: 2,
                                   ),
                                 ),
@@ -172,71 +173,71 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                     ).colorScheme.primary,
                                     shape: BoxShape.circle,
                                   ),
-                                  child: const Icon(
+                                  child: Icon(
                                     Icons.camera_alt_rounded,
                                     size: 13,
-                                    color: Colors.white,
+                                    color: themeNotifier.surfaceColor,
                                   ),
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 4),
+                          SizedBox(height: 4),
                           Text(
                             'Click camera icon to change avatar'.tr,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 10,
-                              color: Color(0xFF9CA3AF),
+                              color: themeNotifier.textSecondaryColor,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     _fieldLabel('Full Name'.tr),
                     _textField(_nameCtrl),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     _fieldLabel('Email (Read-only)'.tr),
                     _textField(
                       null,
                       hint: profileNotifier.email.isEmpty ? 'Loading...' : profileNotifier.email,
                       enabled: false,
                     ),
-                    const SizedBox(height: 2),
+                    SizedBox(height: 2),
                     Text(
                       'Email cannot be changed'.tr,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 10,
-                        color: Color(0xFF9CA3AF),
+                        color: themeNotifier.textSecondaryColor,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     _fieldLabel('Date of Birth'.tr),
                     _textField(_dobCtrl),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     _fieldLabel('Bio'.tr),
                     _textField(
                       _bioCtrl,
                       hint: 'Tell us about yourself'.tr,
                       maxLines: 2,
                     ),
-                    const SizedBox(height: 2),
+                    SizedBox(height: 2),
                     Text(
                       'Help AI personalize your experience'.tr,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 10,
-                        color: Color(0xFF9CA3AF),
+                        color: themeNotifier.textSecondaryColor,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     _fieldLabel('Interests'.tr),
                     _textField(_interestsCtrl),
-                    const SizedBox(height: 2),
+                    SizedBox(height: 2),
                     Text(
                       'Separate interests with commas'.tr,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 10,
-                        color: Color(0xFF9CA3AF),
+                        color: themeNotifier.textSecondaryColor,
                       ),
                     ),
                     const Spacer(),
@@ -248,7 +249,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           backgroundColor: Theme.of(
                             context,
                           ).colorScheme.primary,
-                          foregroundColor: Colors.white,
+                          foregroundColor: themeNotifier.surfaceColor,
                           elevation: 3,
                           shadowColor: Theme.of(
                             context,
@@ -256,21 +257,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          padding: EdgeInsets.symmetric(vertical: 13),
                         ),
                         icon: _isLoading
-                            ? const SizedBox(
+                            ? SizedBox(
                                 width: 18,
                                 height: 18,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: Colors.white,
+                                  color: themeNotifier.surfaceColor,
                                 ),
                               )
-                            : const Icon(Icons.save_rounded, size: 18),
+                            : Icon(Icons.save_rounded, size: 18),
                         label: Text(
                           'Save Changes'.tr,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                           ),
@@ -289,13 +290,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   static Widget _fieldLabel(String label) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: EdgeInsets.only(bottom: 6),
       child: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w600,
-          color: Color(0xFF374151),
+          color: themeNotifier.textSecondaryColor,
         ),
       ),
     );
@@ -309,7 +310,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF3F4F6),
+        color: themeNotifier.backgroundColor,
         borderRadius: BorderRadius.circular(10),
       ),
       child: TextField(
@@ -318,16 +319,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         maxLines: maxLines,
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+          hintStyle: TextStyle(color: themeNotifier.textSecondaryColor, fontSize: 14),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(
+          contentPadding: EdgeInsets.symmetric(
             horizontal: 14,
             vertical: 10,
           ),
         ),
         style: TextStyle(
           fontSize: 14,
-          color: enabled ? const Color(0xFF171A21) : const Color(0xFF9CA3AF),
+          color: enabled ? themeNotifier.textPrimaryColor : themeNotifier.textSecondaryColor,
         ),
       ),
     );

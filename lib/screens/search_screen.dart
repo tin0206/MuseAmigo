@@ -1,8 +1,8 @@
 import 'package:museamigo/app_routes.dart';
-import 'package:museamigo/l10n/translations.dart';
 import 'package:museamigo/session.dart';
 import 'package:museamigo/services/audio_assets.dart';
 import 'package:flutter/material.dart';
+import 'package:museamigo/theme_notifier.dart';
 
 class SearchScreen extends StatefulWidget {
   final String? initialQuery;
@@ -143,7 +143,7 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: themeNotifier.surfaceColor,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -151,18 +151,18 @@ class _SearchScreenState extends State<SearchScreen> {
             // ── Top bar ────────────────────────────────────────────────
             Container(
               color: Theme.of(context).colorScheme.primary,
-              padding: const EdgeInsets.fromLTRB(4, 10, 16, 12),
+              padding: EdgeInsets.fromLTRB(4, 10, 16, 12),
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    icon: Icon(Icons.arrow_back, color: themeNotifier.surfaceColor),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                   Expanded(
                     child: Container(
                       height: 44,
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: themeNotifier.surfaceColor,
                         borderRadius: BorderRadius.circular(22),
                       ),
                       child: TextField(
@@ -173,33 +173,33 @@ class _SearchScreenState extends State<SearchScreen> {
                         onChanged: (v) {
                           if (v.isEmpty) _clearSearch();
                         },
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
-                          color: Color(0xFF171A21),
+                          color: themeNotifier.textPrimaryColor,
                         ),
                         decoration: InputDecoration(
                           hintText: 'Search artifacts, places...',
-                          hintStyle: const TextStyle(
-                            color: Color(0xFF9CA3AF),
+                          hintStyle: TextStyle(
+                            color: themeNotifier.textSecondaryColor,
                             fontSize: 14,
                           ),
-                          prefixIcon: const Icon(
+                          prefixIcon: Icon(
                             Icons.search,
-                            color: Color(0xFF9CA3AF),
+                            color: themeNotifier.textSecondaryColor,
                             size: 20,
                           ),
                           suffixIcon: _activeQuery.isNotEmpty
                               ? GestureDetector(
                                   onTap: _clearSearch,
-                                  child: const Icon(
+                                  child: Icon(
                                     Icons.close,
-                                    color: Color(0xFF9CA3AF),
+                                    color: themeNotifier.textSecondaryColor,
                                     size: 20,
                                   ),
                                 )
                               : null,
                           border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(
+                          contentPadding: EdgeInsets.symmetric(
                             vertical: 12,
                           ),
                         ),
@@ -216,12 +216,12 @@ class _SearchScreenState extends State<SearchScreen> {
                   height: 50,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(
+                    padding: EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 8,
                     ),
                     itemCount: _filterTypes.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 8),
+                    separatorBuilder: (_, _) => SizedBox(width: 8),
                     itemBuilder: (context, index) {
                       final filter = _filterTypes[index];
                       final selected = _selectedFilterType == filter;
@@ -231,27 +231,27 @@ class _SearchScreenState extends State<SearchScreen> {
                           _activeFilterMode = 'floor';
                         }),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(
+                          padding: EdgeInsets.symmetric(
                             horizontal: 16,
                             vertical: 5,
                           ),
                           decoration: BoxDecoration(
                             color: selected
                                 ? Theme.of(context).colorScheme.primary
-                                : Colors.white,
+                                : themeNotifier.surfaceColor,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: selected
                                   ? Theme.of(context).colorScheme.primary
-                                  : const Color(0xFFDDDDDD),
+                                  : themeNotifier.borderColor,
                             ),
                           ),
                           child: Text(
                             filter,
                             style: TextStyle(
                               color: selected
-                                  ? Colors.white
-                                  : const Color(0xFF171A21),
+                                  ? themeNotifier.surfaceColor
+                                  : themeNotifier.textPrimaryColor,
                               fontWeight: FontWeight.w600,
                               fontSize: 13,
                             ),
@@ -267,12 +267,12 @@ class _SearchScreenState extends State<SearchScreen> {
                   height: 50,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(
+                    padding: EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 8,
                     ),
                     itemCount: _filterExhibitions.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 8),
+                    separatorBuilder: (_, _) => SizedBox(width: 8),
                     itemBuilder: (context, index) {
                       final filter = _filterExhibitions[index];
                       final selected = _selectedFilterExhibition == filter;
@@ -282,27 +282,27 @@ class _SearchScreenState extends State<SearchScreen> {
                           _activeFilterMode = 'exhibition';
                         }),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(
+                          padding: EdgeInsets.symmetric(
                             horizontal: 16,
                             vertical: 5,
                           ),
                           decoration: BoxDecoration(
                             color: selected
                                 ? Theme.of(context).colorScheme.primary
-                                : Colors.white,
+                                : themeNotifier.surfaceColor,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: selected
                                   ? Theme.of(context).colorScheme.primary
-                                  : const Color(0xFFDDDDDD),
+                                  : themeNotifier.borderColor,
                             ),
                           ),
                           child: Text(
                             filter,
                             style: TextStyle(
                               color: selected
-                                  ? Colors.white
-                                  : const Color(0xFF171A21),
+                                  ? themeNotifier.surfaceColor
+                                  : themeNotifier.textPrimaryColor,
                               fontWeight: FontWeight.w600,
                               fontSize: 13,
                             ),
@@ -314,15 +314,15 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
               // ── Results count + sort ──────────────────────────────────
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+                padding: EdgeInsets.fromLTRB(16, 4, 16, 10),
                 child: Row(
                   children: [
                     Text(
                       '${_filteredResults.length} Results',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 16,
-                        color: Color(0xFF171A21),
+                        color: themeNotifier.textPrimaryColor,
                       ),
                     ),
                     const Spacer(),
@@ -332,16 +332,16 @@ class _SearchScreenState extends State<SearchScreen> {
                       }),
                       child: Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.filter_list_rounded,
                             size: 18,
-                            color: Color(0xFF6D7785),
+                            color: themeNotifier.textSecondaryColor,
                           ),
-                          const SizedBox(width: 4),
+                          SizedBox(width: 4),
                           Text(
                             _sortBy == 'default' ? 'Sort by' : 'A-Z',
-                            style: const TextStyle(
-                              color: Color(0xFF6D7785),
+                            style: TextStyle(
+                              color: themeNotifier.textSecondaryColor,
                               fontSize: 14,
                             ),
                           ),
@@ -354,7 +354,7 @@ class _SearchScreenState extends State<SearchScreen> {
               // ── Results list ──────────────────────────────────────────
               Expanded(
                 child: ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
                   itemCount: _filteredResults.length,
                   itemBuilder: (context, index) =>
                       _ResultCard(item: _filteredResults[index]),
@@ -364,17 +364,17 @@ class _SearchScreenState extends State<SearchScreen> {
               // ── Recent + Trending ─────────────────────────────────────
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 20),
+                  padding: EdgeInsets.fromLTRB(16, 20, 16, 20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Recent header
-                      const Row(
+                      Row(
                         children: [
                           Icon(
                             Icons.access_time_rounded,
                             size: 18,
-                            color: Color(0xFF171A21),
+                            color: themeNotifier.textPrimaryColor,
                           ),
                           SizedBox(width: 6),
                           Text(
@@ -382,12 +382,12 @@ class _SearchScreenState extends State<SearchScreen> {
                             style: TextStyle(
                               fontWeight: FontWeight.w700,
                               fontSize: 16,
-                              color: Color(0xFF171A21),
+                              color: themeNotifier.textPrimaryColor,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 10),
+                      SizedBox(height: 10),
                       ..._recentSearches.map(
                         (item) => _RecentRow(
                           label: item,
@@ -397,17 +397,17 @@ class _SearchScreenState extends State<SearchScreen> {
                           },
                         ),
                       ),
-                      const SizedBox(height: 22),
+                      SizedBox(height: 22),
                       // Trending
-                      const Text(
+                      Text(
                         'Trending',
                         style: TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 16,
-                          color: Color(0xFF171A21),
+                          color: themeNotifier.textPrimaryColor,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      SizedBox(height: 12),
                       Wrap(
                         spacing: 10,
                         runSpacing: 10,
@@ -418,7 +418,7 @@ class _SearchScreenState extends State<SearchScreen> {
                               _search(t);
                             },
                             child: Container(
-                              padding: const EdgeInsets.symmetric(
+                              padding: EdgeInsets.symmetric(
                                 horizontal: 20,
                                 vertical: 10,
                               ),
@@ -428,8 +428,8 @@ class _SearchScreenState extends State<SearchScreen> {
                               ),
                               child: Text(
                                 t,
-                                style: const TextStyle(
-                                  color: Colors.white,
+                                style: TextStyle(
+                                  color: themeNotifier.surfaceColor,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 14,
                                 ),
@@ -483,10 +483,10 @@ class _RecentRow extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        margin: EdgeInsets.only(bottom: 8),
+        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         decoration: BoxDecoration(
-          color: const Color(0xFFF5F5F5),
+          color: themeNotifier.surfaceColor,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
@@ -494,10 +494,10 @@ class _RecentRow extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: const TextStyle(fontSize: 14, color: Color(0xFF171A21)),
+                style: TextStyle(fontSize: 14, color: themeNotifier.textPrimaryColor),
               ),
             ),
-            const Icon(Icons.search, size: 18, color: Color(0xFF9CA3AF)),
+            Icon(Icons.search, size: 18, color: themeNotifier.textSecondaryColor),
           ],
         ),
       ),
@@ -534,10 +534,10 @@ class _ResultCard extends StatelessWidget {
       onTap: () => _openDetail(context),
       behavior: HitTestBehavior.opaque,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(12),
+        margin: EdgeInsets.only(bottom: 10),
+        padding: EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: const Color(0xFFF5F5F5),
+          color: themeNotifier.surfaceColor,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Row(
@@ -554,12 +554,12 @@ class _ResultCard extends StatelessWidget {
                   fit: BoxFit.cover,
                   errorBuilder: (_, _, _) => Container(
                     color: Colors.grey.shade300,
-                    child: const Icon(Icons.image, size: 32),
+                    child: Icon(Icons.image, size: 32),
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12),
             // Info
             Expanded(
               child: Column(
@@ -567,21 +567,21 @@ class _ResultCard extends StatelessWidget {
                 children: [
                   Text(
                     item.title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w700,
                       fontSize: 15,
-                      color: Color(0xFF171A21),
+                      color: themeNotifier.textPrimaryColor,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  SizedBox(height: 2),
                   Text(
                     item.location,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
-                      color: Color(0xFF6D7785),
+                      color: themeNotifier.textSecondaryColor,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   Row(
                     children: [
                       Container(
@@ -592,12 +592,12 @@ class _ResultCard extends StatelessWidget {
                           shape: BoxShape.circle,
                         ),
                       ),
-                      const SizedBox(width: 4),
+                      SizedBox(width: 4),
                       Text(
                         item.floor,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: Color(0xFF6D7785),
+                          color: themeNotifier.textSecondaryColor,
                         ),
                       ),
                     ],
@@ -605,7 +605,7 @@ class _ResultCard extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             // Detail button
             FilledButton(
               onPressed: () => _openDetail(context),
@@ -614,14 +614,14 @@ class _ResultCard extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
-                padding: const EdgeInsets.symmetric(
+                padding: EdgeInsets.symmetric(
                   horizontal: 14,
                   vertical: 10,
                 ),
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              child: const Text(
+              child: Text(
                 'Detail',
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
               ),

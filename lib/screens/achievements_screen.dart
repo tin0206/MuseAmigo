@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:museamigo/l10n/translations.dart';
 import 'package:museamigo/achievement_notifier.dart';
 import 'package:museamigo/language_notifier.dart';
+import 'package:museamigo/theme_notifier.dart';
 
 class AchievementsScreen extends StatefulWidget {
   const AchievementsScreen({super.key});
@@ -20,18 +21,18 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F6),
+      backgroundColor: themeNotifier.backgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF171A21),
+        backgroundColor: themeNotifier.surfaceColor,
+        foregroundColor: themeNotifier.textPrimaryColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.chevron_left, size: 28),
+          icon: Icon(Icons.chevron_left, size: 28),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
           'Achievements'.tr,
-          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
         ),
       ),
       body: ListenableBuilder(
@@ -42,7 +43,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
 
           if (achievementNotifier.isLoading) {
             print('[UI_TRACE] isLoading is true');
-            return const Center(child: CircularProgressIndicator());
+            return Center(child: CircularProgressIndicator());
           }
 
           final allProgress = achievementNotifier.allProgress;
@@ -56,7 +57,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
           }
 
           return GridView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               childAspectRatio: 1.0,
@@ -97,13 +98,13 @@ class AchievementBadge extends StatelessWidget {
   final bool unlocked;
 
   const AchievementBadge({
-    Key? key,
+    super.key,
     required this.museumName,
     required this.scannedCount,
     required this.totalMilestones,
     required this.unlockedMilestones,
     required this.unlocked,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -114,10 +115,10 @@ class AchievementBadge extends StatelessWidget {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       decoration: BoxDecoration(
-        color: unlocked ? Colors.amber.shade50 : Colors.white,
+        color: unlocked ? Colors.amber.shade50 : themeNotifier.surfaceColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: unlocked ? Colors.amber.shade400 : const Color(0xFFE5E7EB),
+          color: unlocked ? Colors.amber.shade400 : themeNotifier.borderColor,
           width: 2,
         ),
         boxShadow: unlocked
@@ -137,7 +138,7 @@ class AchievementBadge extends StatelessWidget {
               ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(10.0),
+        padding: EdgeInsets.all(10.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -174,18 +175,18 @@ class AchievementBadge extends StatelessWidget {
                         borderRadius: BorderRadius.circular(10),
                         color: Colors.black.withValues(alpha: 0.25),
                       ),
-                      child: const Center(
+                      child: Center(
                         child: Icon(
                           Icons.lock,
                           size: 28,
-                          color: Colors.white70,
+                          color: themeNotifier.surfaceColor.withValues(alpha: 0.7),
                         ),
                       ),
                     ),
                 ],
               ),
             ),
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             Text(
               museumName.tr,
               textAlign: TextAlign.center,
@@ -196,7 +197,7 @@ class AchievementBadge extends StatelessWidget {
                 fontWeight: FontWeight.w700,
                 color: unlocked
                     ? Colors.brown.shade800
-                    : const Color(0xFF374151),
+                    : themeNotifier.textSecondaryColor,
               ),
             ),
             const Spacer(),
@@ -204,7 +205,7 @@ class AchievementBadge extends StatelessWidget {
               borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
                 value: progressPercent,
-                backgroundColor: const Color(0xFFF3F4F6),
+                backgroundColor: themeNotifier.backgroundColor,
                 valueColor: AlwaysStoppedAnimation<Color>(
                   unlocked
                       ? Colors.green
@@ -213,7 +214,7 @@ class AchievementBadge extends StatelessWidget {
                 minHeight: 5,
               ),
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: 4),
             Text(
               '$unlockedMilestones / $totalMilestones',
               style: TextStyle(
@@ -221,7 +222,7 @@ class AchievementBadge extends StatelessWidget {
                 fontWeight: FontWeight.w600,
                 color: unlocked
                     ? Colors.green.shade700
-                    : const Color(0xFF6B7280),
+                    : themeNotifier.textSecondaryColor,
               ),
             ),
           ],

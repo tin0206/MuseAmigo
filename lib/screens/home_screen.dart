@@ -5,6 +5,7 @@ import 'package:museamigo/profile_notifier.dart';
 import 'package:museamigo/language_notifier.dart';
 import 'package:museamigo/session.dart';
 import 'package:museamigo/services/audio_assets.dart';
+import 'package:museamigo/theme_notifier.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -224,6 +225,7 @@ class _HomeScreenState extends State<HomeScreen> {
         profileNotifier,
         languageNotifier,
         AppSession.currentMuseumName,
+        themeNotifier,
       ]),
       builder: (context, _) {
         final museumId = AppSession.currentMuseumId.value;
@@ -233,14 +235,14 @@ class _HomeScreenState extends State<HomeScreen> {
         final secondFloorArtifacts = _secondFloorArtifactsForMuseum(museumId);
 
         return Scaffold(
-          backgroundColor: Colors.white,
+          backgroundColor: themeNotifier.surfaceColor,
           body: SafeArea(
             child: Column(
               children: [
                 // ── Top bar ────────────────────────────────────────────────
                 Container(
                   color: Theme.of(context).colorScheme.primary,
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+                  padding: EdgeInsets.fromLTRB(16, 12, 16, 14),
                   child: Row(
                     children: [
                       Expanded(
@@ -250,22 +252,22 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Container(
                             height: 44,
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: themeNotifier.surfaceColor,
                               borderRadius: BorderRadius.circular(22),
                             ),
                             child: Row(
                               children: [
-                                const SizedBox(width: 12),
-                                const Icon(
+                                SizedBox(width: 12),
+                                Icon(
                                   Icons.search,
-                                  color: Color(0xFF9CA3AF),
+                                  color: themeNotifier.textSecondaryColor,
                                   size: 20,
                                 ),
-                                const SizedBox(width: 8),
+                                SizedBox(width: 8),
                                 Text(
                                   'Search artifacts, places...'.tr,
-                                  style: const TextStyle(
-                                    color: Color(0xFF9CA3AF),
+                                  style: TextStyle(
+                                    color: themeNotifier.textSecondaryColor,
                                     fontSize: 14,
                                   ),
                                 ),
@@ -274,7 +276,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      SizedBox(width: 12),
                       GestureDetector(
                         onTap: () =>
                             Navigator.of(context).pushNamed(AppRoutes.settings),
@@ -284,7 +286,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.3),
+                              color: themeNotifier.surfaceColor.withValues(alpha: 0.3),
                               width: 2,
                             ),
                           ),
@@ -296,12 +298,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                 width: 44,
                                 height: 44,
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.25),
+                                  color: themeNotifier.surfaceColor.withValues(alpha: 0.25),
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   Icons.person,
-                                  color: Colors.white,
+                                  color: themeNotifier.surfaceColor,
                                   size: 28,
                                 ),
                               ),
@@ -315,7 +317,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 // ── Body ───────────────────────────────────────────────────
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+                    padding: EdgeInsets.fromLTRB(20, 20, 20, 20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -324,26 +326,26 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Text(
                             '${'Welcome'.tr} ${profileNotifier.name}',
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 26,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF171A21),
+                              color: themeNotifier.textPrimaryColor,
                             ),
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        SizedBox(height: 4),
                         SizedBox(
                           width: double.infinity,
                           child: Text(
                             '${'You are exploring the'.tr} ${museumName.tr}',
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
-                              color: Color(0xFF6D7785),
+                              color: themeNotifier.textSecondaryColor,
                             ),
                           ),
                         ),
-                        const SizedBox(height: 24),
+                        SizedBox(height: 24),
                         // ── Areas ─────────────────────────────────────────
                         _SectionHeader(
                           title: 'Areas'.tr,
@@ -355,14 +357,14 @@ class _HomeScreenState extends State<HomeScreen> {
                             },
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        SizedBox(height: 12),
                         SizedBox(
                           height: 180,
                           child: ListView.separated(
                             scrollDirection: Axis.horizontal,
                             itemCount: areas.length,
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(width: 14),
+                            separatorBuilder: (_, _) =>
+                                SizedBox(width: 14),
                             itemBuilder: (context, i) {
                               return _AreaCard(
                                 area: areas[i],
@@ -377,7 +379,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             },
                           ),
                         ),
-                        const SizedBox(height: 28),
+                        SizedBox(height: 28),
                         // ── Trending ──────────────────────────────────────
                         _SectionHeader(
                           title: 'Trending Artifacts'.tr,
@@ -389,7 +391,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             },
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        SizedBox(height: 12),
                         ...List.generate(
                           artifacts.length,
                           (i) => _ArtifactRow(
@@ -409,7 +411,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20),
                         // ── Floor 2 Highlights ────────────────────────────
                         _SectionHeader(
                           title: 'Floor 2 Highlights'.tr,
@@ -421,7 +423,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             },
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        SizedBox(height: 12),
                         ...List.generate(
                           secondFloorArtifacts.length,
                           (i) => _ArtifactRow(
@@ -467,10 +469,10 @@ class _SectionHeader extends StatelessWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF171A21),
+            color: themeNotifier.textPrimaryColor,
           ),
         ),
         const Spacer(),
@@ -483,7 +485,7 @@ class _SectionHeader extends StatelessWidget {
           ),
           child: Text(
             'See all'.tr,
-            style: const TextStyle(fontWeight: FontWeight.w600),
+            style: TextStyle(fontWeight: FontWeight.w600),
           ),
         ),
       ],
@@ -520,7 +522,7 @@ class _AreaCard extends StatelessWidget {
                 fit: BoxFit.cover,
                 errorBuilder: (_, _, _) => Container(
                   color: Colors.grey.shade300,
-                  child: const Icon(
+                  child: Icon(
                     Icons.image_not_supported_outlined,
                     size: 40,
                   ),
@@ -551,25 +553,25 @@ class _AreaCard extends StatelessWidget {
                       area.label.tr,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w700,
                         fontSize: 13,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    SizedBox(height: 2),
                     Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.location_on,
-                          color: Colors.white70,
+                          color: Colors.white.withValues(alpha: 0.7),
                           size: 12,
                         ),
-                        const SizedBox(width: 2),
+                        SizedBox(width: 2),
                         Text(
                           area.sublabel.tr,
-                          style: const TextStyle(
-                            color: Colors.white70,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.7),
                             fontSize: 11,
                           ),
                         ),
@@ -610,10 +612,10 @@ class _ArtifactRow extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(12),
+        margin: EdgeInsets.only(bottom: 10),
+        padding: EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: const Color(0xFFF3F3F4),
+          color: themeNotifier.surfaceColor,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Row(
@@ -633,31 +635,31 @@ class _ArtifactRow extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 14),
+            SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     item.name.tr,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 15,
-                      color: Color(0xFF171A21),
+                      color: themeNotifier.textPrimaryColor,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  SizedBox(height: 2),
                   Text(
                     item.period.tr,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
-                      color: Color(0xFF6D7785),
+                      color: themeNotifier.textSecondaryColor,
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: Color(0xFFAAAAAA)),
+            Icon(Icons.chevron_right, color: themeNotifier.textSecondaryColor),
           ],
         ),
       ),

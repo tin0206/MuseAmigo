@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:museamigo/l10n/translations.dart';
+import 'package:museamigo/theme_notifier.dart';
 
 class AppBottomNav extends StatelessWidget {
   const AppBottomNav({
@@ -17,11 +18,11 @@ class AppBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     final currentIndex = selectedIndex ?? 0;
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: themeNotifier.surfaceColor,
         border: Border(top: BorderSide(color: Color(0xFFE8E8EA), width: 1)),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
@@ -46,9 +47,9 @@ class AppBottomNav extends StatelessWidget {
                 color: Theme.of(context).colorScheme.primary,
                 borderRadius: BorderRadius.circular(9999),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.crop_free_rounded,
-                color: Colors.white,
+                color: themeNotifier.surfaceColor,
                 size: 30,
               ),
             ),
@@ -87,7 +88,7 @@ class _NavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final activeColor = Theme.of(context).colorScheme.primary;
-    const inactiveColor = Color(0xFF9CA3AF);
+    final inactiveColor = themeNotifier.textSecondaryColor;
     final color = selected ? activeColor : inactiveColor;
 
     return GestureDetector(
@@ -99,7 +100,7 @@ class _NavItem extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, color: color, size: 24),
-            const SizedBox(height: 2),
+            SizedBox(height: 2),
             Text(
               label,
               style: TextStyle(

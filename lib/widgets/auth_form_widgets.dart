@@ -18,7 +18,11 @@ class FieldLabel extends StatelessWidget {
       padding: EdgeInsets.only(bottom: bottomPadding),
       child: Text(
         text,
-        style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w700),
+        style: TextStyle(
+          fontSize: fontSize, 
+          fontWeight: FontWeight.w700,
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
       ),
     );
   }
@@ -49,17 +53,26 @@ class AppTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    
     return TextField(
       controller: controller,
       obscureText: obscureText,
-      style: TextStyle(fontSize: fontSize),
+      style: TextStyle(
+        fontSize: fontSize,
+        color: colorScheme.onSurface,
+      ),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: TextStyle(fontSize: hintFontSize),
+        hintStyle: TextStyle(
+          fontSize: hintFontSize,
+          color: colorScheme.onSurface.withValues(alpha: 0.5),
+        ),
         suffixIcon: suffixIcon,
         contentPadding: contentPadding,
         filled: true,
-        fillColor: const Color(0xFFE7E7EA),
+        fillColor: colorScheme.surface,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide.none,
