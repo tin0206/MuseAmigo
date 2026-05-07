@@ -218,7 +218,7 @@ class _TicketList extends StatelessWidget {
     return ListView.separated(
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       itemCount: tickets.length,
-      separatorBuilder: (_, _) => SizedBox(height: 20),
+      separatorBuilder: (_, __) => const SizedBox(height: 20),
       itemBuilder: (context, i) => _TicketCard(ticket: tickets[i]),
     );
   }
@@ -519,7 +519,7 @@ class _TicketCard extends StatelessWidget {
                               version: QrVersions.auto,
                               size: 102.0,
                             ),
-                            SizedBox(height: 8),
+                            const SizedBox(height: 8),
                             Text(
                               ticket.id,
                               style: TextStyle(
