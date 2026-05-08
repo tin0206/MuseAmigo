@@ -95,12 +95,9 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
       if (!mounted) return;
 
       // Navigate to artifact detail
-      String audioAsset = AudioAssets.standardPath;
-      if (code == 'IP-001') {
-        audioAsset = 'assets/audio/presidential_desk.mp3';
-      } else if (code == 'IP-002') {
-        audioAsset = 'assets/audio/t54_tank.mp3';
-      }
+      final audioAsset = (artifact.audioAsset.isNotEmpty)
+          ? artifact.audioAsset
+          : AudioAssets.standardPath;
 
       Navigator.of(context).pushNamed(
         AppRoutes.artifactDetail,

@@ -1246,8 +1246,8 @@ Map<int, _MuseumMapConfig> _museumConfigs = <int, _MuseumMapConfig>{
         x: 0.22,
         y: 0.22,
       ),
-      _MapLocation(name: 'Guillotine', floor: 'Floor 1', x: 0.62, y: 0.28),
-      _MapLocation(name: 'Tiger Cages', floor: 'Floor 1', x: 0.78, y: 0.56),
+      _MapLocation(name: 'Guillotine (WRM-001)', floor: 'Floor 1', x: 0.62, y: 0.28),
+      _MapLocation(name: 'Tiger Cages (WRM-002)', floor: 'Floor 1', x: 0.78, y: 0.56),
       _MapLocation(
         name: 'Main Entrance',
         floor: 'Floor 1',
@@ -1319,9 +1319,9 @@ Map<int, _MuseumMapConfig> _museumConfigs = <int, _MuseumMapConfig>{
     stopDescriptions: <String, String>{
       'War Crimes Exhibition':
           'A central gallery documenting wartime devastation and eyewitness evidence.',
-      'Guillotine':
+      'Guillotine (WRM-001)':
           'A preserved execution device from the colonial era, reflecting a dark chapter in resistance history.',
-      'Tiger Cages':
+      'Tiger Cages (WRM-002)':
           'A reconstruction of prison cells used to detain political prisoners in brutal conditions.',
       'International Support Gallery':
           'This gallery highlights anti-war solidarity from around the world.',
@@ -1341,7 +1341,7 @@ Map<int, _MuseumMapConfig> _museumConfigs = <int, _MuseumMapConfig>{
         y: 0.24,
       ),
       _MapLocation(
-        name: 'Lacquer Painting Rural Life',
+        name: 'Lacquer Painting Rural Life (FAM-001)',
         floor: 'Floor 1',
         x: 0.58,
         y: 0.34,
@@ -1373,7 +1373,7 @@ Map<int, _MuseumMapConfig> _museumConfigs = <int, _MuseumMapConfig>{
         x: 0.2,
         y: 0.22,
       ),
-      _MapLocation(name: 'Buddhist Statue', floor: 'Floor 2', x: 0.6, y: 0.36),
+      _MapLocation(name: 'Buddhist Statue (FAM-002)', floor: 'Floor 2', x: 0.6, y: 0.36),
       _MapLocation(
         name: 'International Art Collection',
         floor: 'Floor 2',
@@ -1405,11 +1405,11 @@ Map<int, _MuseumMapConfig> _museumConfigs = <int, _MuseumMapConfig>{
     stopDescriptions: <String, String>{
       'Contemporary Vietnamese Art':
           'A curated display of modern Vietnamese artistic expression and cultural themes.',
-      'Lacquer Painting Rural Life':
+      'Lacquer Painting Rural Life (FAM-001)':
           'A lacquer masterpiece that captures the rhythm and beauty of rural Vietnamese life.',
       'Traditional Crafts Exhibition':
           'An exhibit showcasing handcrafted objects and decorative arts from across Vietnam.',
-      'Buddhist Statue':
+      'Buddhist Statue (FAM-002)':
           'A 17th-century bronze statue highlighting the spiritual and sculptural heritage of Vietnam.',
       'International Art Collection':
           'A mixed collection of international works presented alongside Vietnamese fine arts.',
@@ -1427,7 +1427,7 @@ Map<int, _MuseumMapConfig> _museumConfigs = <int, _MuseumMapConfig>{
         y: 0.24,
       ),
       _MapLocation(
-        name: 'Traditional Ao Dai',
+        name: 'Traditional Ao Dai (HCM-001)',
         floor: 'Floor 1',
         x: 0.62,
         y: 0.34,
@@ -1459,7 +1459,7 @@ Map<int, _MuseumMapConfig> _museumConfigs = <int, _MuseumMapConfig>{
         x: 0.22,
         y: 0.22,
       ),
-      _MapLocation(name: 'Saigon Map 1930', floor: 'Floor 2', x: 0.62, y: 0.38),
+      _MapLocation(name: 'Saigon Map 1930 (HCM-002)', floor: 'Floor 2', x: 0.62, y: 0.38),
       _MapLocation(
         name: 'Archive Reading Corner',
         floor: 'Floor 2',
@@ -1491,11 +1491,11 @@ Map<int, _MuseumMapConfig> _museumConfigs = <int, _MuseumMapConfig>{
     stopDescriptions: <String, String>{
       'City History Journey Hall':
           'A gallery introducing the transformation of Ho Chi Minh City across major historical eras.',
-      'Traditional Ao Dai':
+      'Traditional Ao Dai (HCM-001)':
           'A classic Ao Dai garment illustrating cultural identity and changing urban fashion.',
       'Cultural Heritage Trail Hall':
           'An exhibit about the city\'s architecture, communities, and cultural continuity.',
-      'Saigon Map 1930':
+      'Saigon Map 1930 (HCM-002)':
           'A historical map that reveals the colonial-era layout and expansion of Saigon.',
       'Archive Reading Corner':
           'A quiet corner where curated archive reproductions and city records are displayed.',
@@ -1509,7 +1509,7 @@ const Map<String, List<_MapLocation>>
 _independencePalaceArtifactsByExhibition = {
   'Fall of Saigon: April 30, 1975': <_MapLocation>[
     _MapLocation(name: 'Tank 390 (IP-001)', floor: 'Floor 1', x: 0.16, y: 0.2),
-    _MapLocation(name: 'Tank 843 (IP-002)', floor: 'Floor 1', x: 0.29, y: 0.18),
+    _MapLocation(name: 'T-54 Tank (IP-002)', floor: 'Floor 1', x: 0.29, y: 0.18),
     _MapLocation(
       name: 'Jeep M151A2 (IP-007)',
       floor: 'Floor 1',
@@ -1544,6 +1544,7 @@ _independencePalaceArtifactsByExhibition = {
     ),
   ],
   'Diplomacy & State Ceremony': <_MapLocation>[
+    _MapLocation(name: 'Presidential Throne (IP-003)', floor: 'Floor 1', x: 0.24, y: 0.55),
     _MapLocation(
       name: 'Binh Ngo Dai Cao Lacquer Painting (IP-008)',
       floor: 'Floor 1',
@@ -1587,7 +1588,7 @@ _independencePalaceArtifactsByExhibition = {
   ],
   'Air Warfare & Evacuation': <_MapLocation>[
     _MapLocation(
-      name: 'UH-1 Helicopter (IP-003)',
+      name: 'UH-1 Helicopter',
       floor: 'Floor 2',
       x: 0.74,
       y: 0.3,
@@ -1673,13 +1674,13 @@ List<_LocationOption> _buildWarRemnantsLocationOptions() => <_LocationOption>[
     iconColor: Colors.red,
   ),
   _LocationOption(
-    name: 'Guillotine',
+    name: 'Guillotine (WRM-001)',
     subtitle: 'Historical Hall — Floor 1',
     icon: Icons.account_balance_outlined,
     iconColor: Colors.red,
   ),
   _LocationOption(
-    name: 'Tiger Cages',
+    name: 'Tiger Cages (WRM-002)',
     subtitle: 'Outdoor Area — Floor 1',
     icon: Icons.grid_view_outlined,
     iconColor: Colors.red,
@@ -1748,7 +1749,7 @@ List<_LocationOption> _buildFineArtsLocationOptions() => <_LocationOption>[
     iconColor: Colors.deepPurple,
   ),
   _LocationOption(
-    name: 'Lacquer Painting Rural Life',
+    name: 'Lacquer Painting Rural Life (FAM-001)',
     subtitle: 'Main Gallery — Floor 1',
     icon: Icons.brush_outlined,
     iconColor: Colors.deepPurple,
@@ -1778,7 +1779,7 @@ List<_LocationOption> _buildFineArtsLocationOptions() => <_LocationOption>[
     iconColor: Colors.deepPurple,
   ),
   _LocationOption(
-    name: 'Buddhist Statue',
+    name: 'Buddhist Statue (FAM-002)',
     subtitle: 'Sculpture Hall — Floor 2',
     icon: Icons.account_balance_outlined,
     iconColor: Colors.deepPurple,
@@ -1817,7 +1818,7 @@ List<_LocationOption> _buildCityMuseumLocationOptions() => <_LocationOption>[
     iconColor: Colors.teal,
   ),
   _LocationOption(
-    name: 'Traditional Ao Dai',
+    name: 'Traditional Ao Dai (HCM-001)',
     subtitle: 'Textile Hall — Floor 1',
     icon: Icons.checkroom_outlined,
     iconColor: Colors.teal,
@@ -1847,7 +1848,7 @@ List<_LocationOption> _buildCityMuseumLocationOptions() => <_LocationOption>[
     iconColor: Colors.teal,
   ),
   _LocationOption(
-    name: 'Saigon Map 1930',
+    name: 'Saigon Map 1930 (HCM-002)',
     subtitle: 'Archive Hall — Floor 2',
     icon: Icons.map_outlined,
     iconColor: Colors.teal,
@@ -1880,110 +1881,48 @@ List<_LocationOption> _buildCityMuseumLocationOptions() => <_LocationOption>[
 
 const _independencePalaceRoutes = <_RouteOption>[
   _RouteOption(
+    emoji: '🏛',
+    name: 'Presidential Tour',
+    description: 'A focused route on the presidential functions and lifestyle.',
+    duration: '45 min',
+    stopsCount: 6,
+    stops: [
+      _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
+      _RouteStop(name: 'Presidential Power & Governance', subtitle: 'Decision-Making Center · Floor 1'),
+      _RouteStop(name: 'Diplomacy & State Ceremony', subtitle: 'Diplomatic Hall · Floor 1'),
+      _RouteStop(name: 'Presidential Lifestyle', subtitle: 'Private Quarters · Floor 1'),
+      _RouteStop(name: 'Stairs - Floor 1', subtitle: 'Transition · Floor 1'),
+      _RouteStop(name: 'War Command Bunker', subtitle: 'Command Center · Floor 2'),
+    ],
+  ),
+  _RouteOption(
     emoji: '⚡',
-    name: 'Floor 1 Highlights',
-    description: 'A fast route through the ceremonial and public-facing spaces',
+    name: 'Historical Highlights',
+    description: 'A fast route through the key historical events.',
     duration: '30 min',
     stopsCount: 4,
     stops: [
       _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
-      _RouteStop(
-        name: 'Fall of Saigon: April 30, 1975',
-        subtitle: 'Highlight Exhibition · Floor 1',
-      ),
-      _RouteStop(
-        name: 'Diplomacy & State Ceremony',
-        subtitle: 'Diplomatic Hall · Floor 1',
-      ),
-      _RouteStop(
-        name: 'Presidential Lifestyle',
-        subtitle: 'Private Quarters · Floor 1',
-      ),
-    ],
-  ),
-  _RouteOption(
-    emoji: '🏛',
-    name: 'Public & Ceremonial Route',
-    description:
-        'Follow governance, diplomacy, and presidential lifestyle across Floor 1',
-    duration: '90 min',
-    stopsCount: 5,
-    stops: [
-      _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
-      _RouteStop(
-        name: 'Presidential Power & Governance',
-        subtitle: 'Decision-Making Center · Floor 1',
-      ),
-      _RouteStop(
-        name: 'Diplomacy & State Ceremony',
-        subtitle: 'Diplomatic Hall · Floor 1',
-      ),
-      _RouteStop(
-        name: 'Presidential Lifestyle',
-        subtitle: 'Private Quarters · Floor 1',
-      ),
-      _RouteStop(
-        name: 'Fall of Saigon: April 30, 1975',
-        subtitle: 'Highlight Exhibition · Floor 1',
-      ),
-    ],
-  ),
-  _RouteOption(
-    emoji: '🕵',
-    name: 'War Operations & Bunker',
-    description:
-        'Focus on secret command infrastructure and the evacuation narrative on Floor 2',
-    duration: '60 min',
-    stopsCount: 5,
-    stops: [
-      _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
+      _RouteStop(name: 'Fall of Saigon: April 30, 1975', subtitle: 'Highlight Exhibition · Floor 1'),
       _RouteStop(name: 'Stairs - Floor 1', subtitle: 'Transition · Floor 1'),
-      _RouteStop(name: 'Stairs - Floor 2', subtitle: 'Transition · Floor 2'),
-      _RouteStop(
-        name: 'War Command Bunker',
-        subtitle: 'Command Center · Floor 2',
-      ),
-      _RouteStop(
-        name: 'Air Warfare & Evacuation',
-        subtitle: 'Helipad Centerpiece · Floor 2',
-      ),
+      _RouteStop(name: 'Air Warfare & Evacuation', subtitle: 'Helipad Centerpiece · Floor 2'),
     ],
   ),
   _RouteOption(
     emoji: '🌟',
-    name: 'Full Palace Narrative',
-    description:
-        'Complete walkthrough of all six exhibitions across two thematic floors',
-    duration: '2 hours',
-    stopsCount: 9,
+    name: 'Architecture Tour',
+    description: 'A comprehensive walkthrough of the palace architecture and rooms.',
+    duration: '60 min',
+    stopsCount: 8,
     stops: [
       _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
-      _RouteStop(
-        name: 'Fall of Saigon: April 30, 1975',
-        subtitle: 'Highlight Exhibition · Floor 1',
-      ),
-      _RouteStop(
-        name: 'Presidential Power & Governance',
-        subtitle: 'Decision-Making Center · Floor 1',
-      ),
-      _RouteStop(
-        name: 'Diplomacy & State Ceremony',
-        subtitle: 'Diplomatic Hall · Floor 1',
-      ),
-      _RouteStop(
-        name: 'Presidential Lifestyle',
-        subtitle: 'Private Quarters · Floor 1',
-      ),
+      _RouteStop(name: 'Fall of Saigon: April 30, 1975', subtitle: 'Highlight Exhibition · Floor 1'),
+      _RouteStop(name: 'Presidential Power & Governance', subtitle: 'Decision-Making Center · Floor 1'),
+      _RouteStop(name: 'Diplomacy & State Ceremony', subtitle: 'Diplomatic Hall · Floor 1'),
+      _RouteStop(name: 'Presidential Lifestyle', subtitle: 'Private Quarters · Floor 1'),
       _RouteStop(name: 'Stairs - Floor 1', subtitle: 'Transition · Floor 1'),
-      _RouteStop(name: 'Stairs - Floor 2', subtitle: 'Transition · Floor 2'),
-      _RouteStop(
-        name: 'War Command Bunker',
-        subtitle: 'Command Center · Floor 2',
-      ),
-      _RouteStop(
-        name: 'Air Warfare & Evacuation',
-        subtitle: 'Helipad Centerpiece · Floor 2',
-      ),
+      _RouteStop(name: 'War Command Bunker', subtitle: 'Command Center · Floor 2'),
+      _RouteStop(name: 'Air Warfare & Evacuation', subtitle: 'Helipad Centerpiece · Floor 2'),
     ],
   ),
 ];
@@ -1997,18 +1936,12 @@ const _warRemnantsRoutes = <_RouteOption>[
     stopsCount: 7,
     stops: [
       _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
-      _RouteStop(
-        name: 'War Crimes Exhibition',
-        subtitle: 'Building A · Floor 1',
-      ),
-      _RouteStop(name: 'Guillotine', subtitle: 'Historical Hall · Floor 1'),
-      _RouteStop(name: 'Tiger Cages', subtitle: 'Outdoor Area · Floor 1'),
+      _RouteStop(name: 'War Crimes Exhibition', subtitle: 'Building A · Floor 1'),
+      _RouteStop(name: 'Guillotine (WRM-001)', subtitle: 'Historical Hall · Floor 1'),
+      _RouteStop(name: 'Tiger Cages (WRM-002)', subtitle: 'Outdoor Area · Floor 1'),
       _RouteStop(name: 'Stairs - Floor 1', subtitle: 'Transition · Floor 1'),
       _RouteStop(name: 'Stairs - Floor 2', subtitle: 'Transition · Floor 2'),
-      _RouteStop(
-        name: 'Peace and Reconciliation Display',
-        subtitle: 'Memorial Wing · Floor 2',
-      ),
+      _RouteStop(name: 'Peace and Reconciliation Display', subtitle: 'Memorial Wing · Floor 2'),
     ],
   ),
   _RouteOption(
@@ -2019,16 +1952,24 @@ const _warRemnantsRoutes = <_RouteOption>[
     stopsCount: 5,
     stops: [
       _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
-      _RouteStop(
-        name: 'War Crimes Exhibition',
-        subtitle: 'Building A · Floor 1',
-      ),
+      _RouteStop(name: 'War Crimes Exhibition', subtitle: 'Building A · Floor 1'),
       _RouteStop(name: 'Stairs - Floor 1', subtitle: 'Transition · Floor 1'),
       _RouteStop(name: 'Stairs - Floor 2', subtitle: 'Transition · Floor 2'),
-      _RouteStop(
-        name: 'International Support Gallery',
-        subtitle: 'Building B · Floor 2',
-      ),
+      _RouteStop(name: 'International Support Gallery', subtitle: 'Building B · Floor 2'),
+    ],
+  ),
+  _RouteOption(
+    emoji: '📷',
+    name: 'Photography Tour',
+    description: 'Best spots for photography and reflection',
+    duration: '45 min',
+    stopsCount: 5,
+    stops: [
+      _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
+      _RouteStop(name: 'Tiger Cages (WRM-002)', subtitle: 'Outdoor Area · Floor 1'),
+      _RouteStop(name: 'Stairs - Floor 1', subtitle: 'Transition · Floor 1'),
+      _RouteStop(name: 'Stairs - Floor 2', subtitle: 'Transition · Floor 2'),
+      _RouteStop(name: 'Documentary Corner', subtitle: 'Archive Hall · Floor 2'),
     ],
   ),
 ];
@@ -2047,12 +1988,12 @@ const _fineArtsRoutes = <_RouteOption>[
         subtitle: 'Main Gallery · Floor 1',
       ),
       _RouteStop(
-        name: 'Lacquer Painting Rural Life',
+        name: 'Lacquer Painting Rural Life (FAM-001)',
         subtitle: 'Main Gallery · Floor 1',
       ),
       _RouteStop(name: 'Stairs - Floor 1', subtitle: 'Transition · Floor 1'),
       _RouteStop(name: 'Stairs - Floor 2', subtitle: 'Transition · Floor 2'),
-      _RouteStop(name: 'Buddhist Statue', subtitle: 'Sculpture Hall · Floor 2'),
+      _RouteStop(name: 'Buddhist Statue (FAM-002)', subtitle: 'Sculpture Hall · Floor 2'),
     ],
   ),
   _RouteOption(
@@ -2069,7 +2010,7 @@ const _fineArtsRoutes = <_RouteOption>[
         name: 'Traditional Crafts Exhibition',
         subtitle: 'Heritage Wing · Floor 2',
       ),
-      _RouteStop(name: 'Buddhist Statue', subtitle: 'Sculpture Hall · Floor 2'),
+      _RouteStop(name: 'Buddhist Statue (FAM-002)', subtitle: 'Sculpture Hall · Floor 2'),
     ],
   ),
 ];
@@ -2089,12 +2030,12 @@ const _cityMuseumRoutes = <_RouteOption>[
         subtitle: 'Main Gallery · Floor 1',
       ),
       _RouteStop(
-        name: 'Traditional Ao Dai',
+        name: 'Traditional Ao Dai (HCM-001)',
         subtitle: 'Textile Hall · Floor 1',
       ),
       _RouteStop(name: 'Stairs - Floor 1', subtitle: 'Transition · Floor 1'),
       _RouteStop(name: 'Stairs - Floor 2', subtitle: 'Transition · Floor 2'),
-      _RouteStop(name: 'Saigon Map 1930', subtitle: 'Archive Hall · Floor 2'),
+      _RouteStop(name: 'Saigon Map 1930 (HCM-002)', subtitle: 'Archive Hall · Floor 2'),
     ],
   ),
   _RouteOption(
