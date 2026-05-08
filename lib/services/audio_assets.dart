@@ -8,8 +8,8 @@ class AudioAssets {
 
   static const String standardSourceKey = 'audio/sample.wav';
 
-  static final AssetSource engAudioSource = AssetSource('audio/Eng_audio.mp3');
-  static final AssetSource vieAudioSource = AssetSource('audio/Vie_audio.mp3');
+  static final AssetSource engAudioSource = AssetSource('audio/Eng_audio.wav');
+  static final AssetSource vieAudioSource = AssetSource('audio/Vie_audio.wav');
 
   static AssetSource get standardSource => AssetSource(standardSourceKey);
 

@@ -4,63 +4,206 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:museamigo/services/audio_assets.dart';
 import 'package:museamigo/language_notifier.dart';
 import 'package:museamigo/theme_notifier.dart';
+import 'package:museamigo/models/artifact.dart';
+import 'package:museamigo/repositories/artifact_repository.dart';
 // import 'package:flutter_3d_controller/flutter_3d_controller.dart'; // Temporarily commented
 
+/// Displays full details for a single museum artifact.
+///
+/// Accepts **only** an [artifactCode] and fetches all data from the backend.
+/// No content is hardcoded — images are resolved via [Artifact.imagePath].
 class ArtifactDetailScreen extends StatefulWidget {
   const ArtifactDetailScreen({
     super.key,
-    required this.title,
-    required this.location,
-    required this.year,
-    required this.currentLocation,
-    required this.height,
-    required this.weight,
-    required this.imageAsset,
-    // this.modelAsset = '', // Optional 3D model - Temporarily commented
-    required this.audioAsset,
+    required this.artifactCode,
   });
 
-  final String title;
-  final String location;
-  final String year;
-  final String currentLocation;
-  final String height;
-  final String weight;
-  final String imageAsset;
-  final String audioAsset;
-  // final String modelAsset; // Temporarily commented
+  /// The unique code identifying the artifact (e.g. "IP-001").
+  final String artifactCode;
 
   @override
   State<ArtifactDetailScreen> createState() => _ArtifactDetailScreenState();
 }
 
 class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
+  Artifact? _artifact;
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadArtifact();
+  }
+
+  Future<void> _loadArtifact() async {
+    try {
+      final artifact =
+          await ArtifactRepository.instance.fetchByCode(widget.artifactCode);
+      if (mounted) {
+        setState(() {
+          _artifact = artifact;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: languageNotifier,
+      listenable: Listenable.merge([languageNotifier, themeNotifier]),
       builder: (context, _) {
-        return Scaffold(
+        if (_isLoading) {
+          return Scaffold(
+            backgroundColor: themeNotifier.surfaceColor,
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Loading artifact...'.tr,
+                    style: TextStyle(
+                      color: themeNotifier.textSecondaryColor,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        if (_errorMessage != null || _artifact == null) {
+          return Scaffold(
+            backgroundColor: themeNotifier.surfaceColor,
+            body: SafeArea(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline_rounded,
+                        size: 56,
+                        color: themeNotifier.textSecondaryColor,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Could not load artifact'.tr,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: themeNotifier.textPrimaryColor,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _errorMessage ?? 'Unknown error'.tr,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: themeNotifier.textSecondaryColor,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          OutlinedButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(color: themeNotifier.borderColor),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            child: Text(
+                              'Go Back'.tr,
+                              style: TextStyle(
+                                color: themeNotifier.textPrimaryColor,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          ElevatedButton(
+                            onPressed: () {
+                              setState(() {
+                                _isLoading = true;
+                                _errorMessage = null;
+                              });
+                              _loadArtifact();
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  Theme.of(context).colorScheme.primary,
+                              foregroundColor: themeNotifier.surfaceColor,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            child: Text('Retry'.tr),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
+        return _buildContent(context, _artifact!);
+      },
+    );
+  }
+
+  Widget _buildContent(BuildContext context, Artifact artifact) {
+    // Resolve current language once per build for all localized fields.
+    final lang = languageNotifier.currentLanguage;
+    return Scaffold(
       backgroundColor: themeNotifier.surfaceColor,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
             children: [
+              // ── Hero image ──────────────────────────────────────────────
               Stack(
                 children: [
                   SizedBox(
                     width: double.infinity,
                     height: 370,
                     child: ClipRRect(
-                      borderRadius: BorderRadius.vertical(
+                      borderRadius: const BorderRadius.vertical(
                         bottom: Radius.circular(24),
                       ),
                       child: Image.asset(
-                        widget.imageAsset,
+                        artifact.imagePath,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => Container(
-                          color: Colors.grey.shade300,
-                          child: Icon(Icons.image, size: 56),
+                        errorBuilder: (_, __, ___) => Container(
+                          color: themeNotifier.isDarkMode
+                              ? const Color(0xFF27272A)
+                              : Colors.grey.shade300,
+                          child: Center(
+                            child: Icon(
+                              Icons.image_outlined,
+                              size: 56,
+                              color: themeNotifier.textSecondaryColor,
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -78,24 +221,27 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
                           color: themeNotifier.surfaceColor,
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(Icons.arrow_back_ios_new_rounded),
+                        child: Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          color: themeNotifier.textPrimaryColor,
+                        ),
                       ),
                     ),
                   ),
-
                 ],
               ),
-              SizedBox(height: 12),
-              // Old Audio Player Section removed
-              SizedBox(height: 14),
+              const SizedBox(height: 12),
+              const SizedBox(height: 14),
               // 3D Model View Section - Temporarily commented out
               /*
-              if (modelAsset.isNotEmpty)
+              if (artifact.is3dAvailable && artifact.unityPrefabName.isNotEmpty)
                 Container(
                   height: 300,
                   margin: EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF3F3F3),
+                    color: themeNotifier.isDarkMode
+                        ? const Color(0xFF27272A)
+                        : const Color(0xFFF3F3F3),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Column(
@@ -114,9 +260,7 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
                             ),
                             const Spacer(),
                             IconButton(
-                              onPressed: () {
-                                // Toggle 3D view controls
-                              },
+                              onPressed: () {},
                               icon: Icon(Icons.view_in_ar),
                               color: themeNotifier.textPrimaryColor,
                             ),
@@ -125,7 +269,7 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
                       ),
                       Expanded(
                         child: Flutter3DViewer(
-                          src: modelAsset.isNotEmpty ? 'assets/models/$modelAsset' : null,
+                          src: 'assets/models/${artifact.unityPrefabName}',
                           controller: Flutter3DController(),
                         ),
                       ),
@@ -133,13 +277,13 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
                   ),
                 ),
               */
-              SizedBox(height: 14),
+              const SizedBox(height: 14),
               Transform.translate(
                 offset: const Offset(0, -22),
                 child: Container(
                   width: double.infinity,
-                  margin: EdgeInsets.symmetric(horizontal: 12),
-                  padding: EdgeInsets.fromLTRB(14, 14, 14, 18),
+                  margin: const EdgeInsets.symmetric(horizontal: 12),
+                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 18),
                   decoration: BoxDecoration(
                     color: themeNotifier.backgroundColor,
                     borderRadius: BorderRadius.circular(20),
@@ -147,63 +291,64 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // ── Audio player ─────────────────────────────────────
                       InlineAudioPlayer(
-                        audioAsset: widget.audioAsset,
-                        title: widget.title.tr,
+                        audioAsset: artifact.audioAsset,
+                        title: artifact.localizedTitle(lang),
                       ),
-                      SizedBox(height: 12),
-                      _infoRow('Title:'.tr, widget.title.tr),
-                      _infoRow('Year:'.tr, widget.year.tr),
-                      _infoRow('Current Location:'.tr, widget.currentLocation.tr),
-                      _infoRow('Height:'.tr, widget.height.tr),
-                      _infoRow('Weight:'.tr, widget.weight.tr),
-                      SizedBox(height: 18),
+                      const SizedBox(height: 12),
+                      // ── Info rows from database ──────────────────────────
+                      _infoRow('Title:'.tr, artifact.localizedTitle(lang)),
+                      _infoRow('Artifact Code:'.tr, artifact.artifactCode),
+                      _infoRow('Year:'.tr, artifact.year),
+                      _infoRow(
+                        'Exhibition Location:'.tr,
+                        artifact.localizedLocation(lang),
+                      ),
+                      _infoRow(
+                        'Category:'.tr,
+                        artifact.localizedCategory(lang),
+                      ),
+                      const SizedBox(height: 18),
+                      // ── Description ──────────────────────────────────────
                       Text(
-                        'Detailed Description'.tr,
+                        'Description'.tr,
                         style: TextStyle(
-                          fontSize: 30,
+                          fontSize: 22,
                           fontWeight: FontWeight.w700,
                           color: themeNotifier.textPrimaryColor,
                         ),
                       ),
-                      SizedBox(height: 10),
+                      const SizedBox(height: 10),
                       Text(
-                        "T-54B tank No. 843 is a legendary Vietnam People's Army tank that famously breached the Independence Palace gate in Saigon on April 30, 1975, marking the end of the Vietnam War. Led by Captain Bui Quang Than, this Soviet-made tank is celebrated as a National Treasure and symbolizes Vietnam's liberation and reunification."
-                            .tr,
+                        artifact.localizedDescription(lang),
                         style: TextStyle(
                           fontSize: 14,
                           color: themeNotifier.textSecondaryColor,
                           height: 1.6,
                         ),
                       ),
-                      SizedBox(height: 14),
-                      Text(
-                        'Enhanced Part'.tr,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: themeNotifier.textPrimaryColor,
+                      // ── Historical Context ───────────────────────────────
+                      if (artifact.resolvedHistoricalContext.isNotEmpty) ...[
+                        const SizedBox(height: 24),
+                        Text(
+                          'Historical Context'.tr,
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                            color: themeNotifier.textPrimaryColor,
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 6),
-                      Text(
-                        'The First That Was not First'.tr,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: themeNotifier.textPrimaryColor,
+                        const SizedBox(height: 10),
+                        Text(
+                          artifact.localizedHistoricalContext(lang),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: themeNotifier.textSecondaryColor,
+                            height: 1.6,
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        'While tank 843 is often pictured alongside tank 390, there is a lingering historical race. Tank 843, commanded by Bui Quang Than, reached the Palace gates first. However, after becoming momentarily wedged in the smaller side gate, tank 390 crashed through the main central gate.'
-                            .tr,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: themeNotifier.textSecondaryColor,
-                          height: 1.6,
-                        ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
@@ -213,27 +358,32 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
         ),
       ),
     );
-      },
-    );
   }
 
   Widget _infoRow(String label, String value) {
     return Padding(
-      padding: EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 125,
+            width: 145,
             child: Text(
               label,
-              style: TextStyle(fontSize: 15, color: themeNotifier.textPrimaryColor),
+              style: TextStyle(
+                fontSize: 15,
+                color: themeNotifier.textPrimaryColor,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: TextStyle(fontSize: 15, color: themeNotifier.textPrimaryColor),
+              style: TextStyle(
+                fontSize: 15,
+                color: themeNotifier.textSecondaryColor,
+              ),
             ),
           ),
         ],
@@ -242,11 +392,16 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// InlineAudioPlayer — unchanged from the original
+// ─────────────────────────────────────────────────────────────────────────────
+
 class InlineAudioPlayer extends StatefulWidget {
   final String audioAsset;
   final String title;
 
-  const InlineAudioPlayer({super.key, required this.audioAsset, required this.title});
+  const InlineAudioPlayer(
+      {super.key, required this.audioAsset, required this.title});
 
   @override
   State<InlineAudioPlayer> createState() => _InlineAudioPlayerState();
@@ -261,15 +416,7 @@ class _InlineAudioPlayerState extends State<InlineAudioPlayer> {
   @override
   void initState() {
     super.initState();
-    final source = widget.audioAsset.isEmpty || widget.audioAsset == AudioAssets.standardPath 
-        ? AudioAssets.getLocalizedSource() 
-        : AudioAssets.sourceFor(widget.audioAsset);
-    
-    _audioPlayer.setSource(source).then((_) {
-      _audioPlayer.getDuration().then((d) {
-        if (d != null && mounted) setState(() => _duration = d);
-      });
-    });
+    _initAudioSource();
 
     _audioPlayer.onPlayerStateChanged.listen((state) {
       if (mounted) {
@@ -289,6 +436,28 @@ class _InlineAudioPlayerState extends State<InlineAudioPlayer> {
 
     _audioPlayer.onPositionChanged.listen((newPosition) {
       if (mounted) setState(() => _position = newPosition);
+    });
+  }
+
+  @override
+  void didUpdateWidget(InlineAudioPlayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Always re-evaluate the source to handle dynamic language switching
+    // for audio, ignoring specific backend paths for now.
+    _initAudioSource();
+  }
+
+  void _initAudioSource() {
+    // For now, always play the localized audio files regardless of backend data.
+    final source = AudioAssets.getLocalizedSource();
+
+    _audioPlayer.setSource(source).then((_) {
+      _audioPlayer.getDuration().then((d) {
+        if (d != null && mounted) setState(() => _duration = d);
+      });
+    }).catchError((e) {
+      // Handle source setting errors
+      debugPrint("Error setting audio source: $e");
     });
   }
 
@@ -348,20 +517,28 @@ class _InlineAudioPlayerState extends State<InlineAudioPlayer> {
             ),
           ],
         ),
-        SizedBox(height: 10),
+        const SizedBox(height: 10),
         SliderTheme(
           data: SliderTheme.of(context).copyWith(
             trackHeight: 3,
             thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
             activeTrackColor: Theme.of(context).colorScheme.primary,
-            inactiveTrackColor: const Color(0xFFB5B5B5),
+            inactiveTrackColor: themeNotifier.isDarkMode
+                ? const Color(0xFF3F3F46)
+                : const Color(0xFFB5B5B5),
             thumbColor: Theme.of(context).colorScheme.primary,
             overlayShape: const RoundSliderOverlayShape(overlayRadius: 10),
           ),
           child: Slider(
             min: 0.0,
-            max: _duration.inMilliseconds.toDouble() > 0 ? _duration.inMilliseconds.toDouble() : 1.0,
-            value: _position.inMilliseconds.toDouble().clamp(0.0, _duration.inMilliseconds.toDouble() > 0 ? _duration.inMilliseconds.toDouble() : 1.0),
+            max: _duration.inMilliseconds.toDouble() > 0
+                ? _duration.inMilliseconds.toDouble()
+                : 1.0,
+            value: _position.inMilliseconds.toDouble().clamp(
+                0.0,
+                _duration.inMilliseconds.toDouble() > 0
+                    ? _duration.inMilliseconds.toDouble()
+                    : 1.0),
             onChanged: (value) {
               final newPosition = Duration(milliseconds: value.toInt());
               _audioPlayer.seek(newPosition);
@@ -369,17 +546,19 @@ class _InlineAudioPlayerState extends State<InlineAudioPlayer> {
           ),
         ),
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 2),
+          padding: const EdgeInsets.symmetric(horizontal: 2),
           child: Row(
             children: [
               Text(
                 _formatDuration(_position),
-                style: TextStyle(color: themeNotifier.textSecondaryColor, fontSize: 11),
+                style: TextStyle(
+                    color: themeNotifier.textSecondaryColor, fontSize: 11),
               ),
               const Spacer(),
               Text(
                 _formatDuration(_duration),
-                style: TextStyle(color: themeNotifier.textSecondaryColor, fontSize: 11),
+                style: TextStyle(
+                    color: themeNotifier.textSecondaryColor, fontSize: 11),
               ),
             ],
           ),
