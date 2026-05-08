@@ -298,6 +298,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         builder: (_) => Museum3DMapScreen(
           initialFromLocationName: action.fromLocationName,
           initialToLocationName: action.toLocationName,
+          autoStartRouteFlow: action.autoStartRouteFlow,
         ),
       ),
     );
@@ -971,6 +972,10 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
           isVietnamese: isVietnamese,
         );
       }
+    }
+
+    if (_isTourSuggestionQuestion(normalized) && museum != null) {
+      return _buildTourSuggestionReply(museum, isVietnamese);
     }
 
     if (_isRouteQuestion(normalized) && museum != null) {
@@ -2029,6 +2034,38 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     );
   }
 
+  _ResolvedReply _buildTourSuggestionReply(
+    MuseumDto museum,
+    bool isVietnamese,
+  ) {
+    final mapAction = _ChatAction(
+      type: _ChatActionType.map,
+      label: isVietnamese ? 'Mở bản đồ 3D' : 'Open 3D Map',
+      icon: Icons.map_outlined,
+      autoStartRouteFlow: true,
+    );
+
+    final text = isVietnamese
+        ? '🗺 Tại ${museum.name}, có 2 lộ trình tham quan gợi ý:\n\n'
+              '🚶 Quick Explorer — Khám phá nhanh\n'
+              '  ⏱ Khoảng 15 phút | Dừng tại các điểm nổi bật gần vị trí hiện tại của bạn.\n\n'
+              '🧭 Deep Dive — Khám phá toàn diện\n'
+              '  ⏱ Khoảng 45 phút | Trải nghiệm đầy đủ các điểm tham quan chính từ vị trí của bạn.\n\n'
+              'Nhấn bên dưới để mở bản đồ 3D và chọn lộ trình phù hợp!'
+        : '🗺 At ${museum.name}, there are 2 suggested tour routes:\n\n'
+              '🚶 Quick Explorer\n'
+              '  ⏱ ~15 minutes | A short walk through highlights near your current location.\n\n'
+              '🧭 Deep Dive\n'
+              '  ⏱ ~45 minutes | A full exploration of the main highlights from your spot.\n\n'
+              'Tap below to open the 3D map and pick a route!';
+
+    return _ResolvedReply(
+      text: text,
+      actions: <_ChatAction>[mapAction],
+      suppressDefaultActions: true,
+    );
+  }
+
   Future<_ResolvedReply> _buildAllExhibitionsReply({
     required MuseumDto museum,
     required bool isVietnamese,
@@ -2243,6 +2280,44 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       'tuyen tham quan',
       'tham quan',
       'path',
+    ]);
+  }
+
+  static bool _isTourSuggestionQuestion(String text) {
+    final hasTourKeyword = _containsAny(text, <String>[
+      'tour',
+      'tours',
+      'suggested tour',
+      'suggested tours',
+      'recommend',
+      'recommended',
+      'suggestion',
+      'suggest',
+      'visit plan',
+      'sightseeing',
+      'quick explorer',
+      'deep dive',
+      'goi y',
+      'de xuat',
+      'chuyen tham quan',
+      'ke hoach tham quan',
+      'lich tham quan',
+      'tham quan theo lo trinh',
+      'lo trinh goi y',
+      'lo trinh de xuat',
+      'di tham quan',
+      'kham pha nhanh',
+      'kham pha sau',
+    ]);
+    if (hasTourKeyword) return true;
+    // "what route should I take / what routes are available"
+    return _containsAny(text, <String>[
+      'what route',
+      'which route',
+      'available route',
+      'lo trinh nao',
+      'nen di theo lo trinh',
+      'nen di tuyen nao',
     ]);
   }
 
@@ -3805,6 +3880,7 @@ class _ChatAction {
     this.toLocationName,
     this.color,
     this.value,
+    this.autoStartRouteFlow = false,
   });
 
   final _ChatActionType type;
@@ -3814,6 +3890,7 @@ class _ChatAction {
   final String? toLocationName;
   final Color? color;
   final String? value;
+  final bool autoStartRouteFlow;
 }
 
 class _ResolvedReply {

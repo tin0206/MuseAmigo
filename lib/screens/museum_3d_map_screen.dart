@@ -13,11 +13,13 @@ class Museum3DMapScreen extends StatefulWidget {
     this.initialFromLocationName,
     this.initialToLocationName,
     this.onBack,
+    this.autoStartRouteFlow = false,
   });
 
   final String? initialFromLocationName;
   final String? initialToLocationName;
   final VoidCallback? onBack;
+  final bool autoStartRouteFlow;
 
   @override
   State<Museum3DMapScreen> createState() => _Museum3DMapScreenState();
@@ -100,6 +102,10 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
     _selectedFloor = _currentConfig.floors.first;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
+        return;
+      }
+      if (widget.autoStartRouteFlow) {
+        _openRouteFlow();
         return;
       }
       final route = _buildInitialRoute();
