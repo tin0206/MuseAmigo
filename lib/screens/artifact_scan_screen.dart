@@ -96,9 +96,7 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
       // Navigate to artifact detail
       Navigator.of(context).pushNamed(
         AppRoutes.artifactDetail,
-        arguments: <String, dynamic>{
-          'artifactCode': artifact.artifactCode,
-        },
+        arguments: <String, dynamic>{'artifactCode': artifact.artifactCode},
       );
     } catch (e) {
       if (!mounted) return;
@@ -144,7 +142,10 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
               SizedBox(height: 8),
               Text(
                 'Type the code shown near the artifact.',
-                style: TextStyle(fontSize: 13, color: themeNotifier.textSecondaryColor),
+                style: TextStyle(
+                  fontSize: 13,
+                  color: themeNotifier.textSecondaryColor,
+                ),
               ),
               SizedBox(height: 12),
               Container(
@@ -180,7 +181,9 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
                       ),
                       child: Text(
                         'Cancel',
-                        style: TextStyle(color: themeNotifier.textSecondaryColor),
+                        style: TextStyle(
+                          color: themeNotifier.textSecondaryColor,
+                        ),
                       ),
                     ),
                   ),

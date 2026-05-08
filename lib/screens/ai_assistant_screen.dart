@@ -335,9 +335,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     if (!mounted) return;
     await Navigator.of(context).pushNamed(
       AppRoutes.artifactDetail,
-      arguments: {
-        'artifactCode': artifact.artifactCode,
-      },
+      arguments: {'artifactCode': artifact.artifactCode},
     );
   }
 
