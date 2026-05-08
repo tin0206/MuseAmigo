@@ -4,7 +4,6 @@ enum FontSizeLevel {
   small(0.85),
   medium(1.0),
   large(1.5);
-
   final double scale;
   const FontSizeLevel(this.scale);
 }

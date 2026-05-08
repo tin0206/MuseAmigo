@@ -1,7 +1,9 @@
 import 'package:flutter/gestures.dart';
 import 'package:museamigo/app_routes.dart';
-import 'package:museamigo/session.dart';
-import 'package:museamigo/services/audio_assets.dart';
+import 'package:museamigo/l10n/artifact_localizer.dart';
+import 'package:museamigo/l10n/translations.dart';
+import 'package:museamigo/language_notifier.dart';
+import 'package:museamigo/models/artifact.dart';
 import 'package:flutter/material.dart';
 import 'package:museamigo/theme_notifier.dart';
 
@@ -70,88 +72,109 @@ class _SearchScreenState extends State<SearchScreen> {
 
   static const _allResults = <_ResultItem>[
     _ResultItem(
+      artifactCode: 'IP-001',
       title: 'Tank 390',
       location: 'Main Gate Courtyard',
       floor: 'Floor 1',
-      exhibition: 'Fall of Saigon: April 30, 1975',
+      exhibition: 'Fall of Saigon — April 30, 1975',
     ),
     _ResultItem(
-      title: 'Tank 843',
+      artifactCode: 'IP-002',
+      title: 'T-54 Tank',
       location: 'Side Gate Courtyard',
       floor: 'Floor 1',
-      exhibition: 'Fall of Saigon: April 30, 1975',
+      exhibition: 'Fall of Saigon — April 30, 1975',
     ),
     _ResultItem(
+      artifactCode: 'IP-007',
       title: 'Jeep M151A2',
       location: 'Front Courtyard Military Display',
       floor: 'Floor 1',
-      exhibition: 'Fall of Saigon: April 30, 1975',
+      exhibition: 'Fall of Saigon — April 30, 1975',
     ),
     _ResultItem(
+      artifactCode: 'IP-006',
       title: 'F-5E Bombing Marks',
       location: 'Rooftop Terrace',
       floor: 'Floor 1',
-      exhibition: 'Fall of Saigon: April 30, 1975',
+      exhibition: 'Fall of Saigon — April 30, 1975',
     ),
     _ResultItem(
+      artifactCode: 'IP-009',
       title: 'Cabinet Room Table',
       location: 'Cabinet Room',
       floor: 'Floor 1',
       exhibition: 'Presidential Power & Governance',
     ),
     _ResultItem(
+      artifactCode: 'IP-015',
       title: 'Vice President\'s Desk',
       location: 'Vice President Office',
       floor: 'Floor 1',
       exhibition: 'Presidential Power & Governance',
     ),
     _ResultItem(
+      artifactCode: 'IP-013',
       title: 'National Security Council Maps',
       location: 'Tactical Command Room',
       floor: 'Floor 1',
       exhibition: 'Presidential Power & Governance',
     ),
     _ResultItem(
+      artifactCode: 'IP-008',
       title: 'Binh Ngo Dai Cao Lacquer Painting',
       location: 'Ambassador\'s Chamber',
       floor: 'Floor 1',
-      exhibition: 'Diplomacy & State Ceremony',
+      exhibition: 'Art & Diplomatic Heritage',
     ),
     _ResultItem(
+      artifactCode: 'IP-010',
       title: 'The Golden Dragon Tapestry',
       location: 'State Banquet Hall',
       floor: 'Floor 1',
-      exhibition: 'Diplomacy & State Ceremony',
+      exhibition: 'Art & Diplomatic Heritage',
     ),
     _ResultItem(
+      artifactCode: 'IP-004',
       title: 'Mercedes-Benz 200 W110',
       location: 'Outdoor Vehicle Display Area',
       floor: 'Floor 1',
-      exhibition: 'Presidential Lifestyle',
+      exhibition: 'Presidential Transport & Lifestyle',
     ),
     _ResultItem(
+      artifactCode: 'IP-012',
       title: 'The Presidential Bed',
       location: 'Presidential Bedroom',
       floor: 'Floor 1',
-      exhibition: 'Presidential Lifestyle',
+      exhibition: 'Presidential Transport & Lifestyle',
     ),
     _ResultItem(
+      artifactCode: 'IP-005',
       title: 'War Command Bunker Map',
       location: 'Command Bunker',
       floor: 'Floor 2',
-      exhibition: 'War Command Bunker',
+      exhibition: 'Underground War Command Center',
     ),
     _ResultItem(
+      artifactCode: 'IP-011',
       title: 'Telecommunications Center',
       location: 'Telecommunications Room',
       floor: 'Floor 2',
-      exhibition: 'War Command Bunker',
+      exhibition: 'Underground War Command Center',
     ),
     _ResultItem(
+      artifactCode: 'IP-003',
       title: 'UH-1 Helicopter',
       location: 'Rooftop Helipad',
       floor: 'Floor 2',
-      exhibition: 'Air Warfare & Evacuation',
+      exhibition: 'Fall of Saigon — April 30, 1975',
+    ),
+    _ResultItem(
+      artifactCode: 'IP-014',
+      title: 'Basement Cinema Projector',
+      location: 'Basement Cinema Room',
+      floor: 'Floor 2',
+      exhibition: 'Presidential Transport & Lifestyle',
     ),
   ];
 
@@ -232,7 +255,10 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return ListenableBuilder(
+      listenable: Listenable.merge([languageNotifier, themeNotifier]),
+      builder: (context, _) {
+        return Scaffold(
       backgroundColor: themeNotifier.surfaceColor,
       body: SafeArea(
         top: false,
@@ -277,7 +303,7 @@ class _SearchScreenState extends State<SearchScreen> {
                           color: themeNotifier.textPrimaryColor,
                         ),
                         decoration: InputDecoration(
-                          hintText: 'Search artifacts, places...',
+                          hintText: 'Search artifacts, places...'.tr,
                           hintStyle: TextStyle(
                             color: themeNotifier.textSecondaryColor,
                             fontSize: 14,
@@ -478,7 +504,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 child: Row(
                   children: [
                     Text(
-                      '${_filteredResults.length} Results',
+                      '${_filteredResults.length} ${'Results'.tr}',
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 16,
@@ -499,7 +525,7 @@ class _SearchScreenState extends State<SearchScreen> {
                           ),
                           SizedBox(width: 4),
                           Text(
-                            _sortBy == 'default' ? 'Sort by' : 'A-Z',
+                            _sortBy == 'default' ? 'Sort by'.tr : 'A-Z',
                             style: TextStyle(
                               color: themeNotifier.textSecondaryColor,
                               fontSize: 14,
@@ -538,7 +564,7 @@ class _SearchScreenState extends State<SearchScreen> {
                           ),
                           SizedBox(width: 6),
                           Text(
-                            'Recent',
+                            'Recent'.tr,
                             style: TextStyle(
                               fontWeight: FontWeight.w700,
                               fontSize: 16,
@@ -560,7 +586,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       SizedBox(height: 22),
                       // Trending
                       Text(
-                        'Trending',
+                        'Trending'.tr,
                         style: TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 16,
@@ -607,6 +633,8 @@ class _SearchScreenState extends State<SearchScreen> {
         ),
       ),
     );
+      },
+    );
   }
 }
 
@@ -614,20 +642,21 @@ class _SearchScreenState extends State<SearchScreen> {
 
 class _ResultItem {
   const _ResultItem({
+    required this.artifactCode,
     required this.title,
     required this.location,
     required this.floor,
     required this.exhibition,
-    this.has3dModel = false,
-    this.modelName = '',
   });
 
+  final String artifactCode;
   final String title;
   final String location;
   final String floor;
   final String exhibition;
-  final bool has3dModel;
-  final String modelName;
+
+  /// Resolves the artifact image via the central [Artifact] model.
+  String get imagePath => Artifact.imagePathForCode(artifactCode);
 }
 
 // ── Recent row ─────────────────────────────────────────────────────────────────
@@ -682,15 +711,7 @@ class _ResultCard extends StatelessWidget {
     Navigator.of(context).pushNamed(
       AppRoutes.artifactDetail,
       arguments: <String, dynamic>{
-        'title': item.title,
-        'year': '1947',
-        'location': item.location,
-        'currentLocation': AppSession.currentMuseumName.value,
-        'height': '~2.4 meters',
-        'weight': '~39.7 tons',
-        'imageAsset': 'assets/images/museum.jpg',
-        'audioAsset': AudioAssets.standardPath,
-        // 'modelAsset': item.has3dModel ? 'assets/models/${item.modelName}.obj' : '', // Temporarily commented
+        'artifactCode': item.artifactCode,
       },
     );
   }
@@ -730,11 +751,14 @@ class _ResultCard extends StatelessWidget {
                 width: 76,
                 height: 76,
                 child: Image.asset(
-                  'assets/images/museum.jpg',
+                  item.imagePath,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => Container(
-                    color: Colors.grey.shade300,
-                    child: Icon(Icons.image, size: 32),
+                  errorBuilder: (_, __, ___) => Container(
+                    color: themeNotifier.isDarkMode
+                        ? const Color(0xFF27272A)
+                        : Colors.grey.shade300,
+                    child: Icon(Icons.image, size: 32,
+                        color: themeNotifier.textSecondaryColor),
                   ),
                 ),
               ),
@@ -746,7 +770,11 @@ class _ResultCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    item.title,
+                    ArtifactLocalizer.title(
+                      item.artifactCode,
+                      languageNotifier.currentLanguage,
+                      englishFallback: item.title,
+                    ),
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
                       fontSize: 15,
@@ -756,7 +784,11 @@ class _ResultCard extends StatelessWidget {
                   ),
                   SizedBox(height: 4),
                   Text(
-                    item.location,
+                    ArtifactLocalizer.location(
+                      item.artifactCode,
+                      languageNotifier.currentLanguage,
+                      englishFallback: item.location,
+                    ),
                     style: TextStyle(
                       fontSize: 13,
                       color: themeNotifier.textSecondaryColor,
@@ -776,7 +808,7 @@ class _ResultCard extends StatelessWidget {
                       ),
                       SizedBox(width: 4),
                       Text(
-                        item.floor,
+                        item.floor.tr,
                         style: TextStyle(
                           fontSize: 12,
                           color: themeNotifier.textSecondaryColor,
@@ -801,7 +833,7 @@ class _ResultCard extends StatelessWidget {
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               child: Text(
-                'Detail',
+                'Detail'.tr,
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
               ),
             ),

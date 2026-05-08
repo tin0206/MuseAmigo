@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:museamigo/services/backend_api.dart';
-import 'package:museamigo/services/audio_assets.dart';
 import 'package:museamigo/app_routes.dart';
 import 'package:museamigo/session.dart';
 import 'package:museamigo/achievement_notifier.dart';
@@ -95,21 +94,10 @@ class _ArtifactScanScreenState extends State<ArtifactScanScreen>
       if (!mounted) return;
 
       // Navigate to artifact detail
-      final audioAsset = (artifact.audioAsset.isNotEmpty)
-          ? artifact.audioAsset
-          : AudioAssets.standardPath;
-
       Navigator.of(context).pushNamed(
         AppRoutes.artifactDetail,
         arguments: <String, dynamic>{
-          'title': artifact.title,
-          'year': artifact.year,
-          'location': 'Unknown location',
-          'currentLocation': 'Museum',
-          'height': 'Unknown',
-          'weight': 'Unknown',
-          'imageAsset': 'assets/images/museum.jpg',
-          'audioAsset': audioAsset,
+          'artifactCode': artifact.artifactCode,
         },
       );
     } catch (e) {

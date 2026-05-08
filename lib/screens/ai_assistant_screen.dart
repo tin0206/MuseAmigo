@@ -336,11 +336,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     await Navigator.of(context).pushNamed(
       AppRoutes.artifactDetail,
       arguments: {
-        'title': artifact.title,
-        'location': AppSession.currentMuseumName.value,
-        'year': artifact.year,
-        'currentLocation': AppSession.currentMuseumName.value,
-        'audioAsset': artifact.audioAsset,
+        'artifactCode': artifact.artifactCode,
       },
     );
   }

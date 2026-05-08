@@ -18,8 +18,6 @@ import 'package:museamigo/screens/achievements_screen.dart';
 import 'package:museamigo/screens/onboarding_flow_screen.dart';
 import 'package:museamigo/screens/sign_up_screen.dart';
 import 'package:museamigo/services/backend_api.dart';
-import 'package:museamigo/services/audio_assets.dart';
-
 import 'package:museamigo/language_notifier.dart';
 import 'package:museamigo/profile_notifier.dart';
 import 'package:museamigo/font_size_notifier.dart';
@@ -116,21 +114,7 @@ class MuseAmigoApp extends StatelessWidget {
               final args = settings.arguments as Map<String, dynamic>?;
               return MaterialPageRoute(
                 builder: (_) => ArtifactDetailScreen(
-                  title: args?['title'] as String? ?? 'Artifact',
-                  location: args?['location'] as String? ?? 'Unknown location',
-                  year: args?['year'] as String? ?? 'N/A',
-                  currentLocation:
-                      args?['currentLocation'] as String? ??
-                      'Independence Palace',
-                  height: args?['height'] as String? ?? '~2.4 meters',
-                  weight: args?['weight'] as String? ?? '~39.7 tons',
-                  imageAsset:
-                      args?['imageAsset'] as String? ??
-                      'assets/images/museum.jpg',
-                  audioAsset:
-                      args?['audioAsset'] as String? ??
-                      AudioAssets.standardPath,
-                  // modelAsset: args?['modelAsset'] as String? ?? '', // Temporarily commented
+                  artifactCode: args?['artifactCode'] as String? ?? '',
                 ),
               );
             }

@@ -1,12 +1,12 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:museamigo/app_routes.dart';
+import 'package:museamigo/models/artifact.dart' as artifact_model;
 import 'package:museamigo/services/backend_api.dart';
 import 'package:museamigo/l10n/translations.dart';
 import 'package:museamigo/profile_notifier.dart';
 import 'package:museamigo/language_notifier.dart';
 import 'package:museamigo/session.dart';
-import 'package:museamigo/services/audio_assets.dart';
 import 'package:museamigo/theme_notifier.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -120,6 +120,7 @@ class _HomeScreenState extends State<HomeScreen> {
         period: a.year,
         color: _artifactColors[e.key % _artifactColors.length],
         location: _locationForArtifact(a),
+        artifactCode: a.artifactCode,
       );
     }).toList();
   }
@@ -606,25 +607,24 @@ class _HomeScreenState extends State<HomeScreen> {
                         SizedBox(height: 12),
                         ...List.generate(
                           artifacts.length,
-                          (i) => _ArtifactRow(
-                            item: artifacts[i],
-                            onTap: () => Navigator.of(context).pushNamed(
-                              AppRoutes.artifactDetail,
-                              arguments: <String, dynamic>{
-                                'title': artifacts[i].name,
-                                'year': artifacts[i].period,
-                                'location': _detailLocationForArtifact(
-                                  artifacts[i],
-                                  'Floor 1',
-                                ),
-                                'currentLocation': museumName,
-                                'height': '~2.4 meters',
-                                'weight': '~39.7 tons',
-                                'imageAsset': 'assets/images/museum.jpg',
-                                'audioAsset': AudioAssets.standardPath,
-                              },
-                            ),
-                          ),
+                          (i) {
+                            // Resolve artifact code from API data if available
+                            String? artifactCode;
+                            if (useApi && _loadedArtifacts != null && i < _loadedArtifacts!.length) {
+                              artifactCode = _loadedArtifacts![i].artifactCode;
+                            }
+                            return _ArtifactRow(
+                              item: artifacts[i],
+                              onTap: artifactCode != null
+                                  ? () => Navigator.of(context).pushNamed(
+                                        AppRoutes.artifactDetail,
+                                        arguments: <String, dynamic>{
+                                          'artifactCode': artifactCode,
+                                        },
+                                      )
+                                  : null,
+                            );
+                          },
                         ),
                         SizedBox(height: 20),
                         // ── Floors ────────────────────────────────────────
@@ -778,7 +778,7 @@ class _AreaCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(
-                        'Independent Palace'.tr,
+                        'Independence Palace'.tr,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -843,17 +843,24 @@ class _ArtifactItem {
     required this.period,
     required this.color,
     this.location = '',
+    this.artifactCode = '',
   });
   final String name;
   final String period;
   final Color color;
   final String location;
+  final String artifactCode;
+
+  /// Resolves the image path from the centralized Artifact model.
+  String get imagePath => artifactCode.isNotEmpty
+      ? artifact_model.Artifact.imagePathForCode(artifactCode)
+      : artifact_model.Artifact.placeholderImage;
 }
 
 class _ArtifactRow extends StatelessWidget {
-  const _ArtifactRow({required this.item, required this.onTap});
+  const _ArtifactRow({required this.item, this.onTap});
   final _ArtifactItem item;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -886,10 +893,12 @@ class _ArtifactRow extends StatelessWidget {
                 width: 68,
                 height: 68,
                 child: Image.asset(
-                  'assets/images/museum.jpg',
+                  item.imagePath,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => Container(
-                    color: item.color.withValues(alpha: 0.3),
+                  errorBuilder: (_, __, ___) => Container(
+                    color: themeNotifier.isDarkMode
+                        ? const Color(0xFF27272A)
+                        : item.color.withValues(alpha: 0.3),
                     child: Icon(Icons.image, color: item.color, size: 32),
                   ),
                 ),
