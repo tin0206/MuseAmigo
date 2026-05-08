@@ -181,11 +181,13 @@ class _HomeScreenState extends State<HomeScreen> {
         return const [
           _AreaItem(
             label: 'Floor 1',
-            sublabel: 'Ceremony, governance, diplomacy',
+            sublabel:
+                'Exhibitions: Fall of Saigon, Presidential Power & Governance, Diplomacy & State Ceremony, Presidential Lifestyle',
           ),
           _AreaItem(
             label: 'Floor 2',
-            sublabel: 'War operations & secret infrastructure',
+            sublabel:
+                'Exhibitions: War Command Bunker, Air Warfare & Evacuation',
           ),
         ];
       default:
@@ -605,27 +607,26 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         SizedBox(height: 12),
-                        ...List.generate(
-                          artifacts.length,
-                          (i) {
-                            // Resolve artifact code from API data if available
-                            String? artifactCode;
-                            if (useApi && _loadedArtifacts != null && i < _loadedArtifacts!.length) {
-                              artifactCode = _loadedArtifacts![i].artifactCode;
-                            }
-                            return _ArtifactRow(
-                              item: artifacts[i],
-                              onTap: artifactCode != null
-                                  ? () => Navigator.of(context).pushNamed(
-                                        AppRoutes.artifactDetail,
-                                        arguments: <String, dynamic>{
-                                          'artifactCode': artifactCode,
-                                        },
-                                      )
-                                  : null,
-                            );
-                          },
-                        ),
+                        ...List.generate(artifacts.length, (i) {
+                          // Resolve artifact code from API data if available
+                          String? artifactCode;
+                          if (useApi &&
+                              _loadedArtifacts != null &&
+                              i < _loadedArtifacts!.length) {
+                            artifactCode = _loadedArtifacts![i].artifactCode;
+                          }
+                          return _ArtifactRow(
+                            item: artifacts[i],
+                            onTap: artifactCode != null
+                                ? () => Navigator.of(context).pushNamed(
+                                    AppRoutes.artifactDetail,
+                                    arguments: <String, dynamic>{
+                                      'artifactCode': artifactCode,
+                                    },
+                                  )
+                                : null,
+                          );
+                        }),
                         SizedBox(height: 20),
                         // ── Floors ────────────────────────────────────────
                         _SectionHeader(
