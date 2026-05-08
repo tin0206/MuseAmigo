@@ -2045,19 +2045,42 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       autoStartRouteFlow: true,
     );
 
-    final text = isVietnamese
-        ? '🗺 Tại ${museum.name}, có 2 lộ trình tham quan gợi ý:\n\n'
-              '🚶 Quick Explorer — Khám phá nhanh\n'
-              '  ⏱ Khoảng 15 phút | Dừng tại các điểm nổi bật gần vị trí hiện tại của bạn.\n\n'
-              '🧭 Deep Dive — Khám phá toàn diện\n'
-              '  ⏱ Khoảng 45 phút | Trải nghiệm đầy đủ các điểm tham quan chính từ vị trí của bạn.\n\n'
-              'Nhấn bên dưới để mở bản đồ 3D và chọn lộ trình phù hợp!'
-        : '🗺 At ${museum.name}, there are 2 suggested tour routes:\n\n'
-              '🚶 Quick Explorer\n'
-              '  ⏱ ~15 minutes | A short walk through highlights near your current location.\n\n'
-              '🧭 Deep Dive\n'
-              '  ⏱ ~45 minutes | A full exploration of the main highlights from your spot.\n\n'
-              'Tap below to open the 3D map and pick a route!';
+    final isIndependencePalace = museum.id == 1;
+    final text = isIndependencePalace
+        ? (isVietnamese
+              ? '🗺 Tại ${museum.name}, có 4 lộ trình tham quan gợi ý:\n\n'
+                    '🚶 Quick Explorer — Khám phá nhanh\n'
+                    '  ⏱ Khoảng 15 phút | Dừng tại các điểm nổi bật gần vị trí hiện tại của bạn.\n\n'
+                    '🧭 Deep Dive — Khám phá toàn diện\n'
+                    '  ⏱ Khoảng 45 phút | Trải nghiệm đầy đủ các điểm tham quan chính từ vị trí của bạn.\n\n'
+                    '🕵 War Operations & Bunker — Tác chiến & Hầm chỉ huy\n'
+                    '  ⏱ Khoảng 60 phút | Tập trung vào hạ tầng chỉ huy bí mật và câu chuyện di tản ở tầng 2.\n\n'
+                    '🌟 Full Palace Narrative — Toàn cảnh Dinh Độc Lập\n'
+                    '  ⏱ Khoảng 2 giờ | Hành trình đầy đủ qua cả 6 triển lãm trên 2 tầng chủ đề.\n\n'
+                    'Nhấn bên dưới để mở bản đồ 3D và chọn lộ trình phù hợp!'
+              : '🗺 At ${museum.name}, there are 4 suggested tour routes:\n\n'
+                    '🚶 Quick Explorer\n'
+                    '  ⏱ ~15 minutes | A short walk through highlights near your current location.\n\n'
+                    '🧭 Deep Dive\n'
+                    '  ⏱ ~45 minutes | A full exploration of the main highlights from your spot.\n\n'
+                    '🕵 War Operations & Bunker\n'
+                    '  ⏱ ~60 minutes | Focus on secret command infrastructure and the evacuation narrative on Floor 2.\n\n'
+                    '🌟 Full Palace Narrative\n'
+                    '  ⏱ ~2 hours | Complete walkthrough of all six exhibitions across two thematic floors.\n\n'
+                    'Tap below to open the 3D map and pick a route!')
+        : (isVietnamese
+              ? '🗺 Tại ${museum.name}, có 2 lộ trình tham quan gợi ý:\n\n'
+                    '🚶 Quick Explorer — Khám phá nhanh\n'
+                    '  ⏱ Khoảng 15 phút | Dừng tại các điểm nổi bật gần vị trí hiện tại của bạn.\n\n'
+                    '🧭 Deep Dive — Khám phá toàn diện\n'
+                    '  ⏱ Khoảng 45 phút | Trải nghiệm đầy đủ các điểm tham quan chính từ vị trí của bạn.\n\n'
+                    'Nhấn bên dưới để mở bản đồ 3D và chọn lộ trình phù hợp!'
+              : '🗺 At ${museum.name}, there are 2 suggested tour routes:\n\n'
+                    '🚶 Quick Explorer\n'
+                    '  ⏱ ~15 minutes | A short walk through highlights near your current location.\n\n'
+                    '🧭 Deep Dive\n'
+                    '  ⏱ ~45 minutes | A full exploration of the main highlights from your spot.\n\n'
+                    'Tap below to open the 3D map and pick a route!');
 
     return _ResolvedReply(
       text: text,
