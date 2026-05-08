@@ -317,6 +317,48 @@ const Map<String, Map<String, String>> _localizedStrings = {
     'War History Path': 'War History Path',
     'Deep dive into wartime history and artifacts':
         'Deep dive into wartime history and artifacts',
+    'Presidential Tour': 'Presidential Tour',
+    'Historical Highlights': 'Historical Highlights',
+    'Architecture Tour': 'Architecture Tour',
+    'Quick Overview': 'Quick Overview',
+    'Photography Tour': 'Photography Tour',
+    'Masterpieces Collection': 'Masterpieces Collection',
+    'Traditional Arts Walk': 'Traditional Arts Walk',
+    'City History Journey': 'City History Journey',
+    'Cultural Heritage Trail': 'Cultural Heritage Trail',
+    'Guided route generated from museum route data.':
+        'Guided route generated from museum route data.',
+    'Key wartime exhibits and evidence galleries':
+        'Key wartime exhibits and evidence galleries',
+    'A short route through the core museum highlights':
+        'A short route through the core museum highlights',
+    'Best spots for photography and reflection':
+        'Best spots for photography and reflection',
+    'A curated route through signature fine art works':
+        'A curated route through signature fine art works',
+    'Explore traditional Vietnamese craft and sculpture':
+        'Explore traditional Vietnamese craft and sculpture',
+    'A route through key exhibits on the history of Saigon and Ho Chi Minh City':
+        'A route through key exhibits on the history of Saigon and Ho Chi Minh City',
+    'Highlights of local heritage, archives, and urban memory':
+        'Highlights of local heritage, archives, and urban memory',
+    'A short walk from your current location':
+        'A short walk from your current location',
+    'Explore the main highlights from here':
+        'Explore the main highlights from here',
+    'Quick Explorer': 'Quick Explorer',
+    'A short walk through highlights near your current location.':
+        'A short walk through highlights near your current location.',
+    'Deep Dive': 'Deep Dive',
+    'A full exploration of the main highlights from your spot.':
+        'A full exploration of the main highlights from your spot.',
+    'War Operations & Bunker': 'War Operations & Bunker',
+    'Focus on secret command infrastructure and the evacuation story on Floor 2.':
+        'Focus on secret command infrastructure and the evacuation story on Floor 2.',
+    'Full Palace Narrative': 'Full Palace Narrative',
+    'Complete walkthrough across all six exhibitions over two thematic floors.':
+        'Complete walkthrough across all six exhibitions over two thematic floors.',
+    '2 hours': '2 hours',
     'Quick Visit': 'Quick Visit',
     'Perfect for visitors with limited time':
         'Perfect for visitors with limited time',
@@ -828,6 +870,48 @@ const Map<String, Map<String, String>> _localizedStrings = {
     'War History Path': 'Con đường Lịch sử Chiến tranh',
     'Deep dive into wartime history and artifacts':
         'Tìm hiểu sâu về lịch sử và hiện vật thời chiến',
+    'Presidential Tour': 'Hành trình Tổng thống',
+    'Historical Highlights': 'Điểm nhấn Lịch sử',
+    'Architecture Tour': 'Hành trình Kiến trúc',
+    'Quick Overview': 'Tổng quan nhanh',
+    'Photography Tour': 'Hành trình Nhiếp ảnh',
+    'Masterpieces Collection': 'Bộ sưu tập Kiệt tác',
+    'Traditional Arts Walk': 'Lộ trình Nghệ thuật Truyền thống',
+    'City History Journey': 'Hành trình Lịch sử Thành phố',
+    'Cultural Heritage Trail': 'Lộ trình Di sản Văn hóa',
+    'Guided route generated from museum route data.':
+        'Lộ trình được tạo từ dữ liệu tuyến tham quan của bảo tàng.',
+    'Key wartime exhibits and evidence galleries':
+        'Các hiện vật chiến tranh tiêu biểu và phòng trưng bày chứng tích',
+    'A short route through the core museum highlights':
+        'Lộ trình ngắn qua các điểm nổi bật cốt lõi của bảo tàng',
+    'Best spots for photography and reflection':
+        'Những điểm phù hợp nhất để chụp ảnh và chiêm nghiệm',
+    'A curated route through signature fine art works':
+        'Lộ trình chọn lọc qua các tác phẩm mỹ thuật tiêu biểu',
+    'Explore traditional Vietnamese craft and sculpture':
+        'Khám phá nghệ thuật thủ công và điêu khắc truyền thống Việt Nam',
+    'A route through key exhibits on the history of Saigon and Ho Chi Minh City':
+        'Lộ trình qua các trưng bày tiêu biểu về lịch sử Sài Gòn và Thành phố Hồ Chí Minh',
+    'Highlights of local heritage, archives, and urban memory':
+        'Các điểm nhấn về di sản địa phương, lưu trữ và ký ức đô thị',
+    'A short walk from your current location':
+        'Lộ trình ngắn từ vị trí hiện tại của bạn',
+    'Explore the main highlights from here':
+        'Khám phá các điểm nổi bật chính từ vị trí này',
+    'Quick Explorer': 'Khám phá nhanh',
+    'A short walk through highlights near your current location.':
+        'Lộ trình ngắn qua các điểm nổi bật gần vị trí hiện tại của bạn.',
+    'Deep Dive': 'Khám phá toàn diện',
+    'A full exploration of the main highlights from your spot.':
+        'Lộ trình đầy đủ qua các điểm nổi bật chính từ vị trí của bạn.',
+    'War Operations & Bunker': 'Tác chiến & Hầm chỉ huy',
+    'Focus on secret command infrastructure and the evacuation story on Floor 2.':
+        'Tập trung vào hạ tầng chỉ huy bí mật và câu chuyện di tản ở tầng 2.',
+    'Full Palace Narrative': 'Toàn cảnh Dinh Độc Lập',
+    'Complete walkthrough across all six exhibitions over two thematic floors.':
+        'Hành trình đầy đủ qua 6 triển lãm trên 2 tầng chủ đề.',
+    '2 hours': '2 giờ',
     'Quick Visit': 'Tham quan nhanh',
     'Perfect for visitors with limited time':
         'Hoàn hảo cho khách tham quan có thời gian hạn hẹp',
@@ -865,7 +949,7 @@ const Map<String, Map<String, String>> _localizedStrings = {
     'Next  →': 'Tiếp theo →',
     'Route Ready': 'Tuyến đường đã sẵn sàng',
     'Detecting your position...': 'Đang xác định vị trí của bạn...',
-    'Using indoor positioning': 'Sử dụng định vị trong nhà',
+    'Using indoor positioning': 'Sử dụng định vị',
     'GPS unavailable': 'GPS không khả dụng',
     'Unable to detect your location. Please enable GPS.':
         'Không thể phát hiện vị trí của bạn. Vui lòng bật GPS.',

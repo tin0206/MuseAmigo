@@ -3,6 +3,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:museamigo/l10n/translations.dart';
+import 'package:museamigo/services/backend_api.dart';
 import 'package:museamigo/session.dart';
 import 'package:museamigo/theme_notifier.dart';
 import 'package:geolocator/geolocator.dart';
@@ -545,20 +546,15 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
           _LocationPickerSheet(options: _currentConfig.locationOptions),
     );
     if (loc == null || !mounted) return;
-    _showRoutePicker(loc, _currentConfig.routes);
+    final suggestedRoutes = await _resolveSuggestedRoutes(loc);
+    if (!mounted) return;
+    _showRoutePicker(suggestedRoutes);
   }
 
-  Future<void> _showRoutePicker(
-    _LocationOption from,
-    List<_RouteOption> routes,
-  ) async {
-    List<_RouteOption> suggestedRoutes = routes
-        .where((route) => route.stops.first.name == from.name)
+  Future<void> _showRoutePicker(List<_RouteOption> suggestedRoutes) async {
+    final normalizedRoutes = suggestedRoutes
+        .map(_normalizeRouteForFloorTransfer)
         .toList();
-
-    if (suggestedRoutes.isEmpty) {
-      suggestedRoutes = _generateDynamicRoutes(from);
-    }
     final route = await showModalBottomSheet<_RouteOption>(
       context: context,
       isScrollControlled: true,
@@ -566,10 +562,111 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => _RoutePickerSheet(routes: suggestedRoutes),
+      builder: (_) => _RoutePickerSheet(routes: normalizedRoutes),
     );
     if (route == null || !mounted) return;
     _showRouteReady(route);
+  }
+
+  Future<List<_RouteOption>> _resolveSuggestedRoutes(
+    _LocationOption from,
+  ) async {
+    final museumId = AppSession.currentMuseumId.value;
+
+    try {
+      final apiRoutes = await BackendApi.instance.fetchRoutes(museumId);
+      final mapped = _mapApiRoutesToOptions(apiRoutes, from);
+      if (mapped.isNotEmpty) {
+        return mapped;
+      }
+    } catch (_) {
+      // Fall through to local route suggestions when backend is unavailable.
+    }
+
+    final localFiltered = _currentConfig.routes
+        .where((route) => route.stops.first.name == from.name)
+        .toList();
+    if (localFiltered.isNotEmpty) {
+      return localFiltered;
+    }
+
+    return _generateDynamicRoutes(from);
+  }
+
+  List<_RouteOption> _mapApiRoutesToOptions(
+    List<RouteDto> apiRoutes,
+    _LocationOption from,
+  ) {
+    return apiRoutes.map((dto) {
+      final template = _findTemplateRouteByName(dto.name);
+      if (template != null) {
+        return _RouteOption(
+          emoji: template.emoji,
+          name: dto.name,
+          description: template.description,
+          duration: dto.estimatedTime,
+          stopsCount: dto.stopsCount,
+          stops: template.stops,
+        );
+      }
+
+      final fallback = _generateFallbackRouteFromApi(from, dto);
+      return _RouteOption(
+        emoji: fallback.emoji,
+        name: dto.name,
+        description: 'Guided route generated from museum route data.',
+        duration: dto.estimatedTime,
+        stopsCount: dto.stopsCount,
+        stops: fallback.stops,
+      );
+    }).toList();
+  }
+
+  _RouteOption? _findTemplateRouteByName(String name) {
+    final target = name.trim().toLowerCase();
+    for (final route in _currentConfig.routes) {
+      if (route.name.trim().toLowerCase() == target) {
+        return route;
+      }
+    }
+    return null;
+  }
+
+  _RouteOption _generateFallbackRouteFromApi(
+    _LocationOption from,
+    RouteDto dto,
+  ) {
+    final dynamicRoutes = _generateDynamicRoutes(from);
+    if (dynamicRoutes.isEmpty) {
+      final fromLoc = _findLocationByName(from.name);
+      final singleStop = fromLoc == null
+          ? const <_RouteStop>[]
+          : <_RouteStop>[
+              _RouteStop(
+                name: fromLoc.name,
+                subtitle: _subtitleForLocation(fromLoc),
+              ),
+            ];
+      return _RouteOption(
+        emoji: '🧭',
+        name: dto.name,
+        description: 'Guided route generated from museum route data.',
+        duration: dto.estimatedTime,
+        stopsCount: dto.stopsCount,
+        stops: singleStop,
+      );
+    }
+
+    final pickIndex = dto.stopsCount >= 6 && dynamicRoutes.length > 1 ? 1 : 0;
+    final seed = dynamicRoutes[pickIndex];
+    return _RouteOption(
+      emoji: seed.emoji,
+      name: dto.name,
+      description: seed.description,
+      duration: dto.estimatedTime,
+      stopsCount: dto.stopsCount,
+      stops: seed.stops,
+    );
   }
 
   List<_RouteOption> _generateDynamicRoutes(_LocationOption fromOption) {
@@ -665,7 +762,66 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
     ];
   }
 
+  _RouteOption _normalizeRouteForFloorTransfer(_RouteOption route) {
+    if (route.stops.length < 2) {
+      return route;
+    }
+
+    final normalizedStops = <_RouteStop>[];
+
+    void addStopByName(String stopName) {
+      if (normalizedStops.isNotEmpty && normalizedStops.last.name == stopName) {
+        return;
+      }
+
+      final location = _findLocationByName(stopName);
+      if (location != null) {
+        normalizedStops.add(
+          _RouteStop(
+            name: location.name,
+            subtitle: _subtitleForLocation(location),
+          ),
+        );
+        return;
+      }
+
+      normalizedStops.add(
+        _RouteStop(name: stopName, subtitle: 'Transition Point'),
+      );
+    }
+
+    for (var i = 0; i < route.stops.length; i++) {
+      final current = route.stops[i];
+      addStopByName(current.name);
+
+      if (i == route.stops.length - 1) {
+        continue;
+      }
+
+      final next = route.stops[i + 1];
+      final currentFloor = _floorOfStop(current.name);
+      final nextFloor = _floorOfStop(next.name);
+
+      if (currentFloor != null &&
+          nextFloor != null &&
+          currentFloor != nextFloor) {
+        addStopByName('Stairs - $currentFloor');
+        addStopByName('Stairs - $nextFloor');
+      }
+    }
+
+    return _RouteOption(
+      emoji: route.emoji,
+      name: route.name,
+      description: route.description,
+      duration: route.duration,
+      stopsCount: normalizedStops.length,
+      stops: normalizedStops,
+    );
+  }
+
   Future<void> _showRouteReady(_RouteOption route) async {
+    final normalizedRoute = _normalizeRouteForFloorTransfer(route);
     final started = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -673,10 +829,10 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => _RouteReadySheet(route: route),
+      builder: (_) => _RouteReadySheet(route: normalizedRoute),
     );
     if (started == true && mounted) {
-      _startNavigation(route);
+      _startNavigation(normalizedRoute);
     }
   }
 
@@ -889,10 +1045,11 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
   }
 
   void _startNavigation(_RouteOption route) {
-    final firstFloor = _floorOfStop(route.stops.first.name);
+    final normalizedRoute = _normalizeRouteForFloorTransfer(route);
+    final firstFloor = _floorOfStop(normalizedRoute.stops.first.name);
     setState(() {
       _isPreviewRoute = false;
-      _activeRoute = route;
+      _activeRoute = normalizedRoute;
       _currentStopIndex = 0;
       if (firstFloor != null) {
         _selectedFloor = firstFloor;
@@ -901,10 +1058,11 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
   }
 
   void _showPreviewRoute(_RouteOption route) {
-    final firstFloor = _floorOfStop(route.stops.first.name);
+    final normalizedRoute = _normalizeRouteForFloorTransfer(route);
+    final firstFloor = _floorOfStop(normalizedRoute.stops.first.name);
     setState(() {
       _isPreviewRoute = true;
-      _activeRoute = route;
+      _activeRoute = normalizedRoute;
       _currentStopIndex = 0;
       if (firstFloor != null) {
         _selectedFloor = firstFloor;
@@ -1906,13 +2064,39 @@ List<_LocationOption> _buildCityMuseumLocationOptions() => <_LocationOption>[
 
 const _independencePalaceRoutes = <_RouteOption>[
   _RouteOption(
-    emoji: '🏛',
-    name: 'Presidential Tour',
-    description: 'A focused route on the presidential functions and lifestyle.',
-    duration: '45 min',
-    stopsCount: 6,
+    emoji: '🚶',
+    name: 'Quick Explorer',
+    description: 'A short walk through highlights near your current location.',
+    duration: '15 min',
+    stopsCount: 4,
     stops: [
       _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
+      _RouteStop(
+        name: 'Fall of Saigon: April 30, 1975',
+        subtitle: 'Highlight Exhibition · Floor 1',
+      ),
+      _RouteStop(
+        name: 'Presidential Power & Governance',
+        subtitle: 'Decision-Making Center · Floor 1',
+      ),
+      _RouteStop(
+        name: 'Diplomacy & State Ceremony',
+        subtitle: 'Diplomatic Hall · Floor 1',
+      ),
+    ],
+  ),
+  _RouteOption(
+    emoji: '🧭',
+    name: 'Deep Dive',
+    description: 'A full exploration of the main highlights from your spot.',
+    duration: '45 min',
+    stopsCount: 9,
+    stops: [
+      _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
+      _RouteStop(
+        name: 'Fall of Saigon: April 30, 1975',
+        subtitle: 'Highlight Exhibition · Floor 1',
+      ),
       _RouteStop(
         name: 'Presidential Power & Governance',
         subtitle: 'Decision-Making Center · Floor 1',
@@ -1926,25 +2110,32 @@ const _independencePalaceRoutes = <_RouteOption>[
         subtitle: 'Private Quarters · Floor 1',
       ),
       _RouteStop(name: 'Stairs - Floor 1', subtitle: 'Transition · Floor 1'),
+      _RouteStop(name: 'Stairs - Floor 2', subtitle: 'Transition · Floor 2'),
       _RouteStop(
         name: 'War Command Bunker',
         subtitle: 'Command Center · Floor 2',
       ),
+      _RouteStop(
+        name: 'Air Warfare & Evacuation',
+        subtitle: 'Helipad Centerpiece · Floor 2',
+      ),
     ],
   ),
   _RouteOption(
-    emoji: '⚡',
-    name: 'Historical Highlights',
-    description: 'A fast route through the key historical events.',
-    duration: '30 min',
-    stopsCount: 4,
+    emoji: '🕵',
+    name: 'War Operations & Bunker',
+    description:
+        'Focus on secret command infrastructure and the evacuation story on Floor 2.',
+    duration: '60 min',
+    stopsCount: 5,
     stops: [
       _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
-      _RouteStop(
-        name: 'Fall of Saigon: April 30, 1975',
-        subtitle: 'Highlight Exhibition · Floor 1',
-      ),
       _RouteStop(name: 'Stairs - Floor 1', subtitle: 'Transition · Floor 1'),
+      _RouteStop(name: 'Stairs - Floor 2', subtitle: 'Transition · Floor 2'),
+      _RouteStop(
+        name: 'War Command Bunker',
+        subtitle: 'Command Center · Floor 2',
+      ),
       _RouteStop(
         name: 'Air Warfare & Evacuation',
         subtitle: 'Helipad Centerpiece · Floor 2',
@@ -1953,10 +2144,10 @@ const _independencePalaceRoutes = <_RouteOption>[
   ),
   _RouteOption(
     emoji: '🌟',
-    name: 'Architecture Tour',
+    name: 'Full Palace Narrative',
     description:
-        'A comprehensive walkthrough of the palace architecture and rooms.',
-    duration: '60 min',
+        'Complete walkthrough across all six exhibitions over two thematic floors.',
+    duration: '2 hours',
     stopsCount: 8,
     stops: [
       _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
@@ -1977,10 +2168,7 @@ const _independencePalaceRoutes = <_RouteOption>[
         subtitle: 'Private Quarters · Floor 1',
       ),
       _RouteStop(name: 'Stairs - Floor 1', subtitle: 'Transition · Floor 1'),
-      _RouteStop(
-        name: 'War Command Bunker',
-        subtitle: 'Command Center · Floor 2',
-      ),
+      _RouteStop(name: 'Stairs - Floor 2', subtitle: 'Transition · Floor 2'),
       _RouteStop(
         name: 'Air Warfare & Evacuation',
         subtitle: 'Helipad Centerpiece · Floor 2',
@@ -2516,7 +2704,7 @@ class _RoutePickerSheet extends StatelessWidget {
                                     ),
                                     SizedBox(width: 4),
                                     Text(
-                                      '${route.stopsCount} stops'.tr,
+                                      '${route.stopsCount} ${'stops'.tr}',
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: themeNotifier.textSecondaryColor,
