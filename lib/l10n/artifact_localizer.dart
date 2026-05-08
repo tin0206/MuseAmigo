@@ -23,10 +23,10 @@ class ArtifactLocalizer {
   // ── Vietnamese Titles ───────────────────────────────────────────────────────
   static const Map<String, String> _titlesVi = {
     'IP-001': 'Xe tăng 390',
-    'IP-002': 'Xe tăng T-54 Số 843',
+    'IP-002': 'Xe tăng T-54',
     'IP-003': 'Trực thăng UH-1 Iroquois',
     'IP-004': 'Mercedes-Benz 200 W110',
-    'IP-005': 'Bản đồ Hầm Chỉ huy Chiến tranh',
+    'IP-005': 'Bản đồ Hầm Chỉ huy tác chiến',
     'IP-006': 'Dấu tích Ném bom F-5E',
     'IP-007': 'Xe Jeep M151A2',
     'IP-008': 'Tranh sơn mài Bình Ngô Đại Cáo',

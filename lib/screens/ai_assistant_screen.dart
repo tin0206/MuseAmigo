@@ -6,6 +6,7 @@ import 'package:museamigo/font_size_notifier.dart';
 import 'package:museamigo/l10n/translations.dart';
 import 'package:museamigo/language_notifier.dart';
 import 'package:museamigo/screens/museum_3d_map_screen.dart';
+import 'package:museamigo/l10n/artifact_localizer.dart';
 import 'package:museamigo/services/backend_api.dart';
 import 'package:museamigo/session.dart';
 import 'package:museamigo/theme_notifier.dart';
@@ -88,7 +89,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       return 'Xin chào! Mình là Ogima, hướng dẫn viên cá nhân của bạn tại $museumName. '
           'Mình có thể giúp bạn khám phá hiện vật, chỉ đường trong museum, '
           'trả lời câu hỏi và gợi ý các trưng bày thú vị. '
-          'ôm nay mình có thể hỗ trợ bạn điều gì?';
+          'Hôm nay mình có thể hỗ trợ bạn điều gì?';
     }
 
     return 'Hello! I\'m Ogima, your personal guide to $museumName. '
@@ -102,9 +103,14 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       return <String>[
         'Giờ mở cửa của $museumName là gì?',
         'Giá vé tại $museumName là bao nhiêu?',
-        'ại $museumName có những triển lãm nào?',
-        'ại $museumName có những lộ trình tham quan nào?',
-        'ãy cho tôi biết về hiện vật mã IP-002.',
+        'Tại $museumName có những triển lãm nào?',
+        'Tầng 1 có những hiện vật gì?',
+        'Tầng 2 có những triển lãm gì?',
+        'Hãy cho tôi biết về hiện vật mã IP-002.',
+        'Xe tăng T-54 nằm ở đâu?',
+        'Cho tôi thông tin về triển lãm Quyền lực & Quản trị hành pháp.',
+        'Cho tôi thông tin về triển lãm Phòng Quân sự & Chiến tranh.',
+        'Tại $museumName có những lộ trình tham quan nào?',
         '$museumName nằm ở đâu?',
       ];
     }
@@ -113,8 +119,13 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       'What are the operating hours of $museumName?',
       'How much is the ticket at $museumName?',
       'What exhibitions are available at $museumName?',
-      'What routes are available at $museumName?',
+      'What artifacts are on Floor 1?',
+      'What exhibitions are on Floor 2?',
       'Tell me about artifact code IP-002.',
+      'Where is Tank T-54?',
+      'Tell me about the Presidential Power & Governance exhibition.',
+      'Tell me about the Military Rooms & War Relics exhibition.',
+      'What routes are available at $museumName?',
       'Where is $museumName located?',
     ];
   }
@@ -789,7 +800,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
             final exNum = exhibition.id - 100; // 101→1, 102→2 …
             final exFloor = artifactSpot.floor;
             exhibitionLine = isVietnamese
-                ? '🏺 ${artifactForRoute.title} (${artifactForRoute.artifactCode}) thuộc Triển lãm $exNum — ${exhibition.name} ($exFloor).\n'
+                ? '🏺 ${artifactForRoute.title.tr} (${artifactForRoute.artifactCode}) thuộc Triển lãm $exNum — ${exhibition.name.tr} ($exFloor).\n'
                       'Mình sẽ hướng dẫn bạn đến triển lãm này. '
                 : '🏺 ${artifactForRoute.title} (${artifactForRoute.artifactCode}) is part of Exhibition $exNum — ${exhibition.name} ($exFloor).\n'
                       'I will guide you to that exhibition. ';
@@ -924,7 +935,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
           );
           return _ResolvedReply(
             text: isVietnamese
-                ? '${artifact.title} (${artifact.artifactCode})${exhibition != null ? ' thuộc triển lãm ${exhibition.name}.' : ' nằm tại ${spot.name} (${spot.floor}).'} '
+                ? '${artifact.title.tr} (${artifact.artifactCode})${exhibition != null ? ' thuộc triển lãm ${exhibition.name.tr}.' : ' nằm tại ${spot.name} (${spot.floor}).'} '
                       'Bạn đang ở tầng nào vậy? Bạn có thể trả lời là tầng 1 hoặc tầng 2!'
                 : '${artifact.title} (${artifact.artifactCode})${exhibition != null ? ' belongs to the exhibition ${exhibition.name}.' : ' is at ${spot.name} (${spot.floor}).'} '
                       'Which floor are you on? You can say Floor 1 or Floor 2!',
@@ -936,9 +947,22 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     }
 
     ArtifactDto? artifactDetail;
+    var triedNameLookup = false;
     if (artifactCode != null) {
-      artifactDetail = await BackendApi.instance.fetchArtifact(artifactCode);
+      try {
+        artifactDetail = await BackendApi.instance.fetchArtifact(artifactCode);
+      } catch (_) {
+        // Code not found or backend error — fall through to name lookup.
+      }
+      if (artifactDetail == null && museum != null) {
+        triedNameLookup = true;
+        artifactDetail = await _findSpecificArtifactForDetail(
+          normalized,
+          museum.id,
+        );
+      }
     } else if (museum != null) {
+      triedNameLookup = true;
       artifactDetail = await _findSpecificArtifactForDetail(
         normalized,
         museum.id,
@@ -1030,6 +1054,19 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
           );
         }
       } catch (_) {}
+    }
+
+    // If we tried to find an artifact by name and found nothing, return a
+    // friendly "not found" reply instead of calling the AI backend.
+    if (triedNameLookup && museum != null) {
+      return _ResolvedReply(
+        text: isVietnamese
+            ? '${museum.name} không có hiện vật nào khớp với tên đó. '
+                  'Bạn có thể thử mã hiện vật (ví dụ: IP-001) hoặc tên khác nhé!'
+            : '${museum.name} doesn\'t have an artifact matching that name. '
+                  'Try an artifact code (e.g. IP-001) or a different name.',
+        suppressDefaultActions: true,
+      );
     }
 
     return _ResolvedReply(text: await BackendApi.instance.askAi(text));
@@ -1405,6 +1442,9 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     String normalized,
     int museumId,
   ) async {
+    // Strip intent words so only the artifact name is matched.
+    final nameTarget = _extractInfoTarget(normalized);
+
     List<ArtifactDto> artifacts = <ArtifactDto>[];
     try {
       artifacts = await BackendApi.instance.fetchArtifacts(museumId);
@@ -1416,7 +1456,16 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       return null;
     }
 
-    return _findSpecificArtifact(normalized, artifacts);
+    // Find the artifact whose English or Vietnamese name matches the target.
+    final matched = _findSpecificArtifact(nameTarget, artifacts);
+    if (matched == null) return null;
+
+    // Fetch the artifact by code for fresh, complete data.
+    try {
+      return await BackendApi.instance.fetchArtifact(matched.artifactCode);
+    } catch (_) {
+      return matched;
+    }
   }
 
   static ArtifactDto? _findSpecificArtifact(
@@ -1451,46 +1500,46 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     var bestScore = 0;
     var bestLength = 0;
 
-    for (final artifact in artifacts) {
-      final normalizedTitle = _normalizeForIntent(artifact.title);
+    int _scoreCandidate(String candidateTitle) {
+      final normalizedCandidate = _normalizeForIntent(candidateTitle);
 
-      if (normalized.contains(normalizedTitle)) {
-        final score = 1000 + normalizedTitle.length;
-        if (score > bestScore) {
-          bestScore = score;
-          bestLength = normalizedTitle.length;
-          bestMatch = artifact;
-        }
-        continue;
+      if (normalized.contains(normalizedCandidate)) {
+        return 1000 + normalizedCandidate.length;
       }
 
-      if (normalizedTitle.contains(normalized) && normalized.length >= 6) {
-        final score = 900 + normalized.length;
-        if (score > bestScore) {
-          bestScore = score;
-          bestLength = normalizedTitle.length;
-          bestMatch = artifact;
-        }
-        continue;
+      if (normalizedCandidate.contains(normalized) && normalized.length >= 6) {
+        return 900 + normalized.length;
       }
 
-      final titleWords = normalizedTitle
+      final titleWords = normalizedCandidate
           .split(RegExp(r'[^a-z0-9]+'))
           .where((word) => word.length > 2 && !stopwords.contains(word))
           .toList();
-      if (titleWords.isEmpty) {
-        continue;
-      }
+      if (titleWords.isEmpty) return 0;
 
       final matchCount = titleWords.where(normalized.contains).length;
       final requiredMatches = titleWords.length == 1
           ? 1
           : (titleWords.length / 2).ceil();
-      if (matchCount >= requiredMatches) {
-        final score = matchCount * 10 + normalizedTitle.length;
+      if (matchCount < requiredMatches) return 0;
+
+      return matchCount * 10 + normalizedCandidate.length;
+    }
+
+    for (final artifact in artifacts) {
+      // Score both the English title and its Vietnamese translation.
+      // translateIn reads from translations.dart — the single source of truth
+      // for English→Vietnamese artifact title mappings.
+      final viTitle = artifact.title.translateIn('Vietnamese');
+      final candidates = viTitle != artifact.title
+          ? [artifact.title, viTitle]
+          : [artifact.title];
+
+      for (final candidate in candidates) {
+        final score = _scoreCandidate(candidate);
         if (score > bestScore) {
           bestScore = score;
-          bestLength = normalizedTitle.length;
+          bestLength = _normalizeForIntent(candidate).length;
           bestMatch = artifact;
         }
       }
@@ -1551,15 +1600,15 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     if (exhibition != null && exSpot != null) {
       final exNum = exhibition.id - 100;
       locationText = isVietnamese
-          ? '🏺 ${artifact.title} (${artifact.artifactCode}) thuộc Triển lãm $exNum — ${exhibition.name} (${exSpot.floor}).'
+          ? '🏺 ${artifact.title.tr} (${artifact.artifactCode}) thuộc Triển lãm $exNum — ${exhibition.name.tr} (${exSpot.floor}).'
           : '🏺 ${artifact.title} (${artifact.artifactCode}) is part of Exhibition $exNum — ${exhibition.name} (${exSpot.floor}).';
     } else if (exSpot != null) {
       locationText = isVietnamese
-          ? '🏺 ${artifact.title} (${artifact.artifactCode}) nằm tại ${exSpot.name} (${exSpot.floor}).'
+          ? '🏺 ${artifact.title.tr} (${artifact.artifactCode}) nằm tại ${exSpot.name} (${exSpot.floor}).'
           : '🏺 ${artifact.title} (${artifact.artifactCode}) is at ${exSpot.name} (${exSpot.floor}).';
     } else {
       locationText = isVietnamese
-          ? '🏺 ${artifact.title} (${artifact.artifactCode}) thuộc ${museum.name}.'
+          ? '🏺 ${artifact.title.tr} (${artifact.artifactCode}) thuộc ${museum.name.tr}.'
           : '🏺 ${artifact.title} (${artifact.artifactCode}) is at ${museum.name}.';
     }
 
@@ -1613,11 +1662,11 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
 
     return _ResolvedReply(
       text: isVietnamese
-          ? 'Hiện vật: ${artifact.title} (${artifact.artifactCode})\n'
-                '${exhibition != null ? 'Triển lãm: ${exhibition.name}\n' : ''}'
+          ? 'Hiện vật: ${artifact.title.tr} (${artifact.artifactCode})\n'
+                '${exhibition != null ? 'Triển lãm: ${exhibition.name.tr}\n' : ''}'
                 'Năm: ${artifact.year}\n'
                 'Vị trí: $location\n'
-                'Mô tả: ${artifact.description}'
+                'Mô tả: ${ArtifactLocalizer.description(artifact.artifactCode, 'Vietnamese', englishFallback: artifact.description)}'
           : 'Artifact: ${artifact.title} (${artifact.artifactCode})\n'
                 '${exhibition != null ? 'Exhibition: ${exhibition.name}\n' : ''}'
                 'Year: ${artifact.year}\n'
@@ -1660,6 +1709,43 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       'dan toi den',
       'dan toi',
     ]);
+  }
+
+  /// Strips common intent words from a query and returns just the subject name.
+  /// E.g. "thong tin ve xe tang 390" → "xe tang 390"
+  ///      "tell me about tank 390" → "tank 390"
+  static String _extractInfoTarget(String normalized) {
+    const prefixes = <String>[
+      // Vietnamese – longer/more specific first
+      'thong tin chi tiet ve ',
+      'thong tin ve ',
+      'thong tin cua ',
+      'cho toi biet ve ',
+      'cho toi xem thong tin ve ',
+      'cho toi xem ',
+      'gioi thieu ve ',
+      'mo ta ve ',
+      'the nao ve ',
+      'noi ve ',
+      // English
+      'information about ',
+      'details about ',
+      'tell me about ',
+      'info about ',
+      'detail about ',
+      'what is ',
+      'what are ',
+      'show me ',
+      'about ',
+    ];
+    for (final prefix in prefixes) {
+      final idx = normalized.indexOf(prefix);
+      if (idx >= 0) {
+        final target = normalized.substring(idx + prefix.length).trim();
+        if (target.isNotEmpty) return target;
+      }
+    }
+    return normalized;
   }
 
   static String _extractDirectionTarget(String text) {
@@ -1909,12 +1995,9 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
             .where((a) => exhibitionCodes.contains(a.artifactCode))
             .toList();
         if (matched.isNotEmpty) {
-          final lines = matched
-              .map((a) => '${a.title} (${a.artifactCode})')
-              .join('\n• ');
           artifactLine = isVietnamese
-              ? '\n🏺 Hiện vật:\n• $lines'
-              : '\n🏺 Artifacts:\n• $lines';
+              ? '\n🏺 Hiện vật:\n• ${matched.map((a) => '${a.title.tr} (${a.artifactCode})').join('\n• ')}'
+              : '\n🏺 Artifacts:\n• ${matched.map((a) => '${a.title} (${a.artifactCode})').join('\n• ')}';
         }
       } catch (_) {}
     } else {
@@ -1926,12 +2009,9 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
           return aSpot != null && spot != null && aSpot.floor == spot.floor;
         }).toList();
         if (floorArtifacts.isNotEmpty) {
-          final lines = floorArtifacts
-              .map((a) => '${a.title} (${a.artifactCode})')
-              .join('\n• ');
           artifactLine = isVietnamese
-              ? '\n🏺 Hiện vật:\n• $lines'
-              : '\n🏺 Artifacts:\n• $lines';
+              ? '\n🏺 Hiện vật:\n• ${floorArtifacts.map((a) => '${a.title.tr} (${a.artifactCode})').join('\n• ')}'
+              : '\n🏺 Artifacts:\n• ${floorArtifacts.map((a) => '${a.title} (${a.artifactCode})').join('\n• ')}';
         }
       } catch (_) {}
     }
@@ -1944,7 +2024,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
 
     return _ResolvedReply(
       text: isVietnamese
-          ? '🏛 ${exhibition.name}\n📍 Vị trí: ${exhibition.location}$artifactLine$navHint'
+          ? '🏛 ${exhibition.name.tr}\n📍 Vị trí: ${exhibition.location.tr}$artifactLine$navHint'
           : '🏛 ${exhibition.name}\n📍 Location: ${exhibition.location}$artifactLine$navHint',
       actions: actions,
       suppressDefaultActions: true,
@@ -1992,13 +2072,13 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       if (floorExhibitions.isNotEmpty) {
         sb.writeln('\n🏛 Triển lãm:');
         for (final e in floorExhibitions) {
-          sb.writeln('• ${e.name} (${e.location})');
+          sb.writeln('• ${e.name.tr} (${e.location.tr})');
         }
       }
       if (floorArtifacts.isNotEmpty) {
         sb.writeln('\n🏺 Hiện vật:');
         for (final a in floorArtifacts) {
-          sb.writeln('• ${a.title} (${a.artifactCode})');
+          sb.writeln('• ${a.title.tr} (${a.artifactCode})');
         }
       }
       if (floorExhibitions.isEmpty && floorArtifacts.isEmpty) {
@@ -2123,7 +2203,9 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       );
     }
 
-    final lines = filtered.map((e) => '• ${e.name} (${e.location})').join('\n');
+    final lines = isVietnamese
+        ? filtered.map((e) => '• ${e.name.tr} (${e.location.tr})').join('\n')
+        : filtered.map((e) => '• ${e.name} (${e.location})').join('\n');
     final header = floorLabel == null
         ? (isVietnamese
               ? '🏛 Các triển lãm tại ${museum.name} (${filtered.length} triển lãm):'
@@ -2139,7 +2221,8 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   }
 
   String? _extractArtifactCode(String text) {
-    final codeRegex = RegExp(r'\b([A-Za-z]{2,4})\s?-?\s?(\d{3})\b');
+    // Dash is required to avoid matching e.g. "Tank 390" as "TANK-390".
+    final codeRegex = RegExp(r'\b([A-Za-z]{2,4})\s?-\s?(\d{3})\b');
     final match = codeRegex.firstMatch(text);
     if (match == null) {
       return null;
@@ -2205,7 +2288,21 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   }
 
   Future<MuseumDto?> _resolveMuseum(String text) async {
-    final museums = await BackendApi.instance.fetchMuseums();
+    List<MuseumDto> museums;
+    try {
+      museums = await BackendApi.instance.fetchMuseums();
+    } catch (_) {
+      // Backend unreachable — fall back to session context so intent
+      // detection (artifact name lookup etc.) can still proceed locally.
+      return MuseumDto(
+        id: AppSession.currentMuseumId.value,
+        name: AppSession.currentMuseumName.value,
+        operatingHours: '',
+        baseTicketPrice: 0,
+        latitude: 0,
+        longitude: 0,
+      );
+    }
     if (museums.isEmpty) {
       return null;
     }
@@ -4046,12 +4143,17 @@ const Map<String, List<String>> _exhibitionViAliases = <String, List<String>>{
     'ngay 30 thang 4',
     'tran danh sai gon',
     'sup do',
+    'giai phong sai gon: 30 thang 4, 1975',
   ],
   'Presidential Power & Governance': <String>[
-    'quyen luc tong thong',
+    'quyen luc hanh phap',
+    'quyen luc & quan tri hanh phap',
+    'quan tri hanh phap',
+    'quyen hanh hanh phap',
     'phong hop noi cac',
     'noi cac',
     'quan tri quoc gia',
+    'quyen luc tong thong',
     'quyen hanh tong thong',
   ],
   'Diplomacy & State Ceremony': <String>[
@@ -4060,12 +4162,22 @@ const Map<String, List<String>> _exhibitionViAliases = <String, List<String>>{
     'le nghi nha nuoc',
     'phong nghi le',
     'le nghi chinh thuc',
+    'nghi le quoc gia',
+    'ngoai giao & nghi le quoc gia',
   ],
   'Presidential Lifestyle': <String>[
+    'doi song sinh hoat tong thong',
+    'khong gian sinh hoat tong thong',
+    'sinh hoat tong thong',
+    'cuoc song sinh hoat tong thong',
+    'doi song sinh hoat',
+    'noi o tong thong',
     'cuoc song tong thong',
     'doi song tong thong',
     'phong cach song tong thong',
     'noi that tong thong',
+    'phong cach song & doi song tong thong',
+    'phong cach song & doi song',
   ],
   'War Command Bunker': <String>[
     'ham chi huy',
@@ -4074,6 +4186,8 @@ const Map<String, List<String>> _exhibitionViAliases = <String, List<String>>{
     'bo chi huy',
     'ham ngam',
     'bunker',
+    'ham chi huy tac chien',
+    'ham chi huy chien tranh',
   ],
   'Air Warfare & Evacuation': <String>[
     'khong chien',
@@ -4083,6 +4197,8 @@ const Map<String, List<String>> _exhibitionViAliases = <String, List<String>>{
     'truc thang',
     'san bay truc thang',
     'mai nha',
+    'tac chien khong quan & cuoc di tan',
+    'khong chien & di tan',
   ],
 };
 

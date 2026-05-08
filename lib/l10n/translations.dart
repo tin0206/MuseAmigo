@@ -1,4 +1,5 @@
 import 'package:museamigo/language_notifier.dart';
+import 'package:museamigo/l10n/artifact_translations.dart';
 
 const Map<String, Map<String, String>> _localizedStrings = {
   'English': {
@@ -670,7 +671,7 @@ const Map<String, Map<String, String>> _localizedStrings = {
     'Open map and guide me from my current location.':
         'Mở bản đồ và hướng dẫn tôi từ vị trí hiện tại.',
     'Ask me anything...': 'Hỏi tôi bất cứ điều gì...',
-    'Ogima is typing...': 'Ogima đang gõ...',
+    'Ogima is typing...': 'Ogima đang trả lời...',
     'The nearest restroom is near Hall C on Floor 1. I can guide you there if you want.':
         'Nhà vệ sinh gần nhất nằm gần Sảnh C ở Tầng 1. Tôi có thể hướng dẫn bạn đến đó nếu bạn muốn.',
     'Tank T-54 is in Hall C, Floor 1. Follow the map route and I can navigate step-by-step for you.':
@@ -1056,6 +1057,19 @@ extension StringLocalization on String {
     final dictionary = _localizedStrings[currentLang];
     if (dictionary != null && dictionary.containsKey(this)) {
       return dictionary[this]!;
+    }
+    return this;
+  }
+
+  /// Translate into a specific language, regardless of the current app language.
+  String translateIn(String language) {
+    final dictionary = _localizedStrings[language];
+    if (dictionary != null && dictionary.containsKey(this)) {
+      return dictionary[this]!;
+    }
+    if (language == 'Vietnamese' &&
+        artifactHistoricalContextVi.containsKey(this)) {
+      return artifactHistoricalContextVi[this]!;
     }
     return this;
   }
