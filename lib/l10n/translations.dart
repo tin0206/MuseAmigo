@@ -82,7 +82,7 @@ const Map<String, Map<String, String>> _localizedStrings = {
     '200-400 AD': '200-400 AD',
     'Congratulations!': 'Congratulations!',
     'You\'ve unlocked ': 'You\'ve unlocked ',
-    'T-54 Tank No. 843': 'T-54 Tank No. 843',
+    'T-54 Tank': 'T-54 Tank',
     ' in your Virtual 3D Collection!': ' in your Virtual 3D Collection!',
     '✨ This artifact now has enhanced storytelling and 3D viewing available':
         '✨ This artifact now has enhanced storytelling and 3D viewing available',

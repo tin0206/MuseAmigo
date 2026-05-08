@@ -428,6 +428,50 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
               : 'There are currently no exhibitions listed for ${museum.name}.',
         );
       }
+
+      // Directions to a specific exhibition should follow the same route flow
+      // (ask floor, then current position) as other navigation intents.
+      if (_isDirectionsToPlaceQuestion(normalized) &&
+          !_isExhibitionListQuestion(normalized)) {
+        final specificForRoute = _findSpecificExhibition(
+          _extractDirectionTarget(text),
+          exhibitions,
+        );
+        if (specificForRoute != null) {
+          final exSpot = _findNavigationSpotByName(
+            museum.id,
+            specificForRoute.name,
+          );
+          if (exSpot != null) {
+            _pendingRouteRequest = _PendingRouteRequest(
+              destination: exSpot,
+              isVietnamese: isVietnamese,
+            );
+            return _ResolvedReply(
+              text: isVietnamese
+                  ? '${specificForRoute.name} nằm tại ${specificForRoute.location}. Bạn đang ở tầng nào vậy? Bạn có thể trả lời là tầng 1 hoặc tầng 2!'
+                  : '${specificForRoute.name} is at ${specificForRoute.location}. Which floor are you on? You can say Floor 1 or Floor 2!',
+            );
+          }
+          return _ResolvedReply(
+            text: isVietnamese
+                ? '${specificForRoute.name} nằm tại ${specificForRoute.location}.'
+                : '${specificForRoute.name} is located at ${specificForRoute.location}.',
+          );
+        }
+
+        final exhibitionChoices = exhibitions
+            .take(6)
+            .map((e) => '• ${e.name}')
+            .join('\n');
+        return _ResolvedReply(
+          text: isVietnamese
+              ? 'Bạn muốn đến triển lãm nào? Ví dụ:\n$exhibitionChoices'
+              : 'Which exhibition would you like to go to? For example:\n$exhibitionChoices',
+          suppressDefaultActions: true,
+        );
+      }
+
       // Specific exhibition query
       final specific = _findSpecificExhibition(normalized, exhibitions);
       if (specific != null) {
@@ -482,10 +526,218 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         );
       }
 
+      // 2b. Pure "where is X" (not a navigation/direction intent) → answer directly.
+      if (_isLocationQuestion(normalized) &&
+          !_isDirectionsToPlaceQuestion(normalized)) {
+        final locTargetRaw = _extractDirectionTarget(text);
+        final locTargetNorm = _normalizeForIntent(locTargetRaw);
+
+        // Try artifact code first
+        final locCode =
+            _extractArtifactCode(locTargetRaw) ?? _extractArtifactCode(text);
+        if (locCode != null) {
+          ArtifactDto? locArtifact;
+          try {
+            locArtifact = await BackendApi.instance.fetchArtifact(locCode);
+          } catch (_) {}
+          if (locArtifact != null) {
+            return await _buildArtifactLocationReply(
+              locArtifact,
+              museum,
+              isVietnamese,
+            );
+          }
+          // Fallback: use local exhibition mapping when API unavailable
+          final exListForCode = await _fetchExhibitions(museum.id);
+          final locExFromCode = _findExhibitionForArtifactCode(
+            artifactCode: locCode,
+            museumId: museum.id,
+            exhibitions: exListForCode,
+          );
+          if (locExFromCode != null) {
+            final exNum = locExFromCode.id - 100;
+            final exSpot = _findNavigationSpotByName(
+              museum.id,
+              locExFromCode.name,
+            );
+            final floorStr = exSpot?.floor ?? locExFromCode.location;
+            return _ResolvedReply(
+              text: isVietnamese
+                  ? '🏺 Hiện vật $locCode thuộc Triển lãm $exNum — ${locExFromCode.name} ($floorStr).'
+                  : '🏺 Artifact $locCode is part of Exhibition $exNum — ${locExFromCode.name} ($floorStr).',
+              actions: exSpot != null
+                  ? <_ChatAction>[
+                      _ChatAction(
+                        type: _ChatActionType.map,
+                        label: isVietnamese
+                            ? 'Chỉ đường đến đây'
+                            : 'Navigate there',
+                        icon: Icons.near_me_outlined,
+                        toLocationName: exSpot.name,
+                      ),
+                    ]
+                  : const <_ChatAction>[],
+              suppressDefaultActions: true,
+            );
+          }
+        }
+
+        // Try artifact by name (API-based)
+        final locArtifactByName = await _findSpecificArtifactForDetail(
+          locTargetNorm,
+          museum.id,
+        );
+        if (locArtifactByName != null) {
+          return await _buildArtifactLocationReply(
+            locArtifactByName,
+            museum,
+            isVietnamese,
+          );
+        }
+
+        // Try nav-spot alias match → resolve to artifact code (handles names like
+        // "tank t-54", "xe tang t-54" that map to a known spot with an IP code alias)
+        final aliasSpot =
+            _extractNavigationSpot(locTargetRaw, museum.id) ??
+            _extractNavigationSpot(text, museum.id);
+        if (aliasSpot != null) {
+          // Check if this spot has an artifact-code alias (e.g. 'ip-002')
+          final codeAlias = aliasSpot.aliases
+              .where((a) => RegExp(r'^[a-z]{2,4}-\d{3}$').hasMatch(a))
+              .firstOrNull;
+          if (codeAlias != null) {
+            // Normalised alias like 'ip-002' → uppercase 'IP-002'
+            final resolvedCode = codeAlias.toUpperCase();
+            ArtifactDto? resolvedArtifact;
+            try {
+              resolvedArtifact = await BackendApi.instance.fetchArtifact(
+                resolvedCode,
+              );
+            } catch (_) {}
+            if (resolvedArtifact != null) {
+              return await _buildArtifactLocationReply(
+                resolvedArtifact,
+                museum,
+                isVietnamese,
+              );
+            }
+            // API unavailable — use exhibition mapping
+            final exListAlias = await _fetchExhibitions(museum.id);
+            final exFromAlias = _findExhibitionForArtifactCode(
+              artifactCode: resolvedCode,
+              museumId: museum.id,
+              exhibitions: exListAlias,
+            );
+            if (exFromAlias != null) {
+              final exNum = exFromAlias.id - 100;
+              final exSpotAlias = _findNavigationSpotByName(
+                museum.id,
+                exFromAlias.name,
+              );
+              final floorStr = exSpotAlias?.floor ?? exFromAlias.location;
+              return _ResolvedReply(
+                text: isVietnamese
+                    ? '🏺 ${aliasSpot.name} ($resolvedCode) thuộc Triển lãm $exNum — ${exFromAlias.name} ($floorStr).'
+                    : '🏺 ${aliasSpot.name} ($resolvedCode) is part of Exhibition $exNum — ${exFromAlias.name} ($floorStr).',
+                actions: exSpotAlias != null
+                    ? <_ChatAction>[
+                        _ChatAction(
+                          type: _ChatActionType.map,
+                          label: isVietnamese
+                              ? 'Chỉ đường đến đây'
+                              : 'Navigate there',
+                          icon: Icons.near_me_outlined,
+                          toLocationName: exSpotAlias.name,
+                        ),
+                      ]
+                    : const <_ChatAction>[],
+                suppressDefaultActions: true,
+              );
+            }
+          }
+        }
+
+        // Try exhibition
+        final exListForLoc = await _fetchExhibitions(museum.id);
+        final matchedExLoc = _findSpecificExhibition(
+          locTargetNorm,
+          exListForLoc,
+        );
+        if (matchedExLoc != null) {
+          final exSpot = _findNavigationSpotByName(
+            museum.id,
+            matchedExLoc.name,
+          );
+          return _ResolvedReply(
+            text: isVietnamese
+                ? '🏛 ${matchedExLoc.name} nằm tại ${matchedExLoc.location}.'
+                : '🏛 ${matchedExLoc.name} is located at ${matchedExLoc.location}.',
+            actions: exSpot != null
+                ? <_ChatAction>[
+                    _ChatAction(
+                      type: _ChatActionType.map,
+                      label: isVietnamese
+                          ? 'Chỉ đường đến đây'
+                          : 'Navigate there',
+                      icon: Icons.near_me_outlined,
+                      toLocationName: exSpot.name,
+                    ),
+                  ]
+                : const <_ChatAction>[],
+            suppressDefaultActions: true,
+          );
+        }
+
+        // Try navigation spot (stairs, restroom, etc.)
+        final locSpot =
+            _extractNavigationSpot(locTargetRaw, museum.id) ??
+            _extractNavigationSpot(text, museum.id);
+        if (locSpot != null) {
+          return _ResolvedReply(
+            text: isVietnamese
+                ? '📍 ${locSpot.name} nằm trên ${locSpot.floor}.'
+                : '📍 ${locSpot.name} is on ${locSpot.floor}.',
+            actions: <_ChatAction>[
+              _ChatAction(
+                type: _ChatActionType.map,
+                label: isVietnamese ? 'Chỉ đường đến đây' : 'Navigate there',
+                icon: Icons.near_me_outlined,
+                toLocationName: locSpot.name,
+              ),
+            ],
+            suppressDefaultActions: true,
+          );
+        }
+
+        // Not found in the museum
+        return _ResolvedReply(
+          text: isVietnamese
+              ? 'Mình không tìm thấy "$locTargetRaw" trong ${museum.name}. Bạn hãy thử tên hiện vật, triển lãm hoặc mã hiện vật (ví dụ: IP-002).'
+              : '"$locTargetRaw" was not found in ${museum.name}. Try an artifact name, exhibition name, or artifact code (e.g. IP-002).',
+          suppressDefaultActions: true,
+        );
+      }
+
       // 3. Artifact route/location intent: mention exhibition, then ask user location.
-      final placeArtifactCode = _extractArtifactCode(text);
+      final directionTargetRaw = _extractDirectionTarget(text);
+      final directionTargetNormalized = _normalizeForIntent(directionTargetRaw);
+      final placeArtifactCode =
+          _extractArtifactCode(directionTargetRaw) ??
+          _extractArtifactCode(text);
       ArtifactDto? artifactForRoute;
+      ExhibitionDto? exhibitionFromCode;
+      _NavigationSpot? artifactSpotFromCode;
       if (placeArtifactCode != null) {
+        final exForCode = await _fetchExhibitions(museum.id);
+        exhibitionFromCode = _findExhibitionForArtifactCode(
+          artifactCode: placeArtifactCode,
+          museumId: museum.id,
+          exhibitions: exForCode,
+        );
+        artifactSpotFromCode = _findNavigationSpotByArtifactCode(
+          museum.id,
+          placeArtifactCode,
+        );
         try {
           artifactForRoute = await BackendApi.instance.fetchArtifact(
             placeArtifactCode,
@@ -493,9 +745,35 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         } catch (_) {}
       } else if (_isDirectionsToPlaceQuestion(normalized)) {
         artifactForRoute = await _findSpecificArtifactForDetail(
-          normalized,
+          directionTargetNormalized,
           museum.id,
         );
+      }
+
+      // Route directly by specific exhibition phrase inside the direction target.
+      if (_isDirectionsToPlaceQuestion(normalized)) {
+        final exForTarget = await _fetchExhibitions(museum.id);
+        final matchedExFromTarget = _findSpecificExhibition(
+          directionTargetNormalized,
+          exForTarget,
+        );
+        if (matchedExFromTarget != null) {
+          final exSpot = _findNavigationSpotByName(
+            museum.id,
+            matchedExFromTarget.name,
+          );
+          if (exSpot != null) {
+            _pendingRouteRequest = _PendingRouteRequest(
+              destination: exSpot,
+              isVietnamese: isVietnamese,
+            );
+            return _ResolvedReply(
+              text: isVietnamese
+                  ? '${matchedExFromTarget.name} nằm tại ${matchedExFromTarget.location}. Bạn đang ở tầng nào vậy? Bạn có thể trả lời là tầng 1 hoặc tầng 2!'
+                  : '${matchedExFromTarget.name} is at ${matchedExFromTarget.location}. Which floor are you on? You can say Floor 1 or Floor 2!',
+            );
+          }
+        }
       }
 
       if (artifactForRoute != null) {
@@ -511,13 +789,20 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
             destination: artifactSpot,
             isVietnamese: isVietnamese,
           );
-          final exhibitionLine = exhibition != null
-              ? (isVietnamese
-                    ? '${artifactForRoute.title} (${artifactForRoute.artifactCode}) thuộc triển lãm ${exhibition.name}. '
-                    : '${artifactForRoute.title} (${artifactForRoute.artifactCode}) belongs to the exhibition ${exhibition.name}. ')
-              : (isVietnamese
-                    ? '${artifactForRoute.title} (${artifactForRoute.artifactCode}) nằm tại ${artifactSpot.name} (${artifactSpot.floor}). '
-                    : '${artifactForRoute.title} (${artifactForRoute.artifactCode}) is at ${artifactSpot.name} (${artifactSpot.floor}). ');
+          final String exhibitionLine;
+          if (exhibition != null) {
+            final exNum = exhibition.id - 100; // 101→1, 102→2 …
+            final exFloor = artifactSpot.floor;
+            exhibitionLine = isVietnamese
+                ? '🏺 ${artifactForRoute.title} (${artifactForRoute.artifactCode}) thuộc Triển lãm $exNum — ${exhibition.name} ($exFloor).\n'
+                      'Mình sẽ hướng dẫn bạn đến triển lãm này. '
+                : '🏺 ${artifactForRoute.title} (${artifactForRoute.artifactCode}) is part of Exhibition $exNum — ${exhibition.name} ($exFloor).\n'
+                      'I will guide you to that exhibition. ';
+          } else {
+            exhibitionLine = isVietnamese
+                ? '${artifactForRoute.title} (${artifactForRoute.artifactCode}) nằm tại ${artifactSpot.name} (${artifactSpot.floor}). '
+                : '${artifactForRoute.title} (${artifactForRoute.artifactCode}) is at ${artifactSpot.name} (${artifactSpot.floor}). ';
+          }
           return _ResolvedReply(
             text: isVietnamese
                 ? '${exhibitionLine}Bạn đang ở tầng nào vậy? Bạn có thể trả lời là tầng 1 hoặc tầng 2!'
@@ -526,8 +811,44 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         }
       }
 
+      // Fallback for artifact code-based navigation even when artifact detail API lookup fails.
+      if (placeArtifactCode != null && artifactSpotFromCode != null) {
+        final codeDestination = exhibitionFromCode != null
+            ? (_findNavigationSpotByName(museum.id, exhibitionFromCode.name) ??
+                  artifactSpotFromCode)
+            : artifactSpotFromCode;
+
+        _pendingRouteRequest = _PendingRouteRequest(
+          destination: codeDestination,
+          isVietnamese: isVietnamese,
+        );
+
+        final String intro;
+        if (exhibitionFromCode != null) {
+          final exNum = exhibitionFromCode.id - 100;
+          final exFloor = codeDestination.floor;
+          intro = isVietnamese
+              ? '🏺 Hiện vật $placeArtifactCode thuộc Triển lãm $exNum — ${exhibitionFromCode.name} ($exFloor).\n'
+                    'Mình sẽ hướng dẫn bạn đến triển lãm này. '
+              : '🏺 Artifact $placeArtifactCode is part of Exhibition $exNum — ${exhibitionFromCode.name} ($exFloor).\n'
+                    'I will guide you to that exhibition. ';
+        } else {
+          intro = isVietnamese
+              ? 'Hiện vật $placeArtifactCode nằm tại ${artifactSpotFromCode.name} (${artifactSpotFromCode.floor}). '
+              : 'Artifact $placeArtifactCode is at ${artifactSpotFromCode.name} (${artifactSpotFromCode.floor}). ';
+        }
+
+        return _ResolvedReply(
+          text: isVietnamese
+              ? '${intro}Bạn đang ở tầng nào vậy? Bạn có thể trả lời là tầng 1 hoặc tầng 2!'
+              : '${intro}Which floor are you on? You can say Floor 1 or Floor 2!',
+        );
+      }
+
       // 4. Known in-museum spot → ask floor first
-      final destination = _extractNavigationSpot(text, museum.id);
+      final destination =
+          _extractNavigationSpot(directionTargetRaw, museum.id) ??
+          _extractNavigationSpot(text, museum.id);
       if (destination != null) {
         _pendingRouteRequest = _PendingRouteRequest(
           destination: destination,
@@ -543,7 +864,10 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       // 5. Place not found – try exhibition name before giving up
       try {
         final exForNav = await _fetchExhibitions(museum.id);
-        final matchedEx = _findSpecificExhibition(normalized, exForNav);
+        final matchedEx = _findSpecificExhibition(
+          directionTargetNormalized,
+          exForNav,
+        );
         if (matchedEx != null) {
           final exSpot = _findNavigationSpotByName(museum.id, matchedEx.name);
           if (exSpot != null) {
@@ -566,6 +890,16 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
           );
         }
       } catch (_) {}
+
+      if (_isDirectionsToPlaceQuestion(normalized)) {
+        return _ResolvedReply(
+          text: isVietnamese
+              ? 'Mình chưa xác định được điểm đến. Bạn hãy thử theo mẫu: "Chỉ đường đến IP-002", "Chỉ đường đến Tank T-54" hoặc "Chỉ đường đến triển lãm Fall of Saigon".'
+              : 'I could not identify the destination yet. Please try: "Navigate to IP-002", "Show me the way to Tank T-54", or "Navigate to the Fall of Saigon exhibition".',
+          suppressDefaultActions: true,
+        );
+      }
+
       return _ResolvedReply(
         text: isVietnamese
             ? 'Địa điểm đó không có trong bản đồ của ${museum.name}.'
@@ -621,6 +955,9 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         artifact: artifactDetail,
         museum: museum,
         isVietnamese: isVietnamese,
+        showViewDetailButton:
+            !_isLocationQuestion(normalized) &&
+            !_isDirectionsToPlaceQuestion(normalized),
       );
     }
 
@@ -1201,10 +1538,51 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     return null;
   }
 
+  Future<_ResolvedReply> _buildArtifactLocationReply(
+    ArtifactDto artifact,
+    MuseumDto museum,
+    bool isVietnamese,
+  ) async {
+    final exhibition = await _findExhibitionForArtifact(artifact, museum.id);
+    final exSpot = exhibition != null
+        ? _findNavigationSpotByName(museum.id, exhibition.name)
+        : _findArtifactNavigationSpot(artifact.title, museum.id);
+
+    final String locationText;
+    if (exhibition != null && exSpot != null) {
+      final exNum = exhibition.id - 100;
+      locationText = isVietnamese
+          ? '🏺 ${artifact.title} (${artifact.artifactCode}) thuộc Triển lãm $exNum — ${exhibition.name} (${exSpot.floor}).'
+          : '🏺 ${artifact.title} (${artifact.artifactCode}) is part of Exhibition $exNum — ${exhibition.name} (${exSpot.floor}).';
+    } else if (exSpot != null) {
+      locationText = isVietnamese
+          ? '🏺 ${artifact.title} (${artifact.artifactCode}) nằm tại ${exSpot.name} (${exSpot.floor}).'
+          : '🏺 ${artifact.title} (${artifact.artifactCode}) is at ${exSpot.name} (${exSpot.floor}).';
+    } else {
+      locationText = isVietnamese
+          ? '🏺 ${artifact.title} (${artifact.artifactCode}) thuộc ${museum.name}.'
+          : '🏺 ${artifact.title} (${artifact.artifactCode}) is at ${museum.name}.';
+    }
+
+    return _ResolvedReply(
+      text: locationText,
+      actions: <_ChatAction>[
+        _ChatAction(
+          type: _ChatActionType.artifactRoute,
+          label: isVietnamese ? 'Chỉ đường đến đây' : 'Navigate there',
+          icon: Icons.near_me_outlined,
+          value: artifact.artifactCode,
+        ),
+      ],
+      suppressDefaultActions: true,
+    );
+  }
+
   Future<_ResolvedReply> _buildArtifactDetailReply({
     required ArtifactDto artifact,
     required MuseumDto? museum,
     required bool isVietnamese,
+    bool showViewDetailButton = true,
   }) async {
     final spot = museum != null
         ? _findArtifactNavigationSpot(artifact.title, museum.id)
@@ -1219,12 +1597,13 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         ? _findNavigationSpotByName(museum.id, exhibition.name)
         : spot;
     final actions = <_ChatAction>[
-      _ChatAction(
-        type: _ChatActionType.artifact,
-        label: isVietnamese ? 'Xem chi tiết' : 'View Detail',
-        icon: Icons.account_balance_outlined,
-        value: artifact.artifactCode,
-      ),
+      if (showViewDetailButton)
+        _ChatAction(
+          type: _ChatActionType.artifact,
+          label: isVietnamese ? 'Xem chi tiết' : 'View Detail',
+          icon: Icons.account_balance_outlined,
+          value: artifact.artifactCode,
+        ),
       _ChatAction(
         type: _ChatActionType.artifactRoute,
         label: isVietnamese ? 'Chỉ đường đến hiện vật' : 'Navigate to Artifact',
@@ -1281,8 +1660,53 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       'toi muon den',
       'dan toi den',
       'dan toi',
-      'den',
     ]);
+  }
+
+  static String _extractDirectionTarget(String text) {
+    final normalized = _normalizeForIntent(text);
+    final markers = <String>[
+      'show me the way to ',
+      'how can i get to ',
+      'how do i get to ',
+      'how can i go to ',
+      'how do i go to ',
+      'how to get to ',
+      'how to reach ',
+      'how do i reach ',
+      'directions to ',
+      'where can i find ',
+      'help me find ',
+      'lead me to ',
+      'take me to ',
+      'navigate to ',
+      'way to ',
+      'go to ',
+      'get to ',
+      'chi duong den ',
+      'huong dan den ',
+      'chi toi den ',
+      'cho toi den ',
+      'di den ',
+      'duong den ',
+      'duong di den ',
+      'lam sao de toi ',
+      'lam sao den ',
+      'toi muon den ',
+      'dan toi den ',
+      'dan toi ',
+    ];
+
+    for (final marker in markers) {
+      if (normalized.contains(marker)) {
+        final idx = normalized.indexOf(marker);
+        final target = normalized.substring(idx + marker.length).trim();
+        if (target.isNotEmpty) {
+          return target;
+        }
+      }
+    }
+    return normalized;
   }
 
   _NavigationSpot? _extractNavigationSpot(String text, int museumId) {
@@ -1292,6 +1716,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     _NavigationSpot? bestMatch;
     var bestScore = 0;
 
+    // Pass 1: exact substring alias match.
     for (final spot in spots) {
       for (final alias in spot.aliases) {
         if (!normalized.contains(alias)) {
@@ -1301,6 +1726,35 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
           bestScore = alias.length;
           bestMatch = spot;
         }
+      }
+    }
+
+    if (bestMatch != null) {
+      return bestMatch;
+    }
+
+    // Pass 2: fuzzy word-overlap match for natural phrases like
+    // "navigate to tank number 843" where no alias is a direct substring.
+    final queryTokens = normalized
+        .split(RegExp(r'[^a-z0-9]+'))
+        .where((t) => t.length > 1)
+        .toSet();
+
+    for (final spot in spots) {
+      final candidateText = [spot.name, ...spot.aliases].join(' ');
+      final candidateTokens = _normalizeForIntent(
+        candidateText,
+      ).split(RegExp(r'[^a-z0-9]+')).where((t) => t.length > 1).toSet();
+
+      final overlap = queryTokens.where(candidateTokens.contains).length;
+      if (overlap < 2) {
+        continue;
+      }
+
+      final score = overlap * 10 + spot.name.length;
+      if (score > bestScore) {
+        bestScore = score;
+        bestMatch = spot;
       }
     }
 
@@ -1631,12 +2085,69 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   }
 
   String? _extractArtifactCode(String text) {
-    final codeRegex = RegExp(r'\b[A-Za-z]{2,4}\s?-\s?\d{3}\b');
+    final codeRegex = RegExp(r'\b([A-Za-z]{2,4})\s?-?\s?(\d{3})\b');
     final match = codeRegex.firstMatch(text);
     if (match == null) {
       return null;
     }
-    return match.group(0)?.replaceAll(' ', '').toUpperCase();
+    final prefix = (match.group(1) ?? '').toUpperCase();
+    final number = match.group(2) ?? '';
+    if (prefix.isEmpty || number.isEmpty) {
+      return null;
+    }
+    return '$prefix-$number';
+  }
+
+  _NavigationSpot? _findNavigationSpotByArtifactCode(
+    int museumId,
+    String code,
+  ) {
+    final normalizedCode = _normalizeForIntent(code);
+    final compactCode = normalizedCode.replaceAll('-', '');
+    final spots = _museumNavigationSpots[museumId] ?? const <_NavigationSpot>[];
+
+    for (final spot in spots) {
+      for (final alias in spot.aliases) {
+        final normalizedAlias = _normalizeForIntent(alias);
+        final compactAlias = normalizedAlias.replaceAll('-', '');
+        if (normalizedAlias == normalizedCode || compactAlias == compactCode) {
+          return spot;
+        }
+      }
+    }
+    return null;
+  }
+
+  ExhibitionDto? _findExhibitionForArtifactCode({
+    required String artifactCode,
+    required int museumId,
+    required List<ExhibitionDto> exhibitions,
+  }) {
+    if (museumId == 1) {
+      for (final entry in _museum1ExhibitionArtifacts.entries) {
+        if (!entry.value.contains(artifactCode)) {
+          continue;
+        }
+        for (final exhibition in exhibitions) {
+          if (exhibition.name == entry.key) {
+            return exhibition;
+          }
+        }
+      }
+    }
+
+    final spot = _findNavigationSpotByArtifactCode(museumId, artifactCode);
+    if (spot == null) {
+      return null;
+    }
+
+    for (final exhibition in exhibitions) {
+      final exSpot = _findNavigationSpotByName(museumId, exhibition.name);
+      if (exSpot != null && exSpot.floor == spot.floor) {
+        return exhibition;
+      }
+    }
+    return null;
   }
 
   Future<MuseumDto?> _resolveMuseum(String text) async {
@@ -1698,6 +2209,26 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       'show exhibition',
       'show me exhibition',
       'all exhibition',
+    ]);
+  }
+
+  static bool _isExhibitionListQuestion(String text) {
+    return _containsAny(text, <String>[
+      'all exhibitions',
+      'all exhibits',
+      'show all exhibitions',
+      'show me all exhibitions',
+      'list all exhibitions',
+      'what exhibitions',
+      'which exhibitions',
+      'list exhibition',
+      'list of exhibition',
+      'tat ca trien lam',
+      'tat ca trung bay',
+      'danh sach trien lam',
+      'liet ke trien lam',
+      'cac trien lam',
+      'nhung trien lam',
     ]);
   }
 
@@ -1923,6 +2454,17 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       'co o dau',
       'o cho nao',
       'tai dau',
+      // additional Vietnamese
+      'duong den',
+      'o dau vay',
+      'dang o dau',
+      'dat o dau',
+      'hien vat nay o dau',
+      'tim thay o dau',
+      'duoc dat o dau',
+      'can tim o dau',
+      'cho toi biet vi tri',
+      'vi tri cua',
     ]);
   }
 
@@ -3467,7 +4009,13 @@ _museumNavigationSpots = <int, List<_NavigationSpot>>{
       'giai phong',
     ]),
     _spot('Tank 390', 'Floor 1', <String>['tank 390', 'xe tang 390', 'ip-001']),
-    _spot('Tank 843', 'Floor 1', <String>['tank 843', 'xe tang 843', 'ip-002']),
+    _spot('Tank T-54 No. 843', 'Floor 1', <String>[
+      'tank t-54',
+      'xe tang t-54',
+      'ip-002',
+      't-54',
+      '843',
+    ]),
     _spot('Jeep M151A2', 'Floor 1', <String>[
       'jeep m151a2',
       'jeep',
