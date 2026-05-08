@@ -529,7 +529,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
       ),
     );
     if (!mounted) return;
-    if (success != true) return;
+    if (success == null) return;
     _showLocationPicker();
   }
 
