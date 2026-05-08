@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -7,6 +9,8 @@ import 'package:museamigo/language_notifier.dart';
 import 'package:museamigo/services/backend_api.dart';
 import 'package:museamigo/theme_notifier.dart';
 import 'package:museamigo/session.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'payment_screens.dart';
 
 class ExploreMapScreen extends StatefulWidget {
@@ -21,6 +25,8 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
   final TextEditingController _searchController = TextEditingController();
   final MapController _mapController = MapController();
   int? _selectedMuseumId;
+  LatLng? _currentPosition;
+  List<LatLng> _routePoints = [];
 
   static const _fallbackMuseums = <_Museum>[
     _Museum(
@@ -258,26 +264,54 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                             children: [
                               tileLayer,
                               MarkerLayer(
-                                markers: filteredMuseums
-                                    .map(
-                                      (museum) => Marker(
-                                        point: museum.position,
-                                        width: 120,
-                                        height: 100,
-                                        child: GestureDetector(
-                                          onTap: () => _showMuseumDetailSheet(
-                                            context,
-                                            museum,
-                                          ),
-                                          child: _MuseumMarker(
-                                            name: museum.name,
-                                            isSelected: _selectedMuseumId == museum.id,
-                                          ),
+                                markers: [
+                                  if (_currentPosition != null)
+                                    Marker(
+                                      point: _currentPosition!,
+                                      width: 40,
+                                      height: 40,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.blue.withValues(alpha: 0.3),
+                                          shape: BoxShape.circle,
+                                          border: Border.all(color: Colors.white, width: 2),
+                                        ),
+                                        child: const Icon(
+                                          Icons.person_pin_circle,
+                                          color: Colors.blue,
+                                          size: 28,
                                         ),
                                       ),
-                                    )
-                                    .toList(),
+                                    ),
+                                  ...filteredMuseums.map(
+                                    (museum) => Marker(
+                                      point: museum.position,
+                                      width: 120,
+                                      height: 100,
+                                      child: GestureDetector(
+                                        onTap: () => _showMuseumDetailSheet(
+                                          context,
+                                          museum,
+                                        ),
+                                        child: _MuseumMarker(
+                                          name: museum.name,
+                                          isSelected: _selectedMuseumId == museum.id,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
+                              if (_routePoints.isNotEmpty)
+                                PolylineLayer(
+                                  polylines: [
+                                    Polyline(
+                                      points: _routePoints,
+                                      strokeWidth: 5,
+                                      color: Colors.blue.withValues(alpha: 0.7),
+                                    ),
+                                  ],
+                                ),
                             ],
                           ),
                           if (query.isNotEmpty && filteredMuseums.isEmpty)
@@ -298,6 +332,34 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                                 ),
                               ),
                             ),
+                          if (_routePoints.isNotEmpty)
+                            Positioned(
+                              top: 80,
+                              left: 16,
+                              child: FloatingActionButton.extended(
+                                onPressed: () {
+                                  setState(() {
+                                    _routePoints = [];
+                                  });
+                                },
+                                label: Text('Clear Route'.tr),
+                                icon: const Icon(Icons.close),
+                                backgroundColor: theme.colorScheme.errorContainer,
+                                foregroundColor: theme.colorScheme.onErrorContainer,
+                              ),
+                            ),
+                          Positioned(
+                            bottom: 16,
+                            right: 16,
+                            child: FloatingActionButton(
+                              onPressed: _getCurrentLocation,
+                              backgroundColor: theme.colorScheme.primary,
+                              foregroundColor: theme.colorScheme.onPrimary,
+                              elevation: 4,
+                              mini: true,
+                              child: const Icon(Icons.my_location),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -328,6 +390,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
           Navigator.of(context).pop();
           _showTicketSheet(context, museum);
         },
+        onStartRoute: () => _handleStartRoute(museum),
       ),
     ).whenComplete(() {
       if (mounted) setState(() => _selectedMuseumId = null);
@@ -513,6 +576,122 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
     Navigator.of(context).pop();
     showTicketSheet(context, info);
   }
+
+  Future<LatLng?> _getCurrentLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Location services are disabled.'.tr)),
+        );
+      }
+      return null;
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Location permissions are denied'.tr)),
+          );
+        }
+        return null;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Location permissions are permanently denied, we cannot request permissions.'.tr,
+            ),
+          ),
+        );
+      }
+      return null;
+    }
+
+    try {
+      final position = await Geolocator.getCurrentPosition();
+      final newPos = LatLng(position.latitude, position.longitude);
+      setState(() {
+        _currentPosition = newPos;
+      });
+      _mapController.move(newPos, 15);
+      return newPos;
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error getting location: $e')),
+        );
+      }
+      return null;
+    }
+  }
+
+  Future<void> _fetchRoute(LatLng destination) async {
+    LatLng? start = _currentPosition;
+    if (start == null) {
+      start = await _getCurrentLocation();
+    }
+    if (start == null) return;
+
+    // Show loading snackbar
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Finding best route...'.tr),
+          duration: const Duration(seconds: 1),
+        ),
+      );
+    }
+
+    final url = 'http://router.project-osrm.org/route/v1/driving/'
+        '${start.longitude},${start.latitude};'
+        '${destination.longitude},${destination.latitude}'
+        '?overview=full&geometries=geojson';
+
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['routes'] != null && (data['routes'] as List).isNotEmpty) {
+          final coords = data['routes'][0]['geometry']['coordinates'] as List;
+          final List<LatLng> points = coords.map((c) => LatLng(c[1], c[0])).toList();
+          
+          setState(() {
+            _routePoints = points;
+          });
+
+          // Fit camera to see the whole route
+          final bounds = LatLngBounds.fromPoints([start, destination, ...points]);
+          _mapController.fitCamera(
+            CameraFit.bounds(
+              bounds: bounds,
+              padding: const EdgeInsets.fromLTRB(40, 100, 40, 100),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not fetch route: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleStartRoute(_Museum museum) async {
+    Navigator.of(context).pop(); // Close detail sheet
+    await _fetchRoute(museum.position);
+  }
 }
 
 class _MuseumMarker extends StatelessWidget {
@@ -606,10 +785,15 @@ class _MuseumMarker extends StatelessWidget {
 }
 
 class _MuseumDetailSheet extends StatefulWidget {
-  const _MuseumDetailSheet({required this.museum, required this.onBuyTicket});
+  const _MuseumDetailSheet({
+    required this.museum,
+    required this.onBuyTicket,
+    required this.onStartRoute,
+  });
 
   final _Museum museum;
   final VoidCallback onBuyTicket;
+  final VoidCallback onStartRoute;
 
   @override
   State<_MuseumDetailSheet> createState() => _MuseumDetailSheetState();
@@ -720,11 +904,7 @@ class _MuseumDetailSheetState extends State<_MuseumDetailSheet> {
                     children: [
                       Expanded(
                         child: FilledButton.tonalIcon(
-                          onPressed: () =>
-                              Navigator.of(context).pushNamedAndRemoveUntil(
-                                AppRoutes.home,
-                                (route) => false,
-                              ),
+                          onPressed: widget.onStartRoute,
                           style: FilledButton.styleFrom(
                             backgroundColor: theme.colorScheme.surfaceContainerHigh,
                             foregroundColor: theme.textTheme.bodyLarge?.color,
