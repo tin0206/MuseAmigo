@@ -68,6 +68,7 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/exhibitions/
     - assets/models/
     - assets/audio/
     - assets/artifact/

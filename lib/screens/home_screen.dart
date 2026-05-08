@@ -147,27 +147,33 @@ class _HomeScreenState extends State<HomeScreen> {
           _AreaItem(
             label: 'Fall of Saigon: April 30, 1975',
             sublabel: 'Floor 1 · IP-001, IP-002, IP-007, IP-006',
+            imagePath: 'exhibitions/IP-E001.png',
           ),
           _AreaItem(
             label: 'Presidential Power & Governance',
             sublabel: 'Floor 1 · IP-009, IP-015, IP-013',
+            imagePath: 'exhibitions/IP-E003.png',
           ),
           _AreaItem(
             label: 'Diplomacy & State Ceremony',
             sublabel: 'Floor 1 · IP-008, IP-010',
+            imagePath: 'exhibitions/IP-E002.png',
           ),
           _AreaItem(
             label: 'Presidential Lifestyle',
             sublabel: 'Floor 1 · IP-004, IP-012',
+            imagePath: 'exhibitions/IP-E005.jpg',
           ),
           // Floor 2 — War Operations & Secret Infrastructure
           _AreaItem(
             label: 'War Command Bunker',
             sublabel: 'Floor 2 · IP-005, IP-011',
+            imagePath: 'exhibitions/IP-E006.jpg',
           ),
           _AreaItem(
             label: 'Air Warfare & Evacuation',
             sublabel: 'Floor 2 · IP-003',
+            imagePath: 'exhibitions/IP-E004.jpg',
           ),
         ];
       default:
@@ -718,9 +724,14 @@ class _SectionHeader extends StatelessWidget {
 // ── Area card ──────────────────────────────────────────────────────────────────
 
 class _AreaItem {
-  const _AreaItem({required this.label, required this.sublabel});
+  const _AreaItem({
+    required this.label,
+    required this.sublabel,
+    this.imagePath = 'assets/images/museum.jpg',
+  });
   final String label;
   final String sublabel;
+  final String imagePath;
 }
 
 class _AreaCard extends StatelessWidget {
@@ -741,7 +752,7 @@ class _AreaCard extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               Image.asset(
-                'assets/images/museum.jpg',
+                area.imagePath,
                 fit: BoxFit.cover,
                 errorBuilder: (_, _, _) => Container(
                   color: Colors.grey.shade300,
