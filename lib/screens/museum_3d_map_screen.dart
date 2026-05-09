@@ -1737,101 +1737,111 @@ Map<int, _MuseumMapConfig> _museumConfigs = <int, _MuseumMapConfig>{
   ),
 };
 
-const Map<String, List<_MapLocation>>
-_independencePalaceArtifactsByExhibition = {
-  'Fall of Saigon: April 30, 1975': <_MapLocation>[
-    _MapLocation(name: 'Tank 390 (IP-001)', floor: 'Floor 1', x: 0.16, y: 0.2),
-    _MapLocation(
-      name: 'T-54 Tank (IP-002)',
-      floor: 'Floor 1',
-      x: 0.29,
-      y: 0.18,
-    ),
-    _MapLocation(
-      name: 'Jeep M151A2 (IP-007)',
-      floor: 'Floor 1',
-      x: 0.21,
-      y: 0.34,
-    ),
-    _MapLocation(
-      name: 'F-5E Bombing Marks (IP-006)',
-      floor: 'Floor 1',
-      x: 0.33,
-      y: 0.3,
-    ),
-  ],
-  'Presidential Power & Governance': <_MapLocation>[
-    _MapLocation(
-      name: 'Cabinet Room Table (IP-009)',
-      floor: 'Floor 1',
-      x: 0.67,
-      y: 0.2,
-    ),
-    _MapLocation(
-      name: 'Vice President\'s Desk (IP-015)',
-      floor: 'Floor 1',
-      x: 0.79,
-      y: 0.18,
-    ),
-    _MapLocation(
-      name: 'National Security Council Maps (IP-013)',
-      floor: 'Floor 1',
-      x: 0.73,
-      y: 0.34,
-    ),
-  ],
-  'Diplomacy & State Ceremony': <_MapLocation>[
-    _MapLocation(
-      name: 'Presidential Throne (IP-003)',
-      floor: 'Floor 1',
-      x: 0.24,
-      y: 0.55,
-    ),
-    _MapLocation(
-      name: 'Binh Ngo Dai Cao Lacquer Painting (IP-008)',
-      floor: 'Floor 1',
-      x: 0.18,
-      y: 0.5,
-    ),
-    _MapLocation(
-      name: 'The Golden Dragon Tapestry (IP-010)',
-      floor: 'Floor 1',
-      x: 0.29,
-      y: 0.64,
-    ),
-  ],
-  'Presidential Lifestyle': <_MapLocation>[
-    _MapLocation(
-      name: 'Mercedes-Benz 200 W110 (IP-004)',
-      floor: 'Floor 1',
-      x: 0.68,
-      y: 0.5,
-    ),
-    _MapLocation(
-      name: 'The Presidential Bed (IP-012)',
-      floor: 'Floor 1',
-      x: 0.8,
-      y: 0.63,
-    ),
-  ],
-  'War Command Bunker': <_MapLocation>[
-    _MapLocation(
-      name: 'War Command Bunker Map (IP-005)',
-      floor: 'Floor 2',
-      x: 0.26,
-      y: 0.3,
-    ),
-    _MapLocation(
-      name: 'Telecommunications Center (IP-011)',
-      floor: 'Floor 2',
-      x: 0.36,
-      y: 0.42,
-    ),
-  ],
-  'Air Warfare & Evacuation': <_MapLocation>[
-    _MapLocation(name: 'UH-1 Helicopter', floor: 'Floor 2', x: 0.74, y: 0.3),
-  ],
-};
+const Map<String, List<_MapLocation>> _independencePalaceArtifactsByExhibition =
+    {
+      'Fall of Saigon: April 30, 1975': <_MapLocation>[
+        _MapLocation(
+          name: 'Tank 390 (IP-001)',
+          floor: 'Floor 1',
+          x: 0.16,
+          y: 0.2,
+        ),
+        _MapLocation(
+          name: 'T-54 Tank (IP-002)',
+          floor: 'Floor 1',
+          x: 0.29,
+          y: 0.18,
+        ),
+        _MapLocation(
+          name: 'Jeep M151A2 (IP-007)',
+          floor: 'Floor 1',
+          x: 0.21,
+          y: 0.34,
+        ),
+        _MapLocation(
+          name: 'F-5E Bombing Marks (IP-006)',
+          floor: 'Floor 1',
+          x: 0.33,
+          y: 0.3,
+        ),
+      ],
+      'Presidential Power & Governance': <_MapLocation>[
+        _MapLocation(
+          name: 'Cabinet Room Table (IP-009)',
+          floor: 'Floor 1',
+          x: 0.67,
+          y: 0.2,
+        ),
+        _MapLocation(
+          name: 'Vice President\'s Desk (IP-015)',
+          floor: 'Floor 1',
+          x: 0.79,
+          y: 0.18,
+        ),
+        _MapLocation(
+          name: 'National Security Council Maps (IP-013)',
+          floor: 'Floor 1',
+          x: 0.73,
+          y: 0.34,
+        ),
+      ],
+      'Diplomacy & State Ceremony': <_MapLocation>[
+        _MapLocation(
+          name: 'Presidential Throne (IP-003)',
+          floor: 'Floor 1',
+          x: 0.24,
+          y: 0.55,
+        ),
+        _MapLocation(
+          name: 'Binh Ngo Dai Cao Lacquer Painting (IP-008)',
+          floor: 'Floor 1',
+          x: 0.18,
+          y: 0.5,
+        ),
+        _MapLocation(
+          name: 'The Golden Dragon Tapestry (IP-010)',
+          floor: 'Floor 1',
+          x: 0.29,
+          y: 0.64,
+        ),
+      ],
+      'Presidential Lifestyle': <_MapLocation>[
+        _MapLocation(
+          name: 'Mercedes-Benz 200 W110 (IP-004)',
+          floor: 'Floor 1',
+          x: 0.68,
+          y: 0.5,
+        ),
+        _MapLocation(
+          name: 'The Presidential Bed (IP-012)',
+          floor: 'Floor 1',
+          x: 0.8,
+          y: 0.63,
+        ),
+      ],
+      'War Command Bunker': <_MapLocation>[
+        _MapLocation(
+          name: 'War Command Bunker Map (IP-005)',
+          floor: 'Floor 2',
+          x: 0.26,
+          y: 0.3,
+        ),
+        _MapLocation(
+          name: 'Telecommunications Center (IP-011)',
+          floor: 'Floor 2',
+          x: 0.36,
+          y: 0.42,
+        ),
+      ],
+      'Air Warfare & Evacuation': <_MapLocation>[
+        _MapLocation(
+          name: 'Basement Cinema Projector (IP-014)',
+          floor: 'Floor 2',
+          x: 0.74,
+          y: 0.3,
+        ),
+      ],
+    };
 
 List<_LocationOption> _buildIndependencePalaceLocationOptions() =>
     <_LocationOption>[

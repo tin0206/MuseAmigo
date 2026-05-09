@@ -62,7 +62,7 @@ class Artifact {
     'IP-010': 'artifact/IP-010-Tapestry.png',
     'IP-011': 'artifact/IP-011-Telecom.png',
     'IP-012': 'artifact/IP-012-Bed.png',
-    'IP-013': 'artifact/IP-013-Map.avif',
+    'IP-013': 'artifact/IP-013-Map.jpg',
     'IP-014': 'artifact/IP-014-Projector.jpg',
     'IP-015': 'artifact/IP-015-Desk.png',
   };

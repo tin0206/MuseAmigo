@@ -39,6 +39,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   late final TextEditingController _controller;
   bool _showingResults = false;
+  bool _hasEngagedWithSearch = false;
   String _activeQuery = '';
   String _selectedFloorFilter = 'All';
   String _selectedExhibitionFilter = 'All';
@@ -62,7 +63,7 @@ class _SearchScreenState extends State<SearchScreen> {
   static const _floorFilters = ['All', 'Floor 1', 'Floor 2'];
   static const _filterExhibitions = [
     'All',
-    'Fall of Saigon: April 30, 1975',
+    'Fall of Saigon — April 30, 1975',
     'Presidential Power & Governance',
     'Diplomacy & State Ceremony',
     'Presidential Lifestyle',
@@ -74,107 +75,92 @@ class _SearchScreenState extends State<SearchScreen> {
     _ResultItem(
       artifactCode: 'IP-001',
       title: 'Tank 390',
-      location: 'Main Gate Courtyard',
       floor: 'Floor 1',
       exhibition: 'Fall of Saigon — April 30, 1975',
     ),
     _ResultItem(
       artifactCode: 'IP-002',
       title: 'T-54 Tank',
-      location: 'Side Gate Courtyard',
       floor: 'Floor 1',
       exhibition: 'Fall of Saigon — April 30, 1975',
     ),
     _ResultItem(
       artifactCode: 'IP-007',
       title: 'Jeep M151A2',
-      location: 'Front Courtyard Military Display',
       floor: 'Floor 1',
       exhibition: 'Fall of Saigon — April 30, 1975',
     ),
     _ResultItem(
       artifactCode: 'IP-006',
       title: 'F-5E Bombing Marks',
-      location: 'Rooftop Terrace',
       floor: 'Floor 1',
       exhibition: 'Fall of Saigon — April 30, 1975',
     ),
     _ResultItem(
       artifactCode: 'IP-009',
       title: 'Cabinet Room Table',
-      location: 'Cabinet Room',
       floor: 'Floor 1',
       exhibition: 'Presidential Power & Governance',
     ),
     _ResultItem(
       artifactCode: 'IP-015',
       title: 'Vice President\'s Desk',
-      location: 'Vice President Office',
       floor: 'Floor 1',
       exhibition: 'Presidential Power & Governance',
     ),
     _ResultItem(
       artifactCode: 'IP-013',
       title: 'National Security Council Maps',
-      location: 'Tactical Command Room',
       floor: 'Floor 1',
       exhibition: 'Presidential Power & Governance',
     ),
     _ResultItem(
       artifactCode: 'IP-008',
       title: 'Binh Ngo Dai Cao Lacquer Painting',
-      location: 'Ambassador\'s Chamber',
       floor: 'Floor 1',
-      exhibition: 'Art & Diplomatic Heritage',
+      exhibition: 'Diplomacy & State Ceremony',
     ),
     _ResultItem(
       artifactCode: 'IP-010',
       title: 'The Golden Dragon Tapestry',
-      location: 'State Banquet Hall',
       floor: 'Floor 1',
-      exhibition: 'Art & Diplomatic Heritage',
+      exhibition: 'Diplomacy & State Ceremony',
     ),
     _ResultItem(
       artifactCode: 'IP-004',
       title: 'Mercedes-Benz 200 W110',
-      location: 'Outdoor Vehicle Display Area',
       floor: 'Floor 1',
-      exhibition: 'Presidential Transport & Lifestyle',
+      exhibition: 'Presidential Lifestyle',
     ),
     _ResultItem(
       artifactCode: 'IP-012',
       title: 'The Presidential Bed',
-      location: 'Presidential Bedroom',
       floor: 'Floor 1',
-      exhibition: 'Presidential Transport & Lifestyle',
+      exhibition: 'Presidential Lifestyle',
     ),
     _ResultItem(
       artifactCode: 'IP-005',
       title: 'War Command Bunker Map',
-      location: 'Command Bunker',
       floor: 'Floor 2',
-      exhibition: 'Underground War Command Center',
+      exhibition: 'War Command Bunker',
     ),
     _ResultItem(
       artifactCode: 'IP-011',
       title: 'Telecommunications Center',
-      location: 'Telecommunications Room',
       floor: 'Floor 2',
-      exhibition: 'Underground War Command Center',
+      exhibition: 'War Command Bunker',
     ),
     _ResultItem(
       artifactCode: 'IP-003',
-      title: 'UH-1 Helicopter',
-      location: 'Rooftop Helipad',
-      floor: 'Floor 2',
-      exhibition: 'Fall of Saigon — April 30, 1975',
+      title: 'Presidential Throne',
+      floor: 'Floor 1',
+      exhibition: 'Diplomacy & State Ceremony',
     ),
     _ResultItem(
       artifactCode: 'IP-014',
       title: 'Basement Cinema Projector',
-      location: 'Basement Cinema Room',
       floor: 'Floor 2',
-      exhibition: 'Presidential Transport & Lifestyle',
+      exhibition: 'Air Warfare & Evacuation',
     ),
   ];
 
@@ -205,6 +191,7 @@ class _SearchScreenState extends State<SearchScreen> {
   void _search(String query) {
     setState(() {
       _activeQuery = query;
+      _hasEngagedWithSearch = true;
       _showingResults = _shouldShowResults;
     });
   }
@@ -213,7 +200,11 @@ class _SearchScreenState extends State<SearchScreen> {
     _controller.clear();
     setState(() {
       _activeQuery = '';
-      _showingResults = _shouldShowResults;
+      if (_hasEngagedWithSearch) {
+        _showingResults = true;
+      } else {
+        _showingResults = _shouldShowResults;
+      }
     });
   }
 
@@ -221,7 +212,8 @@ class _SearchScreenState extends State<SearchScreen> {
     return widget.showResults ||
         _activeQuery.isNotEmpty ||
         _selectedFloorFilter != 'All' ||
-        _selectedExhibitionFilter != 'All';
+        _selectedExhibitionFilter != 'All' ||
+        _hasEngagedWithSearch;
   }
 
   List<_ResultItem> get _filteredResults {
@@ -232,7 +224,6 @@ class _SearchScreenState extends State<SearchScreen> {
           .where(
             (r) =>
                 r.title.toLowerCase().contains(q) ||
-                r.location.toLowerCase().contains(q) ||
                 r.floor.toLowerCase().contains(q) ||
                 r.exhibition.toLowerCase().contains(q),
           )
@@ -259,380 +250,389 @@ class _SearchScreenState extends State<SearchScreen> {
       listenable: Listenable.merge([languageNotifier, themeNotifier]),
       builder: (context, _) {
         return Scaffold(
-      backgroundColor: themeNotifier.surfaceColor,
-      body: SafeArea(
-        top: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Top bar ────────────────────────────────────────────────
-            Container(
-              color: Theme.of(context).colorScheme.primary,
-              padding: EdgeInsets.fromLTRB(
-                4,
-                MediaQuery.of(context).padding.top + 10,
-                16,
-                12,
-              ),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: Icon(
-                      Icons.arrow_back,
-                      color: themeNotifier.surfaceColor,
-                    ),
-                    onPressed: () => Navigator.of(context).pop(),
+          backgroundColor: themeNotifier.surfaceColor,
+          body: SafeArea(
+            top: false,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Top bar ────────────────────────────────────────────────
+                Container(
+                  color: Theme.of(context).colorScheme.primary,
+                  padding: EdgeInsets.fromLTRB(
+                    4,
+                    MediaQuery.of(context).padding.top + 10,
+                    16,
+                    12,
                   ),
-                  Expanded(
-                    child: Container(
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: themeNotifier.surfaceColor,
-                        borderRadius: BorderRadius.circular(22),
-                      ),
-                      child: TextField(
-                        controller: _controller,
-                        autofocus: !widget.showResults,
-                        textInputAction: TextInputAction.search,
-                        onSubmitted: _search,
-                        onChanged: (v) {
-                          if (v.isEmpty) _clearSearch();
-                        },
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: themeNotifier.textPrimaryColor,
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: Icon(
+                          Icons.arrow_back,
+                          color: themeNotifier.surfaceColor,
                         ),
-                        decoration: InputDecoration(
-                          hintText: 'Search artifacts, places...'.tr,
-                          hintStyle: TextStyle(
-                            color: themeNotifier.textSecondaryColor,
-                            fontSize: 14,
-                          ),
-                          prefixIcon: Icon(
-                            Icons.search,
-                            color: themeNotifier.textSecondaryColor,
-                            size: 20,
-                          ),
-                          suffixIcon: _activeQuery.isNotEmpty
-                              ? GestureDetector(
-                                  onTap: _clearSearch,
-                                  child: Icon(
-                                    Icons.close,
-                                    color: themeNotifier.textSecondaryColor,
-                                    size: 20,
-                                  ),
-                                )
-                              : null,
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(vertical: 12),
-                        ),
+                        onPressed: () => Navigator.of(context).pop(),
                       ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (_showingResults) ...[
-              SizedBox(
-                height: 50,
-                child: ScrollConfiguration(
-                  behavior: _horizontalScrollBehavior,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    itemCount: _filterModes.length,
-                    separatorBuilder: (_, _) => SizedBox(width: 8),
-                    itemBuilder: (context, index) {
-                      final mode = _filterModes[index];
-                      final selected =
-                          (_activeFilterMode == 'exhibitions' &&
-                              mode == 'Exhibitions') ||
-                          (_activeFilterMode == 'floors' && mode == 'Floors');
-                      return GestureDetector(
-                        onTap: () => setState(() {
-                          _activeFilterMode = mode == 'Exhibitions'
-                              ? 'exhibitions'
-                              : 'floors';
-                          _showingResults = _shouldShowResults;
-                        }),
+                      Expanded(
                         child: Container(
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: themeNotifier.surfaceColor,
+                            borderRadius: BorderRadius.circular(22),
+                          ),
+                          child: TextField(
+                            controller: _controller,
+                            autofocus: !widget.showResults,
+                            textInputAction: TextInputAction.search,
+                            onSubmitted: _search,
+                            onChanged: (v) {
+                              if (v.isEmpty) _clearSearch();
+                            },
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: themeNotifier.textPrimaryColor,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'Search artifacts, exhibitions...'.tr,
+                              hintStyle: TextStyle(
+                                color: themeNotifier.textSecondaryColor,
+                                fontSize: 14,
+                              ),
+                              prefixIcon: Icon(
+                                Icons.search,
+                                color: themeNotifier.textSecondaryColor,
+                                size: 20,
+                              ),
+                              suffixIcon: _activeQuery.isNotEmpty
+                                  ? GestureDetector(
+                                      onTap: _clearSearch,
+                                      child: Icon(
+                                        Icons.close,
+                                        color: themeNotifier.textSecondaryColor,
+                                        size: 20,
+                                      ),
+                                    )
+                                  : null,
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(
+                                vertical: 12,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (_showingResults) ...[
+                  SizedBox(
+                    height: 50,
+                    child: ScrollConfiguration(
+                      behavior: _horizontalScrollBehavior,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        itemCount: _filterModes.length,
+                        separatorBuilder: (_, _) => SizedBox(width: 8),
+                        itemBuilder: (context, index) {
+                          final mode = _filterModes[index];
+                          final selected =
+                              (_activeFilterMode == 'exhibitions' &&
+                                  mode == 'Exhibitions') ||
+                              (_activeFilterMode == 'floors' &&
+                                  mode == 'Floors');
+                          return GestureDetector(
+                            onTap: () => setState(() {
+                              _activeFilterMode = mode == 'Exhibitions'
+                                  ? 'exhibitions'
+                                  : 'floors';
+                              _showingResults = _shouldShowResults;
+                            }),
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: selected
+                                    ? Theme.of(context).colorScheme.primary
+                                    : themeNotifier.surfaceColor,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: selected
+                                      ? Theme.of(context).colorScheme.primary
+                                      : themeNotifier.borderColor,
+                                ),
+                              ),
+                              child: Text(
+                                mode,
+                                style: TextStyle(
+                                  color: selected
+                                      ? themeNotifier.surfaceColor
+                                      : themeNotifier.textPrimaryColor,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  if (_activeFilterMode == 'floors')
+                    SizedBox(
+                      height: 50,
+                      child: ScrollConfiguration(
+                        behavior: _horizontalScrollBehavior,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
                           padding: EdgeInsets.symmetric(
                             horizontal: 16,
-                            vertical: 5,
+                            vertical: 8,
                           ),
-                          decoration: BoxDecoration(
-                            color: selected
-                                ? Theme.of(context).colorScheme.primary
-                                : themeNotifier.surfaceColor,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: selected
-                                  ? Theme.of(context).colorScheme.primary
-                                  : themeNotifier.borderColor,
-                            ),
-                          ),
-                          child: Text(
-                            mode,
-                            style: TextStyle(
-                              color: selected
-                                  ? themeNotifier.surfaceColor
-                                  : themeNotifier.textPrimaryColor,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
-                            ),
-                          ),
+                          itemCount: _floorFilters.length,
+                          separatorBuilder: (_, _) => SizedBox(width: 8),
+                          itemBuilder: (context, index) {
+                            final filter = _floorFilters[index];
+                            final selected = _selectedFloorFilter == filter;
+                            return GestureDetector(
+                              onTap: () => setState(() {
+                                _selectedFloorFilter = filter;
+                                _activeFilterMode = 'floors';
+                                _showingResults = _shouldShowResults;
+                              }),
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: selected
+                                      ? Theme.of(context).colorScheme.primary
+                                      : themeNotifier.surfaceColor,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: selected
+                                        ? Theme.of(context).colorScheme.primary
+                                        : themeNotifier.borderColor,
+                                  ),
+                                ),
+                                child: Text(
+                                  filter,
+                                  style: TextStyle(
+                                    color: selected
+                                        ? themeNotifier.surfaceColor
+                                        : themeNotifier.textPrimaryColor,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              if (_activeFilterMode == 'floors')
-                SizedBox(
-                  height: 50,
-                  child: ScrollConfiguration(
-                    behavior: _horizontalScrollBehavior,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      itemCount: _floorFilters.length,
-                      separatorBuilder: (_, _) => SizedBox(width: 8),
-                      itemBuilder: (context, index) {
-                        final filter = _floorFilters[index];
-                        final selected = _selectedFloorFilter == filter;
-                        return GestureDetector(
-                          onTap: () => setState(() {
-                            _selectedFloorFilter = filter;
-                            _activeFilterMode = 'floors';
-                            _showingResults = _shouldShowResults;
-                          }),
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: selected
-                                  ? Theme.of(context).colorScheme.primary
-                                  : themeNotifier.surfaceColor,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: selected
-                                    ? Theme.of(context).colorScheme.primary
-                                    : themeNotifier.borderColor,
-                              ),
-                            ),
-                            child: Text(
-                              filter,
-                              style: TextStyle(
-                                color: selected
-                                    ? themeNotifier.surfaceColor
-                                    : themeNotifier.textPrimaryColor,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-              if (_activeFilterMode == 'exhibitions')
-                SizedBox(
-                  height: 50,
-                  child: ScrollConfiguration(
-                    behavior: _horizontalScrollBehavior,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      itemCount: _filterExhibitions.length,
-                      separatorBuilder: (_, _) => SizedBox(width: 8),
-                      itemBuilder: (context, index) {
-                        final filter = _filterExhibitions[index];
-                        final selected = _selectedExhibitionFilter == filter;
-                        return GestureDetector(
-                          onTap: () => setState(() {
-                            _selectedExhibitionFilter = filter;
-                            _activeFilterMode = 'exhibitions';
-                            _showingResults = _shouldShowResults;
-                          }),
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: selected
-                                  ? Theme.of(context).colorScheme.primary
-                                  : themeNotifier.surfaceColor,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: selected
-                                    ? Theme.of(context).colorScheme.primary
-                                    : themeNotifier.borderColor,
-                              ),
-                            ),
-                            child: Text(
-                              filter,
-                              style: TextStyle(
-                                color: selected
-                                    ? themeNotifier.surfaceColor
-                                    : themeNotifier.textPrimaryColor,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-              // ── Results count + sort ──────────────────────────────────
-              Padding(
-                padding: EdgeInsets.fromLTRB(16, 4, 16, 10),
-                child: Row(
-                  children: [
-                    Text(
-                      '${_filteredResults.length} ${'Results'.tr}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 16,
-                        color: themeNotifier.textPrimaryColor,
                       ),
                     ),
-                    const Spacer(),
-                    GestureDetector(
-                      onTap: () => setState(() {
-                        _sortBy = _sortBy == 'default' ? 'a-z' : 'default';
-                      }),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.filter_list_rounded,
-                            size: 18,
-                            color: themeNotifier.textSecondaryColor,
+                  if (_activeFilterMode == 'exhibitions')
+                    SizedBox(
+                      height: 50,
+                      child: ScrollConfiguration(
+                        behavior: _horizontalScrollBehavior,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
                           ),
-                          SizedBox(width: 4),
-                          Text(
-                            _sortBy == 'default' ? 'Sort by'.tr : 'A-Z',
-                            style: TextStyle(
-                              color: themeNotifier.textSecondaryColor,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
+                          itemCount: _filterExhibitions.length,
+                          separatorBuilder: (_, _) => SizedBox(width: 8),
+                          itemBuilder: (context, index) {
+                            final filter = _filterExhibitions[index];
+                            final selected =
+                                _selectedExhibitionFilter == filter;
+                            return GestureDetector(
+                              onTap: () => setState(() {
+                                _selectedExhibitionFilter = filter;
+                                _activeFilterMode = 'exhibitions';
+                                _showingResults = _shouldShowResults;
+                              }),
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: selected
+                                      ? Theme.of(context).colorScheme.primary
+                                      : themeNotifier.surfaceColor,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: selected
+                                        ? Theme.of(context).colorScheme.primary
+                                        : themeNotifier.borderColor,
+                                  ),
+                                ),
+                                child: Text(
+                                  filter,
+                                  style: TextStyle(
+                                    color: selected
+                                        ? themeNotifier.surfaceColor
+                                        : themeNotifier.textPrimaryColor,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                       ),
                     ),
-                  ],
-                ),
-              ),
-              // ── Results list ──────────────────────────────────────────
-              Expanded(
-                child: ListView.builder(
-                  padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
-                  itemCount: _filteredResults.length,
-                  itemBuilder: (context, index) =>
-                      _ResultCard(item: _filteredResults[index]),
-                ),
-              ),
-            ] else ...[
-              // ── Recent + Trending ─────────────────────────────────────
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(16, 20, 16, 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Recent header
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.access_time_rounded,
-                            size: 18,
+                  // ── Results count + sort ──────────────────────────────────
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(16, 4, 16, 10),
+                    child: Row(
+                      children: [
+                        Text(
+                          '${_filteredResults.length} ${'Results'.tr}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
                             color: themeNotifier.textPrimaryColor,
                           ),
-                          SizedBox(width: 6),
+                        ),
+                        const Spacer(),
+                        GestureDetector(
+                          onTap: () => setState(() {
+                            _sortBy = _sortBy == 'default' ? 'a-z' : 'default';
+                          }),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.filter_list_rounded,
+                                size: 18,
+                                color: themeNotifier.textSecondaryColor,
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                _sortBy == 'default' ? 'Sort by'.tr : 'A-Z',
+                                style: TextStyle(
+                                  color: themeNotifier.textSecondaryColor,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // ── Results list ──────────────────────────────────────────
+                  Expanded(
+                    child: ListView.builder(
+                      padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      itemCount: _filteredResults.length,
+                      itemBuilder: (context, index) =>
+                          _ResultCard(item: _filteredResults[index]),
+                    ),
+                  ),
+                ] else ...[
+                  // ── Recent + Trending ─────────────────────────────────────
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.fromLTRB(16, 20, 16, 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Recent header
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.access_time_rounded,
+                                size: 18,
+                                color: themeNotifier.textPrimaryColor,
+                              ),
+                              SizedBox(width: 6),
+                              Text(
+                                'Recent'.tr,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16,
+                                  color: themeNotifier.textPrimaryColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 10),
+                          ..._recentSearches.map(
+                            (item) => _RecentRow(
+                              label: item,
+                              onTap: () {
+                                _controller.text = item;
+                                _search(item);
+                              },
+                            ),
+                          ),
+                          SizedBox(height: 22),
+                          // Trending
                           Text(
-                            'Recent'.tr,
+                            'Trending'.tr,
                             style: TextStyle(
                               fontWeight: FontWeight.w700,
                               fontSize: 16,
                               color: themeNotifier.textPrimaryColor,
                             ),
                           ),
+                          SizedBox(height: 12),
+                          Wrap(
+                            spacing: 10,
+                            runSpacing: 10,
+                            children: _trending.map((t) {
+                              return GestureDetector(
+                                onTap: () {
+                                  _controller.text = t;
+                                  _search(t);
+                                },
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                    vertical: 10,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                    borderRadius: BorderRadius.circular(22),
+                                  ),
+                                  child: Text(
+                                    t,
+                                    style: TextStyle(
+                                      color: themeNotifier.surfaceColor,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
                         ],
                       ),
-                      SizedBox(height: 10),
-                      ..._recentSearches.map(
-                        (item) => _RecentRow(
-                          label: item,
-                          onTap: () {
-                            _controller.text = item;
-                            _search(item);
-                          },
-                        ),
-                      ),
-                      SizedBox(height: 22),
-                      // Trending
-                      Text(
-                        'Trending'.tr,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16,
-                          color: themeNotifier.textPrimaryColor,
-                        ),
-                      ),
-                      SizedBox(height: 12),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: _trending.map((t) {
-                          return GestureDetector(
-                            onTap: () {
-                              _controller.text = t;
-                              _search(t);
-                            },
-                            child: Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 10,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.primary,
-                                borderRadius: BorderRadius.circular(22),
-                              ),
-                              child: Text(
-                                t,
-                                style: TextStyle(
-                                  color: themeNotifier.surfaceColor,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
+                ],
+              ],
+            ),
+          ),
+        );
       },
     );
   }
@@ -644,14 +644,12 @@ class _ResultItem {
   const _ResultItem({
     required this.artifactCode,
     required this.title,
-    required this.location,
     required this.floor,
     required this.exhibition,
   });
 
   final String artifactCode;
   final String title;
-  final String location;
   final String floor;
   final String exhibition;
 
@@ -710,9 +708,7 @@ class _ResultCard extends StatelessWidget {
   void _openDetail(BuildContext context) {
     Navigator.of(context).pushNamed(
       AppRoutes.artifactDetail,
-      arguments: <String, dynamic>{
-        'artifactCode': item.artifactCode,
-      },
+      arguments: <String, dynamic>{'artifactCode': item.artifactCode},
     );
   }
 
@@ -757,8 +753,11 @@ class _ResultCard extends StatelessWidget {
                     color: themeNotifier.isDarkMode
                         ? const Color(0xFF27272A)
                         : Colors.grey.shade300,
-                    child: Icon(Icons.image, size: 32,
-                        color: themeNotifier.textSecondaryColor),
+                    child: Icon(
+                      Icons.image,
+                      size: 32,
+                      color: themeNotifier.textSecondaryColor,
+                    ),
                   ),
                 ),
               ),
@@ -782,20 +781,7 @@ class _ResultCard extends StatelessWidget {
                       height: 1.4,
                     ),
                   ),
-                  SizedBox(height: 4),
-                  Text(
-                    ArtifactLocalizer.location(
-                      item.artifactCode,
-                      languageNotifier.currentLanguage,
-                      englishFallback: item.location,
-                    ),
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: themeNotifier.textSecondaryColor,
-                      height: 1.4,
-                    ),
-                  ),
-                  SizedBox(height: 6),
+                  SizedBox(height: 8),
                   Row(
                     children: [
                       Container(
@@ -808,7 +794,7 @@ class _ResultCard extends StatelessWidget {
                       ),
                       SizedBox(width: 4),
                       Text(
-                        item.floor.tr,
+                        item.exhibition.tr,
                         style: TextStyle(
                           fontSize: 12,
                           color: themeNotifier.textSecondaryColor,
