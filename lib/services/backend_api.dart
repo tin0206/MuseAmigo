@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data'; // Dùng để xử lý mảng byte của file audio trả về
 
 import 'package:http/http.dart' as http;
 
@@ -310,6 +311,42 @@ class BackendApi {
       _throwForResponse(response, json);
     }
     return json['reply'] as String? ?? '';
+  }
+
+  Future<Uint8List> askAiAudio(String filePath) async {
+    try {
+      // Dùng MultipartRequest để gửi file qua form-data
+      final request = http.MultipartRequest('POST', _uri('/ai/chat/audio'));
+
+      // Đính kèm file audio vào field tên là 'file' (phải khớp với backend)
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'file',
+          filePath,
+        ),
+      );
+
+      print('Đang gửi audio lên server...');
+
+      // Gửi request lên server
+      final streamedResponse = await request.send();
+
+      // Chuyển streamedResponse thành Response bình thường để dễ đọc body
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        // Thành công: Backend trả về trực tiếp file âm thanh
+        print('Nhận audio thành công. Kích thước: ${response.bodyBytes.length} bytes');
+        return response.bodyBytes;
+      } else {
+        // Thất bại: Backend trả về JSON chứa thông báo lỗi (HTTP 500, 400, v.v.)
+        final json = await _readJson(response);
+        _throwForResponse(response, json);
+      }
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Không thể kết nối đến server: $e');
+    }
   }
 
   Future<List<ArtifactDto>> fetchArtifacts(int museumId) async {
