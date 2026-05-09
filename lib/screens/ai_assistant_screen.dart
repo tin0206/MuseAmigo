@@ -1072,7 +1072,24 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       );
     }
 
-    return _ResolvedReply(text: await BackendApi.instance.askAi(text));
+    final aiResult = await BackendApi.instance.askAiWithAction(text);
+    final aiActions = <_ChatAction>[];
+
+    if (aiResult.action == 'NAVIGATE') {
+      aiActions.add(
+        _ChatAction(
+          type: _ChatActionType.map,
+          label: isVietnamese ? 'Mở bản đồ' : 'Open Map',
+          icon: Icons.map_outlined,
+        ),
+      );
+    } else if (aiResult.action == 'SETTINGS_UPDATE') {
+      aiActions.addAll(_buildThemeActions());
+      aiActions.addAll(_buildLanguageActions());
+      aiActions.addAll(_buildFontSizeActions());
+    }
+
+    return _ResolvedReply(text: aiResult.reply, actions: aiActions);
   }
 
   _ResolvedReply _resolvePendingRouteRequest({

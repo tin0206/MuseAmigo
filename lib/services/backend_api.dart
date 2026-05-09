@@ -167,6 +167,13 @@ class TicketDto {
   );
 }
 
+class AiChatResult {
+  const AiChatResult({required this.reply, this.action});
+
+  final String reply;
+  final String? action;
+}
+
 class BackendApi {
   BackendApi._();
   static final BackendApi instance = BackendApi._();
@@ -300,7 +307,7 @@ class BackendApi {
         .toList();
   }
 
-  Future<String> askAi(String message) async {
+  Future<AiChatResult> askAiWithAction(String message) async {
     final response = await http.post(
       _uri('/ai/chat'),
       headers: {'Content-Type': 'application/json'},
@@ -310,7 +317,18 @@ class BackendApi {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       _throwForResponse(response, json);
     }
-    return json['reply'] as String? ?? '';
+    final reply = json['reply'] as String? ?? '';
+    final rawAction = json['action'];
+    final normalizedAction = rawAction == null
+        ? null
+        : rawAction.toString().trim().toUpperCase();
+
+    return AiChatResult(reply: reply, action: normalizedAction);
+  }
+
+  Future<String> askAi(String message) async {
+    final result = await askAiWithAction(message);
+    return result.reply;
   }
 
   Future<Uint8List> askAiAudio(String filePath) async {
@@ -319,12 +337,7 @@ class BackendApi {
       final request = http.MultipartRequest('POST', _uri('/ai/chat/audio'));
 
       // Đính kèm file audio vào field tên là 'file' (phải khớp với backend)
-      request.files.add(
-        await http.MultipartFile.fromPath(
-          'file',
-          filePath,
-        ),
-      );
+      request.files.add(await http.MultipartFile.fromPath('file', filePath));
 
       print('Đang gửi audio lên server...');
 
@@ -336,7 +349,9 @@ class BackendApi {
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         // Thành công: Backend trả về trực tiếp file âm thanh
-        print('Nhận audio thành công. Kích thước: ${response.bodyBytes.length} bytes');
+        print(
+          'Nhận audio thành công. Kích thước: ${response.bodyBytes.length} bytes',
+        );
         return response.bodyBytes;
       } else {
         // Thất bại: Backend trả về JSON chứa thông báo lỗi (HTTP 500, 400, v.v.)
