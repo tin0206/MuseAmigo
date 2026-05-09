@@ -327,11 +327,12 @@ class _QrPaymentSheetState extends State<QrPaymentSheet> {
                     children: [
                       Image.network(
                         widget.qrUrl,
-                        width: 130,
-                        height: 130,
+                        width: double.infinity,
+                        height: 300,
+                        fit: BoxFit.contain,
                         errorBuilder: (_, __, ___) => Icon(
                           Icons.qr_code_2,
-                          size: 130,
+                          size: 300,
                           color: themeNotifier.textSecondaryColor,
                         ),
                       ),
@@ -740,17 +741,24 @@ class _TicketResultSheet extends StatelessWidget {
                   child: Column(
                     children: [
                       Container(
-                        width: 180,
-                        height: 180,
+                        width: 260,
+                        height: 260,
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.08),
+                              blurRadius: 16,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
                         ),
                         child: Center(
                           child: QrImageView(
                             data: ticket.qrCode,
                             version: QrVersions.auto,
-                            size: 160.0,
+                            size: 240.0,
                             errorCorrectionLevel: QrErrorCorrectLevel.M,
                           ),
                         ),
@@ -861,7 +869,10 @@ class _TicketResultSheet extends StatelessWidget {
                     SizedBox(width: 12),
                     Expanded(
                       child: FilledButton(
-                        onPressed: () => Navigator.of(context).pop(),
+                        onPressed: () {
+                          Navigator.of(context).popUntil((route) => route.isFirst);
+                          Navigator.of(context).pushReplacementNamed(AppRoutes.home);
+                        },
                         style: FilledButton.styleFrom(
                           backgroundColor: Theme.of(
                             context,
