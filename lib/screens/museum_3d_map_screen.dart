@@ -13,12 +13,14 @@ class Museum3DMapScreen extends StatefulWidget {
     super.key,
     this.initialFromLocationName,
     this.initialToLocationName,
+    this.initialFloorName,
     this.onBack,
     this.autoStartRouteFlow = false,
   });
 
   final String? initialFromLocationName;
   final String? initialToLocationName;
+  final String? initialFloorName;
   final VoidCallback? onBack;
   final bool autoStartRouteFlow;
 
@@ -100,20 +102,37 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedFloor = _currentConfig.floors.first;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
-      if (widget.autoStartRouteFlow) {
-        _openRouteFlow();
-        return;
-      }
+    final preferredFloor = widget.initialFloorName;
+    _selectedFloor =
+        preferredFloor != null && _currentConfig.floors.contains(preferredFloor)
+        ? preferredFloor
+        : _currentConfig.floors.first;
+
+    // Build initial route synchronously so it's ready for the first frame
+    if (!widget.autoStartRouteFlow) {
       final route = _buildInitialRoute();
       if (route != null) {
-        _showPreviewRoute(route);
+        final normalizedRoute = _normalizeRouteForFloorTransfer(route);
+        _isPreviewRoute = true;
+        _activeRoute = normalizedRoute;
+        _currentStopIndex = 0;
+        // Don't override selectedFloor - keep the hint from initialFloorName
       }
-    });
+    }
+
+    // Handle autoStartRouteFlow in post-frame callback (requires UI context)
+    if (widget.autoStartRouteFlow) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _openRouteFlow();
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   @override
@@ -1149,12 +1168,47 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
         'Follow the highlighted path to continue your museum journey.';
   }
 
+  static String _normalizeLocationLookupKey(String name) {
+    var normalized = name.trim().toLowerCase();
+
+    // Remove codes/notes in parentheses, e.g. "(IP-005)".
+    normalized = normalized.replaceAll(RegExp(r'\s*\([^)]*\)'), '');
+
+    // Treat "... Map" as the base area for lookup purposes.
+    normalized = normalized.replaceAll(RegExp(r'\s+map$'), '');
+
+    // Collapse duplicated whitespace.
+    normalized = normalized.replaceAll(RegExp(r'\s+'), ' ').trim();
+    return normalized;
+  }
+
   _MapLocation? _findLocationByName(String name) {
+    if (name.isEmpty) return null;
+
+    // First try exact match
     for (final loc in _currentConfig.locations) {
       if (loc.name == name) {
         return loc;
       }
     }
+
+    // Fallback: try case-insensitive match
+    final nameLower = name.toLowerCase().trim();
+    for (final loc in _currentConfig.locations) {
+      if (loc.name.toLowerCase().trim() == nameLower) {
+        return loc;
+      }
+    }
+
+    // Final fallback: compare normalized keys to bridge naming variants
+    // such as "War Command Bunker Map" vs "War Command Bunker".
+    final queryKey = _normalizeLocationLookupKey(name);
+    for (final loc in _currentConfig.locations) {
+      if (_normalizeLocationLookupKey(loc.name) == queryKey) {
+        return loc;
+      }
+    }
+
     return null;
   }
 
