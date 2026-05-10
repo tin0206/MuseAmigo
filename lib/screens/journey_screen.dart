@@ -52,14 +52,7 @@ class _JourneyScreenState extends State<JourneyScreen> {
         // ── STEP 4: REMOVE STALE DATA SOURCES (ONLY READ FROM NOTIFIER) ──
         final totalPoints = achievementNotifier.totalPoints;
         final milestones = achievementNotifier.milestones;
-        final unlockedMilestones = milestones
-            .where((m) => m.isUnlocked)
-            .toList();
-        final scanned = unlockedMilestones.isEmpty
-            ? 0
-            : unlockedMilestones
-                  .map((m) => m.requiredScans)
-                  .reduce((a, b) => a > b ? a : b);
+        final scanned = achievementNotifier.scannedCount;
         final unlockedCount = milestones.where((m) => m.isUnlocked).length;
 
         final maxArtifacts = achievementNotifier.maxArtifacts;
