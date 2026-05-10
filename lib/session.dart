@@ -16,9 +16,12 @@ class AppSession {
   static final ValueNotifier<bool> activeMuseumVisit =
       ValueNotifier<bool>(false);
 
+  static const String _prefActiveMuseumVisit = 'active_museum_visit';
+  static const String _prefMuseumJourneyUserId = 'museum_journey_user_id';
+
   static Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
-    
+
     final savedId = prefs.getInt('current_museum_id');
     if (savedId != null) {
       currentMuseumId.value = savedId;
@@ -29,12 +32,51 @@ class AppSession {
       currentMuseumName.value = savedName;
     }
 
+    activeMuseumVisit.value =
+        prefs.getBool(_prefActiveMuseumVisit) ?? false;
+
     // Listen for changes to persist them
     currentMuseumId.addListener(() {
-      prefs.setInt('current_museum_id', currentMuseumId.value);
+      SharedPreferences.getInstance().then((p) {
+        p.setInt('current_museum_id', currentMuseumId.value);
+      });
     });
     currentMuseumName.addListener(() {
-      prefs.setString('current_museum_name', currentMuseumName.value);
+      SharedPreferences.getInstance().then((p) {
+        p.setString('current_museum_name', currentMuseumName.value);
+      });
     });
+    activeMuseumVisit.addListener(_persistActiveMuseumVisit);
+  }
+
+  /// Persists check-in state so it survives app restart and logout/login for the same user.
+  static void _persistActiveMuseumVisit() {
+    SharedPreferences.getInstance().then((p) async {
+      await p.setBool(_prefActiveMuseumVisit, activeMuseumVisit.value);
+      if (activeMuseumVisit.value) {
+        final uid = userId.value;
+        if (uid != null) {
+          await p.setInt(_prefMuseumJourneyUserId, uid);
+        }
+      } else {
+        await p.remove(_prefMuseumJourneyUserId);
+      }
+    });
+  }
+
+  /// Whether stored prefs say this user should land in [MainShell] after login.
+  static Future<bool> shouldResumeMuseumJourney(int userId) async {
+    final p = await SharedPreferences.getInstance();
+    final active = p.getBool(_prefActiveMuseumVisit) ?? false;
+    final journeyUid = p.getInt(_prefMuseumJourneyUserId);
+    return active && journeyUid == userId;
+  }
+
+  /// Clears **Remember me** email/password (e.g. on logout). Museum journey prefs are kept.
+  static Future<void> clearSavedLoginCredentials() async {
+    final p = await SharedPreferences.getInstance();
+    await p.remove('saved_email');
+    await p.remove('saved_password');
+    await p.setBool('remember_me', false);
   }
 }

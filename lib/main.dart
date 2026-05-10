@@ -24,6 +24,8 @@ import 'package:museamigo/font_size_notifier.dart';
 import 'package:museamigo/achievement_notifier.dart';
 
 import 'package:museamigo/session.dart';
+import 'package:museamigo/auth_session.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 final GlobalKey<NavigatorState> globalNavigatorKey =
     GlobalKey<NavigatorState>();
@@ -142,11 +144,41 @@ class _SplashScreenState extends State<SplashScreen> {
     // Pre-warm backend while splash is visible to reduce cold-start delay.
     unawaited(BackendApi.instance.warmUp());
 
-    Future<void>.delayed(const Duration(seconds: 2), () {
-      if (!mounted) {
+    Future<void>.delayed(const Duration(seconds: 2), () async {
+      if (!mounted) return;
+
+      final prefs = await SharedPreferences.getInstance();
+      final remember = prefs.getBool('remember_me') ?? false;
+      if (!remember) {
+        if (!mounted) return;
+        Navigator.of(context).pushReplacementNamed(AppRoutes.login);
         return;
       }
-      Navigator.of(context).pushReplacementNamed(AppRoutes.login);
+
+      final email = prefs.getString('saved_email')?.trim() ?? '';
+      final password = prefs.getString('saved_password') ?? '';
+      if (email.isEmpty || password.isEmpty) {
+        if (!mounted) return;
+        Navigator.of(context).pushReplacementNamed(AppRoutes.login);
+        return;
+      }
+
+      try {
+        final result = await BackendApi.instance.login(
+          email: email,
+          password: password,
+        );
+        applyAuthLoginResult(result, email);
+        final resumeJourney =
+            await AppSession.shouldResumeMuseumJourney(result.userId);
+        if (!mounted) return;
+        Navigator.of(context).pushReplacementNamed(
+          resumeJourney ? AppRoutes.home : AppRoutes.exploreMap,
+        );
+      } catch (_) {
+        if (!mounted) return;
+        Navigator.of(context).pushReplacementNamed(AppRoutes.login);
+      }
     });
   }
 

@@ -8,6 +8,28 @@ import 'package:museamigo/session.dart';
 import 'package:museamigo/theme_notifier.dart';
 import 'package:geolocator/geolocator.dart';
 
+/// Uniform scale factor from [InteractiveViewer]'s transform (for label-size compensation).
+double _uniformScaleFromMatrix(Matrix4 m) {
+  final sx = math.sqrt(
+    m.entry(0, 0) * m.entry(0, 0) + m.entry(1, 0) * m.entry(1, 0),
+  );
+  if (sx.isFinite && sx > 0) return sx.clamp(0.05, 50.0);
+  return 1.0;
+}
+
+Color? _parseMarkerColorHex(String raw) {
+  var s = raw.trim();
+  if (s.isEmpty) return null;
+  if (s.startsWith('#')) s = s.substring(1);
+  if (s.toLowerCase().startsWith('0x')) s = s.substring(2);
+  if (s.length == 6) s = 'FF$s';
+  try {
+    return Color(int.parse(s, radix: 16));
+  } catch (_) {
+    return null;
+  }
+}
+
 class Museum3DMapScreen extends StatefulWidget {
   const Museum3DMapScreen({
     super.key,
@@ -42,6 +64,9 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
 
   late String _selectedFloor;
   bool _show3D = true;
+  bool _showArtifactMarkers = true;
+  bool _showExhibitionMarkers = true;
+  bool _showDestinationMarkers = true;
   _RouteOption? _activeRoute;
   int _currentStopIndex = 0;
   bool _isPreviewRoute = false;
@@ -50,6 +75,447 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
   final TextEditingController _searchController = TextEditingController();
   List<_LocationOption> _searchResults = [];
 
+  List<ArtifactDto> _artifacts = [];
+  List<ExhibitionDto> _exhibitions = [];
+  Map<String, ArtifactDto> _artifactByCode = {};
+
+  /// Artifact markers from API (normalized coordinates on the indoor map image).
+  List<_MapLocation> _apiMapLocations = [];
+  List<_MapLocation> _exhibitionMapLocations = [];
+  List<_MapLocation> _destinationMapLocations = [];
+  List<MuseumFloorDto> _museumFloors = [];
+  List<MapDestinationDto> _mapDestinations = [];
+  String? _resolvedMap2dUrl;
+  String? _resolvedMap3dUrl;
+  bool _indoorMapMetaLoaded = false;
+  /// First paint: show loading UI until `_loadMapData` finishes (success or error).
+  bool _initialMapLoading = true;
+
+  String? get _activeRasterMapUrl {
+    if (!_indoorMapMetaLoaded) return null;
+    if (_show3D) {
+      return _resolvedMap3dUrl ?? _resolvedMap2dUrl;
+    }
+    return _resolvedMap2dUrl ?? _resolvedMap3dUrl;
+  }
+
+  List<_MapLocation> get _allLocationsForLookup {
+    return [
+      ..._apiMapLocations,
+      ..._exhibitionMapLocations,
+      ..._destinationMapLocations,
+    ];
+  }
+
+  int _floorSortKey(String label) {
+    final m = RegExp(r'(\d+)').firstMatch(label);
+    if (m != null) return int.tryParse(m.group(1)!) ?? 0;
+    return 0;
+  }
+
+  String? _exhibitionFloor(
+    ExhibitionDto e,
+    Map<String, ArtifactDto> byCode,
+  ) {
+    if (e.mapFloor != null && e.mapFloor!.trim().isNotEmpty) {
+      return e.mapFloor!.trim();
+    }
+    for (final c in e.artifactCodes) {
+      final a = byCode[c];
+      if (a?.mapFloor != null && a!.mapFloor!.trim().isNotEmpty) {
+        return a.mapFloor!.trim();
+      }
+    }
+    return null;
+  }
+
+  List<String> get _floors {
+    final set = <String>{};
+    for (final f in _museumFloors) {
+      set.add(f.label.trim());
+    }
+    for (final a in _artifacts) {
+      if (a.mapFloor != null && a.mapFloor!.trim().isNotEmpty) {
+        set.add(a.mapFloor!.trim());
+      }
+    }
+    for (final e in _exhibitions) {
+      final f = _exhibitionFloor(e, _artifactByCode);
+      if (f != null) set.add(f);
+    }
+    if (set.isEmpty) return const ['Floor 1'];
+    if (_museumFloors.isNotEmpty) {
+      final ordered = _museumFloors.map((f) => f.label.trim()).toList();
+      final known = ordered.toSet();
+      final extras =
+          set.difference(known).toList()
+            ..sort((a, b) => _floorSortKey(a).compareTo(_floorSortKey(b)));
+      return [...ordered, ...extras];
+    }
+    final list = set.toList()
+      ..sort((a, b) => _floorSortKey(a).compareTo(_floorSortKey(b)));
+    return list;
+  }
+
+  String _computeFallbackFloor(
+    List<ArtifactDto> arts,
+    List<ExhibitionDto> exhs,
+    Map<String, ArtifactDto> byCode,
+  ) {
+    for (final a in arts) {
+      if (a.mapFloor != null && a.mapFloor!.trim().isNotEmpty) {
+        return a.mapFloor!.trim();
+      }
+    }
+    for (final e in exhs) {
+      if (e.mapFloor != null && e.mapFloor!.trim().isNotEmpty) {
+        return e.mapFloor!.trim();
+      }
+      final f = _exhibitionFloor(e, byCode);
+      if (f != null) return f;
+    }
+    return 'Floor 1';
+  }
+
+  Color _exhibitionPaletteColor(int id) {
+    const colors = [
+      Color(0xFF8B5CF6),
+      Color(0xFFEC4899),
+      Color(0xFF06B6D4),
+      Color(0xFFF59E0B),
+      Color(0xFF10B981),
+    ];
+    return colors[id.abs() % colors.length];
+  }
+
+  _MapLocation? _buildExhibitionMarker(
+    ExhibitionDto e,
+    Map<String, ArtifactDto> byCode,
+    String fallbackFloor,
+  ) {
+    var floor = fallbackFloor;
+    final ef = _exhibitionFloor(e, byCode);
+    if (ef != null) floor = ef;
+
+    double? x = e.mapX, y = e.mapY;
+    if (x == null || y == null) {
+      var sx = 0.0;
+      var sy = 0.0;
+      var n = 0;
+      for (final c in e.artifactCodes) {
+        final a = byCode[c];
+        if (a?.mapX != null && a?.mapY != null) {
+          sx += a!.mapX!;
+          sy += a.mapY!;
+          n++;
+        }
+      }
+      if (n == 0) return null;
+      x = sx / n;
+      y = sy / n;
+    }
+
+    return _MapLocation(
+      name: e.name,
+      floor: floor,
+      x: x,
+      y: y,
+      mapLabel: e.name,
+      color: _exhibitionPaletteColor(e.id),
+      isExhibition: true,
+    );
+  }
+
+  List<_LocationOption> _locationOptions() {
+    final primary = themeNotifier.primaryColor;
+    const exhFallback = Color(0xFF9333EA);
+    final opts = <_LocationOption>[];
+    for (final loc in _apiMapLocations) {
+      ArtifactDto? art;
+      for (final a in _artifacts) {
+        if (a.title == loc.name) {
+          art = a;
+          break;
+        }
+      }
+      final desc = art?.description.trim() ?? '';
+      final sub =
+          desc.isEmpty
+              ? loc.floor
+              : (desc.length <= 72 ? desc : '${desc.substring(0, 69)}...');
+      opts.add(
+        _LocationOption(
+          name: loc.name,
+          subtitle: sub,
+          icon: Icons.museum_outlined,
+          iconColor: primary,
+        ),
+      );
+    }
+    for (final loc in _exhibitionMapLocations) {
+      ExhibitionDto? ex;
+      for (final e in _exhibitions) {
+        if (e.name == loc.name) {
+          ex = e;
+          break;
+        }
+      }
+      opts.add(
+        _LocationOption(
+          name: loc.name,
+          subtitle: ex?.location ?? loc.floor,
+          icon: Icons.collections_bookmark_outlined,
+          iconColor: loc.color ?? exhFallback,
+        ),
+      );
+    }
+    for (final loc in _destinationMapLocations) {
+      opts.add(
+        _LocationOption(
+          name: loc.name,
+          subtitle: loc.floor,
+          icon: Icons.place_outlined,
+          iconColor: loc.color ?? const Color(0xFF6366F1),
+        ),
+      );
+    }
+    return opts;
+  }
+
+  List<ExhibitionDto> _exhibitionsOnSelectedFloor() {
+    final namesOnFloor = _exhibitionMapLocations
+        .where((m) => m.floor == _selectedFloor)
+        .map((m) => m.name)
+        .toSet();
+    return _exhibitions.where((e) => namesOnFloor.contains(e.name)).toList();
+  }
+
+  Future<void> _loadMapData() async {
+    final mid = AppSession.currentMuseumId.value;
+    try {
+      final api = BackendApi.instance;
+      final mapDto = await api.fetchIndoorMap(mid);
+      final arts = await api.fetchArtifacts(mid);
+      final exhs = await api.fetchExhibitions(mid);
+
+      List<MuseumFloorDto> museumFloors = [];
+      try {
+        museumFloors = await api.fetchMuseumFloors(mid);
+      } catch (_) {}
+
+      List<MapDestinationDto> mapDestinations = [];
+      try {
+        mapDestinations = await api.fetchMapDestinations(mid);
+      } catch (_) {}
+
+      if (!mounted) return;
+
+      final byCode = {for (final a in arts) a.artifactCode: a};
+      final fallbackFloor = _computeFallbackFloor(arts, exhs, byCode);
+
+      final artifactMarkers = <_MapLocation>[];
+      for (final a in arts) {
+        if (a.mapX != null && a.mapY != null) {
+          final floor =
+              (a.mapFloor != null && a.mapFloor!.trim().isNotEmpty)
+              ? a.mapFloor!.trim()
+              : fallbackFloor;
+          artifactMarkers.add(
+            _MapLocation(
+              name: a.title,
+              floor: floor,
+              x: a.mapX!,
+              y: a.mapY!,
+              mapLabel: a.title,
+            ),
+          );
+        }
+      }
+
+      final exhMarkers = <_MapLocation>[];
+      for (final e in exhs) {
+        final m = _buildExhibitionMarker(e, byCode, fallbackFloor);
+        if (m != null) exhMarkers.add(m);
+      }
+
+      final destMarkers = <_MapLocation>[];
+      for (final d in mapDestinations) {
+        final fl = d.floorLabel.trim();
+        if (fl.isEmpty) continue;
+        final col = _parseMarkerColorHex(d.markerColor);
+        destMarkers.add(
+          _MapLocation(
+            name: d.title,
+            floor: fl,
+            x: d.mapX,
+            y: d.mapY,
+            color: col,
+            mapLabel: d.title,
+            isManagedDestination: true,
+            category: d.category,
+          ),
+        );
+      }
+
+      final floorSet = <String>{};
+      for (final f in museumFloors) {
+        floorSet.add(f.label.trim());
+      }
+      for (final a in arts) {
+        if (a.mapFloor != null && a.mapFloor!.trim().isNotEmpty) {
+          floorSet.add(a.mapFloor!.trim());
+        }
+      }
+      for (final e in exhs) {
+        final f = _exhibitionFloor(e, byCode);
+        if (f != null) floorSet.add(f);
+      }
+      if (floorSet.isEmpty) floorSet.add('Floor 1');
+
+      late final List<String> floorsList;
+      if (museumFloors.isNotEmpty) {
+        final ordered =
+            museumFloors.map((f) => f.label.trim()).toList(growable: false);
+        final known = ordered.toSet();
+        final extras =
+            floorSet.difference(known).toList()
+              ..sort((a, b) => _floorSortKey(a).compareTo(_floorSortKey(b)));
+        floorsList = [...ordered, ...extras];
+      } else {
+        floorsList = floorSet.toList()
+          ..sort((a, b) => _floorSortKey(a).compareTo(_floorSortKey(b)));
+      }
+
+      var nextFloor = _selectedFloor;
+      if (nextFloor.isEmpty || !floorsList.contains(nextFloor)) {
+        nextFloor = floorsList.first;
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _artifacts = arts;
+        _exhibitions = exhs;
+        _artifactByCode = byCode;
+        _museumFloors = museumFloors;
+        _mapDestinations = mapDestinations;
+        _apiMapLocations = artifactMarkers;
+        _exhibitionMapLocations = exhMarkers;
+        _destinationMapLocations = destMarkers;
+        _resolvedMap2dUrl = api.resolveApiAssetUrl(mapDto.map2dPath);
+        _resolvedMap3dUrl = api.resolveApiAssetUrl(mapDto.map3dPath);
+        _indoorMapMetaLoaded = true;
+        _selectedFloor = nextFloor;
+
+        if (!widget.autoStartRouteFlow) {
+          final route = _buildInitialRoute();
+          if (route != null) {
+            _isPreviewRoute = true;
+            _activeRoute = _normalizeRouteForFloorTransfer(route);
+            _currentStopIndex = 0;
+          }
+        }
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _indoorMapMetaLoaded = true;
+          if (_selectedFloor.isEmpty) {
+            _selectedFloor = 'Floor 1';
+          }
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _initialMapLoading = false);
+      }
+    }
+  }
+
+  Widget _buildInitialMapLoading(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        LinearProgressIndicator(
+          minHeight: 3,
+          backgroundColor: themeNotifier.borderColor,
+          color: primary,
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(8, 10, 16, 0),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Material(
+              elevation: 2,
+              color: themeNotifier.surfaceColor,
+              shadowColor: Colors.black26,
+              shape: const CircleBorder(),
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: () {
+                  if (widget.onBack != null) {
+                    widget.onBack!();
+                  } else {
+                    Navigator.of(context).pop();
+                  }
+                },
+                child: SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: Icon(
+                    Icons.arrow_back_ios_new,
+                    color: themeNotifier.textPrimaryColor,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        Expanded(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 42,
+                    height: 42,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3,
+                      color: primary,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Loading map...'.tr,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: themeNotifier.textPrimaryColor,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Fetching indoor map and locations.'.tr,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      height: 1.35,
+                      color: themeNotifier.textSecondaryColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   void _onSearchChanged(String query) {
     if (query.isEmpty) {
       setState(() => _searchResults = []);
@@ -57,7 +523,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
     }
     final q = query.toLowerCase();
     setState(() {
-      _searchResults = _currentConfig.locationOptions
+      _searchResults = _locationOptions()
           .where(
             (l) =>
                 l.name.toLowerCase().contains(q) ||
@@ -67,60 +533,32 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
     });
   }
 
-  static const Color _restroomColor = Color(0xFFF59E0B);
-  static const Color _cafeColor = Color(0xFF8B5E3C);
-  static const Color _stairsColor = Color(0xFF60A5FA);
-
-  List<String> get _floors => _currentConfig.floors;
-
-  bool _isUtilityLocation(_MapLocation location) {
-    return location.name.contains('Entrance') ||
-        location.name.contains('Restroom') ||
-        location.name.contains('Stairs');
-  }
-
-  List<_MapLocation> _floorLegendLocations() {
-    return _currentConfig.locations
-        .where(
-          (location) =>
-              location.floor == _selectedFloor && !_isUtilityLocation(location),
-        )
-        .toList();
-  }
-
   List<_MapLocation> _locationsForCurrentFloor() {
-    return _currentConfig.locations
-        .where((location) => location.floor == _selectedFloor)
-        .toList();
-  }
-
-  _MuseumMapConfig get _currentConfig {
-    final museumId = AppSession.currentMuseumId.value;
-    return _museumConfigs[museumId] ?? _museumConfigs[1]!;
+    final floor = _selectedFloor;
+    final out = <_MapLocation>[];
+    if (_showArtifactMarkers) {
+      out.addAll(
+        _apiMapLocations.where((location) => location.floor == floor),
+      );
+    }
+    if (_showExhibitionMarkers) {
+      out.addAll(
+        _exhibitionMapLocations.where((location) => location.floor == floor),
+      );
+    }
+    if (_showDestinationMarkers) {
+      out.addAll(
+        _destinationMapLocations.where((location) => location.floor == floor),
+      );
+    }
+    return out;
   }
 
   @override
   void initState() {
     super.initState();
-    final preferredFloor = widget.initialFloorName;
-    _selectedFloor =
-        preferredFloor != null && _currentConfig.floors.contains(preferredFloor)
-        ? preferredFloor
-        : _currentConfig.floors.first;
+    _selectedFloor = widget.initialFloorName?.trim() ?? '';
 
-    // Build initial route synchronously so it's ready for the first frame
-    if (!widget.autoStartRouteFlow) {
-      final route = _buildInitialRoute();
-      if (route != null) {
-        final normalizedRoute = _normalizeRouteForFloorTransfer(route);
-        _isPreviewRoute = true;
-        _activeRoute = normalizedRoute;
-        _currentStopIndex = 0;
-        // Don't override selectedFloor - keep the hint from initialFloorName
-      }
-    }
-
-    // Handle autoStartRouteFlow in post-frame callback (requires UI context)
     if (widget.autoStartRouteFlow) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
@@ -128,10 +566,13 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
         }
       });
     }
+
+    _loadMapData();
   }
 
   @override
   void dispose() {
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -140,43 +581,21 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
     return Scaffold(
       backgroundColor: themeNotifier.surfaceColor,
       body: SafeArea(
-        child: Column(
-          children: [
-            // ── Top bar ────────────────────────────────────────────────
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: GestureDetector(
-                      onTap: () {
-                        if (widget.onBack != null) {
-                          widget.onBack!();
-                        } else {
-                          Navigator.of(context).pop();
-                        }
-                      },
-                      child: const Icon(
-                        Icons.arrow_back_ios_new,
-                        color: Color(0xFF171A21),
-                        size: 20,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    'Map'.tr,
-                    style: const TextStyle(
-                      color: Color(0xFF171A21),
-                      fontSize: 30,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+        child:
+            _initialMapLoading
+                ? _buildInitialMapLoading(context)
+                : LayoutBuilder(
+                  builder: (context, constraints) {
+                    final mapViewportHeight = math.max(
+                      360.0,
+                      MediaQuery.sizeOf(context).height * 0.56,
+                    );
+                    return SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      clipBehavior: Clip.hardEdge,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
             // ── Search bar ─────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
@@ -233,11 +652,61 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                   scrollDirection: Axis.horizontal,
                   physics: const BouncingScrollPhysics(),
                   padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  itemCount: _floors.length + 1,
-                  separatorBuilder: (_, index) =>
-                      SizedBox(width: index == _floors.length - 1 ? 140 : 8),
+                  itemCount: _floors.length + 4,
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
                   itemBuilder: (context, index) {
                     if (index == _floors.length) {
+                      return FilterChip(
+                        label: Text(
+                          'Artifacts'.tr,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        selected: _showArtifactMarkers,
+                        showCheckmark: false,
+                        onSelected: (v) =>
+                            setState(() => _showArtifactMarkers = v),
+                        visualDensity: VisualDensity.compact,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      );
+                    }
+                    if (index == _floors.length + 1) {
+                      return FilterChip(
+                        label: Text(
+                          'Exhibitions'.tr,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        selected: _showExhibitionMarkers,
+                        showCheckmark: false,
+                        onSelected: (v) =>
+                            setState(() => _showExhibitionMarkers = v),
+                        visualDensity: VisualDensity.compact,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      );
+                    }
+                    if (index == _floors.length + 2) {
+                      return FilterChip(
+                        label: Text(
+                          'Map places'.tr,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        selected: _showDestinationMarkers,
+                        showCheckmark: false,
+                        onSelected: (v) =>
+                            setState(() => _showDestinationMarkers = v),
+                        visualDensity: VisualDensity.compact,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      );
+                    }
+                    if (index == _floors.length + 3) {
                       return GestureDetector(
                         onTap: () => setState(() => _show3D = !_show3D),
                         child: Container(
@@ -311,26 +780,13 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                 ),
               ),
             ),
-            // ── 3D Map canvas ──────────────────────────────────────────
-            Expanded(
+            // ── Map: fixed tall viewport; page scrolls for legend / navigation ──
+            SizedBox(
+              height: mapViewportHeight,
               child: Stack(
+                clipBehavior: Clip.hardEdge,
                 children: [
-                  Container(
-                    color: const Color(0xFF1A1A1A),
-                    child: CustomPaint(
-                      painter: Museum3DPainter(
-                        locations: _locationsForCurrentFloor(),
-                        routePoints: _routePointsForCurrentFloor(),
-                        visitedStopNames: _visitedStopNamesForCurrentFloor(),
-                        currentStopName: _currentStopNameForCurrentFloor(),
-                        show3D: _show3D,
-                        labelMaxWidth: 120,
-                        markerColor: Theme.of(context).colorScheme.primary,
-                      ),
-                      size: Size.infinite,
-                    ),
-                  ),
-                  // Route navigation button
+                  Positioned.fill(child: _buildMainMapCanvas(context)),
                   Positioned(
                     top: 12,
                     right: 12,
@@ -358,7 +814,6 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                       ),
                     ),
                   ),
-                  // ── Search Results Overlay ───────────────────────────────
                   if (_searchResults.isNotEmpty)
                     Positioned.fill(
                       child: Container(
@@ -381,38 +836,8 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                                 loc.subtitle.tr,
                                 style: const TextStyle(fontSize: 12),
                               ),
-                              onTap: () async {
-                                _searchController.clear();
-                                _onSearchChanged('');
-                                final floor = _floorOfStop(loc.name);
-                                if (floor != null) {
-                                  setState(() => _selectedFloor = floor);
-                                }
-
-                                final fromLoc =
-                                    await showModalBottomSheet<_LocationOption>(
-                                      context: context,
-                                      isScrollControlled: true,
-                                      backgroundColor: Colors.white,
-                                      shape: const RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.vertical(
-                                          top: Radius.circular(20),
-                                        ),
-                                      ),
-                                      builder: (_) => _LocationPickerSheet(
-                                        options: _currentConfig.locationOptions,
-                                      ),
-                                    );
-                                if (fromLoc == null || !mounted) return;
-
-                                final route = _buildInitialRouteFromLocations(
-                                  fromLoc.name,
-                                  loc.name,
-                                );
-                                if (route != null) {
-                                  _showRouteReady(route);
-                                }
-                              },
+                              onTap: () =>
+                                  _selectLocationAsDestination(loc.name),
                             );
                           },
                         ),
@@ -421,7 +846,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                 ],
               ),
             ),
-            // ── Legend ──────────────────────────────────────────────────
+            // ── Navigation card OR legend (below map; scroll page to see all) ──
             if (_activeRoute != null && !_isPreviewRoute)
               _NavigationPanel(
                 route: _activeRoute!,
@@ -437,24 +862,25 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
+                    Wrap(
+                      spacing: 16,
+                      runSpacing: 8,
                       children: [
                         _LegendItem(
                           color: Theme.of(context).colorScheme.primary,
-                          label: _currentConfig.artifactLegendLabel.tr,
+                          label: 'Artifacts'.tr,
                         ),
-                        SizedBox(width: 16),
                         _LegendItem(
-                          color: _restroomColor,
-                          label: 'Restrooms'.tr,
+                          color: _exhibitionPaletteColor(0),
+                          label: 'Exhibitions'.tr,
                         ),
-                        SizedBox(width: 16),
-                        _LegendItem(color: _stairsColor, label: 'Stairs'.tr),
-                        SizedBox(width: 16),
-                        _LegendItem(color: _cafeColor, label: 'Cafes'.tr),
+                        _LegendItem(
+                          color: const Color(0xFF6366F1),
+                          label: 'Map places'.tr,
+                        ),
                       ],
                     ),
-                    if (AppSession.currentMuseumId.value == 1) ...[
+                    if (_exhibitionsOnSelectedFloor().isNotEmpty) ...[
                       SizedBox(height: 12),
                       Row(
                         children: [
@@ -477,16 +903,16 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                           scrollDirection: Axis.horizontal,
                           physics: const BouncingScrollPhysics(),
                           child: Row(
-                            children: _floorLegendLocations().map((location) {
-                              final selected =
-                                  _selectedExhibition == location.name;
+                            children: _exhibitionsOnSelectedFloor().map((ex) {
+                              final markerColor = _exhibitionPaletteColor(ex.id);
+                              final selected = _selectedExhibition == ex.name;
                               return Padding(
                                 padding: const EdgeInsets.only(right: 8),
                                 child: GestureDetector(
                                   onTap: () =>
-                                      _onExhibitionChipPressed(location.name),
+                                      _onExhibitionChipPressed(ex.name),
                                   onDoubleTap: () =>
-                                      _onExhibitionChipPressed(location.name),
+                                      _onExhibitionChipPressed(ex.name),
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 10,
@@ -494,28 +920,16 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                                     ),
                                     decoration: BoxDecoration(
                                       color: selected
-                                          ? (location.color ??
-                                                    Theme.of(
-                                                      context,
-                                                    ).colorScheme.primary)
-                                                .withValues(alpha: 0.28)
-                                          : (location.color ??
-                                                    Theme.of(
-                                                      context,
-                                                    ).colorScheme.primary)
-                                                .withValues(alpha: 0.14),
+                                          ? markerColor.withValues(alpha: 0.28)
+                                          : markerColor.withValues(alpha: 0.14),
                                       borderRadius: BorderRadius.circular(999),
                                       border: Border.all(
                                         width: selected ? 1.6 : 1,
-                                        color:
-                                            location.color ??
-                                            Theme.of(
-                                              context,
-                                            ).colorScheme.primary,
+                                        color: markerColor,
                                       ),
                                     ),
                                     child: Text(
-                                      location.name.tr,
+                                      ex.name.tr,
                                       style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w600,
@@ -533,9 +947,73 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                   ],
                 ),
               ),
-          ],
-        ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
       ),
+    );
+  }
+
+  /// Same flow as choosing a search result: floor → pick "from" → route sheet.
+  Future<void> _selectLocationAsDestination(String placeName) async {
+    _searchController.clear();
+    _onSearchChanged('');
+    final floor = _floorOfStop(placeName);
+    if (floor != null) {
+      setState(() => _selectedFloor = floor);
+    }
+
+    final fromLoc = await showModalBottomSheet<_LocationOption>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: themeNotifier.surfaceColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _LocationPickerSheet(options: _locationOptions()),
+    );
+    if (fromLoc == null || !mounted) return;
+
+    final route = _buildInitialRouteFromLocations(fromLoc.name, placeName);
+    if (route != null) {
+      _showRouteReady(route);
+    }
+  }
+
+  Widget _buildMainMapCanvas(BuildContext context) {
+    final url = _activeRasterMapUrl;
+    if (url != null && url.isNotEmpty) {
+      return _IndoorMapRasterView(
+        imageUrl: url,
+        locations: _locationsForCurrentFloor(),
+        routePoints: _routePointsForCurrentFloor(),
+        visitedStopNames: _visitedStopNamesForCurrentFloor(),
+        currentStopName: _currentStopNameForCurrentFloor(),
+        markerColor: Theme.of(context).colorScheme.primary,
+        labelMaxWidth: 120,
+      );
+    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Container(
+          color: const Color(0xFF1A1A1A),
+          child: CustomPaint(
+            painter: Museum3DPainter(
+              locations: _locationsForCurrentFloor(),
+              routePoints: _routePointsForCurrentFloor(),
+              visitedStopNames: _visitedStopNamesForCurrentFloor(),
+              currentStopName: _currentStopNameForCurrentFloor(),
+              show3D: _show3D,
+              labelMaxWidth: 120,
+              markerColor: Theme.of(context).colorScheme.primary,
+              rasterMapMode: false,
+            ),
+            size: Size.infinite,
+          ),
+        );
+      },
     );
   }
 
@@ -561,8 +1039,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) =>
-          _LocationPickerSheet(options: _currentConfig.locationOptions),
+      builder: (_) => _LocationPickerSheet(options: _locationOptions()),
     );
     if (loc == null || !mounted) return;
     final suggestedRoutes = await _resolveSuggestedRoutes(loc);
@@ -599,14 +1076,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
         return mapped;
       }
     } catch (_) {
-      // Fall through to local route suggestions when backend is unavailable.
-    }
-
-    final localFiltered = _currentConfig.routes
-        .where((route) => route.stops.first.name == from.name)
-        .toList();
-    if (localFiltered.isNotEmpty) {
-      return localFiltered;
+      // Fall through to locally generated routes when backend is unavailable.
     }
 
     return _generateDynamicRoutes(from);
@@ -617,38 +1087,16 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
     _LocationOption from,
   ) {
     return apiRoutes.map((dto) {
-      final template = _findTemplateRouteByName(dto.name);
-      if (template != null) {
-        return _RouteOption(
-          emoji: template.emoji,
-          name: dto.name,
-          description: template.description,
-          duration: dto.estimatedTime,
-          stopsCount: dto.stopsCount,
-          stops: template.stops,
-        );
-      }
-
       final fallback = _generateFallbackRouteFromApi(from, dto);
       return _RouteOption(
         emoji: fallback.emoji,
         name: dto.name,
-        description: 'Guided route generated from museum route data.',
+        description: 'Guided route generated from museum route data.'.tr,
         duration: dto.estimatedTime,
         stopsCount: dto.stopsCount,
         stops: fallback.stops,
       );
     }).toList();
-  }
-
-  _RouteOption? _findTemplateRouteByName(String name) {
-    final target = name.trim().toLowerCase();
-    for (final route in _currentConfig.routes) {
-      if (route.name.trim().toLowerCase() == target) {
-        return route;
-      }
-    }
-    return null;
   }
 
   _RouteOption _generateFallbackRouteFromApi(
@@ -669,7 +1117,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
       return _RouteOption(
         emoji: '🧭',
         name: dto.name,
-        description: 'Guided route generated from museum route data.',
+        description: 'Guided route generated from museum route data.'.tr,
         duration: dto.estimatedTime,
         stopsCount: dto.stopsCount,
         stops: singleStop,
@@ -692,14 +1140,8 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
     final fromLoc = _findLocationByName(fromOption.name);
     if (fromLoc == null) return [];
 
-    final allLocs = _currentConfig.locations
-        .where(
-          (l) =>
-              l.name != fromLoc.name &&
-              !l.name.contains('Restroom') &&
-              !l.name.contains('Stairs') &&
-              !l.name.contains('Entrance'),
-        )
+    final allLocs = _allLocationsForLookup
+        .where((l) => l.name != fromLoc.name)
         .toList();
 
     final sameFloor = allLocs.where((l) => l.floor == fromLoc.floor).toList();
@@ -722,10 +1164,8 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
 
       for (var target in targets) {
         if (currentLoc.floor != target.floor) {
-          final fromStairs = _findLocationByName(
-            'Stairs - ${currentLoc.floor}',
-          );
-          final toStairs = _findLocationByName('Stairs - ${target.floor}');
+          final fromStairs = _stairsOnFloor(currentLoc.floor);
+          final toStairs = _stairsOnFloor(target.floor);
           if (fromStairs != null && stops.last.name != fromStairs.name) {
             stops.add(
               _RouteStop(
@@ -824,8 +1264,14 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
       if (currentFloor != null &&
           nextFloor != null &&
           currentFloor != nextFloor) {
-        addStopByName('Stairs - $currentFloor');
-        addStopByName('Stairs - $nextFloor');
+        final fromStairs = _stairsOnFloor(currentFloor);
+        final toStairs = _stairsOnFloor(nextFloor);
+        if (fromStairs != null) {
+          addStopByName(fromStairs.name);
+        }
+        if (toStairs != null) {
+          addStopByName(toStairs.name);
+        }
       }
     }
 
@@ -946,33 +1392,45 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
   }
 
   Future<void> _showExhibitionArtifactsPopup(String exhibitionName) async {
-    if (AppSession.currentMuseumId.value != 1 || !mounted) {
-      return;
+    if (!mounted) return;
+
+    ExhibitionDto? ex;
+    for (final e in _exhibitions) {
+      if (e.name == exhibitionName) {
+        ex = e;
+        break;
+      }
     }
+    if (ex == null) return;
 
     final exhibitionLocation = _findLocationByName(exhibitionName);
-    final artifacts =
-        _independencePalaceArtifactsByExhibition[exhibitionName]
-            ?.where((artifact) => artifact.floor == _selectedFloor)
-            .toList() ??
-        const <_MapLocation>[];
+    final artifacts = <_MapLocation>[];
+    for (final code in ex.artifactCodes) {
+      final a = _artifactByCode[code];
+      if (a == null || a.mapX == null || a.mapY == null) continue;
+      final floor =
+          (a.mapFloor != null && a.mapFloor!.trim().isNotEmpty)
+          ? a.mapFloor!.trim()
+          : (_floors.isNotEmpty ? _floors.first : 'Floor 1');
+      if (floor != _selectedFloor) continue;
+      final label = '${a.title} (${a.artifactCode})';
+      artifacts.add(
+        _MapLocation(
+          name: label,
+          floor: floor,
+          x: a.mapX!,
+          y: a.mapY!,
+          mapLabel: _popupLabelForArtifact(label),
+        ),
+      );
+    }
 
     final spreadArtifacts = _spreadArtifactCluster(
       artifacts,
       exhibitionLocation,
     );
 
-    // Fixed entrance marker at bottom-center of popup
-    final entranceMarker = _MapLocation(
-      name: 'Entrance',
-      floor: _selectedFloor,
-      x: 0.5,
-      y: 0.88,
-      color: const Color(0xFF22C55E),
-      mapLabel: 'Entrance',
-    );
-
-    final popupLocations = <_MapLocation>[entranceMarker, ...spreadArtifacts];
+    final popupLocations = spreadArtifacts;
 
     await showDialog<void>(
       context: context,
@@ -1039,6 +1497,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                           markerColor: Theme.of(
                             dialogContext,
                           ).colorScheme.primary,
+                          rasterMapMode: false,
                         ),
                         size: Size.infinite,
                       ),
@@ -1068,19 +1527,6 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
     final firstFloor = _floorOfStop(normalizedRoute.stops.first.name);
     setState(() {
       _isPreviewRoute = false;
-      _activeRoute = normalizedRoute;
-      _currentStopIndex = 0;
-      if (firstFloor != null) {
-        _selectedFloor = firstFloor;
-      }
-    });
-  }
-
-  void _showPreviewRoute(_RouteOption route) {
-    final normalizedRoute = _normalizeRouteForFloorTransfer(route);
-    final firstFloor = _floorOfStop(normalizedRoute.stops.first.name);
-    setState(() {
-      _isPreviewRoute = true;
       _activeRoute = normalizedRoute;
       _currentStopIndex = 0;
       if (firstFloor != null) {
@@ -1164,8 +1610,28 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
       return '';
     }
     final stopName = route.stops[_currentStopIndex].name;
-    return _currentConfig.stopDescriptions[stopName] ??
-        'Follow the highlighted path to continue your museum journey.';
+    for (final a in _artifacts) {
+      if (a.title == stopName) {
+        final d = a.description.trim();
+        if (d.isNotEmpty) return d;
+      }
+      if ('${a.title} (${a.artifactCode})' == stopName) {
+        final d = a.description.trim();
+        if (d.isNotEmpty) return d;
+      }
+    }
+    for (final e in _exhibitions) {
+      if (e.name == stopName) {
+        final loc = e.location.trim();
+        if (loc.isNotEmpty) return loc;
+      }
+    }
+    for (final d in _mapDestinations) {
+      if (d.title == stopName) {
+        return '${d.title} · ${d.floorLabel}'.trim();
+      }
+    }
+    return 'Follow the highlighted path to continue your museum journey.'.tr;
   }
 
   static String _normalizeLocationLookupKey(String name) {
@@ -1186,7 +1652,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
     if (name.isEmpty) return null;
 
     // First try exact match
-    for (final loc in _currentConfig.locations) {
+    for (final loc in _allLocationsForLookup) {
       if (loc.name == name) {
         return loc;
       }
@@ -1194,7 +1660,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
 
     // Fallback: try case-insensitive match
     final nameLower = name.toLowerCase().trim();
-    for (final loc in _currentConfig.locations) {
+    for (final loc in _allLocationsForLookup) {
       if (loc.name.toLowerCase().trim() == nameLower) {
         return loc;
       }
@@ -1203,7 +1669,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
     // Final fallback: compare normalized keys to bridge naming variants
     // such as "War Command Bunker Map" vs "War Command Bunker".
     final queryKey = _normalizeLocationLookupKey(name);
-    for (final loc in _currentConfig.locations) {
+    for (final loc in _allLocationsForLookup) {
       if (_normalizeLocationLookupKey(loc.name) == queryKey) {
         return loc;
       }
@@ -1214,6 +1680,30 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
 
   String? _floorOfStop(String stopName) {
     return _findLocationByName(stopName)?.floor;
+  }
+
+  _MapLocation? _stairsOnFloor(String floorLabel) {
+    for (final loc in _destinationMapLocations) {
+      if (loc.floor == floorLabel && loc.category == 'stairs') {
+        return loc;
+      }
+    }
+    return _findLocationByName('Stairs - $floorLabel');
+  }
+
+  String _managedDestinationCategoryLabel(String? category) {
+    switch (category) {
+      case 'restroom':
+        return 'Restrooms'.tr;
+      case 'cafe':
+        return 'Cafes'.tr;
+      case 'stairs':
+        return 'Stairs'.tr;
+      case 'entrance':
+        return 'Entrance'.tr;
+      default:
+        return 'Map places'.tr;
+    }
   }
 
   _RouteOption? _buildInitialRouteFromLocations(
@@ -1242,8 +1732,8 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
 
     addStop(from);
     if (from.floor != to.floor) {
-      final fromStairs = _findLocationByName('Stairs - ${from.floor}');
-      final toStairs = _findLocationByName('Stairs - ${to.floor}');
+      final fromStairs = _stairsOnFloor(from.floor);
+      final toStairs = _stairsOnFloor(to.floor);
       if (fromStairs != null) {
         addStop(fromStairs);
       }
@@ -1274,7 +1764,13 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
     );
   }
 
-  static String _subtitleForLocation(_MapLocation location) {
+  String _subtitleForLocation(_MapLocation location) {
+    if (location.isManagedDestination) {
+      return '${_managedDestinationCategoryLabel(location.category)} · ${location.floor}';
+    }
+    if (location.isExhibition) {
+      return '${'Exhibitions'.tr} · ${location.floor}';
+    }
     final hall = location.name.contains('Entrance')
         ? 'Entrance'
         : location.name.contains('Restroom')
@@ -1284,24 +1780,6 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
         : 'Gallery';
     return '$hall · ${location.floor}';
   }
-}
-
-class _MuseumMapConfig {
-  const _MuseumMapConfig({
-    required this.artifactLegendLabel,
-    required this.locations,
-    required this.stopDescriptions,
-    required this.locationOptions,
-    required this.routes,
-    this.floors = const ['Floor 1', 'Floor 2'],
-  });
-
-  final String artifactLegendLabel;
-  final List<_MapLocation> locations;
-  final Map<String, String> stopDescriptions;
-  final List<_LocationOption> locationOptions;
-  final List<_RouteOption> routes;
-  final List<String> floors;
 }
 
 // ── Route data ────────────────────────────────────────────────────────────
@@ -1341,1071 +1819,6 @@ class _RouteOption {
     required this.stops,
   });
 }
-
-Map<int, _MuseumMapConfig> _museumConfigs = <int, _MuseumMapConfig>{
-  1: _MuseumMapConfig(
-    artifactLegendLabel: 'Exhibitions',
-    floors: const ['Floor 1', 'Floor 2'],
-    locations: <_MapLocation>[
-      _MapLocation(
-        name: 'Main Entrance',
-        floor: 'Floor 1',
-        x: 0.5,
-        y: 0.82,
-        color: Color(0xFF22C55E),
-        mapLabel: 'Entrance',
-      ),
-      _MapLocation(
-        name: 'Fall of Saigon: April 30, 1975',
-        floor: 'Floor 1',
-        x: 0.22,
-        y: 0.26,
-        mapLabel: 'Fall of Saigon:\nApril 30, 1975',
-      ),
-      _MapLocation(
-        name: 'Presidential Power & Governance',
-        floor: 'Floor 1',
-        x: 0.74,
-        y: 0.24,
-        mapLabel: 'Presidential Power\n& Governance',
-      ),
-      _MapLocation(
-        name: 'Diplomacy & State Ceremony',
-        floor: 'Floor 1',
-        x: 0.24,
-        y: 0.58,
-        mapLabel: 'Diplomacy &\nState Ceremony',
-      ),
-      _MapLocation(
-        name: 'Presidential Lifestyle',
-        floor: 'Floor 1',
-        x: 0.74,
-        y: 0.58,
-        mapLabel: 'Presidential\nLifestyle',
-      ),
-      _MapLocation(
-        name: 'Restroom - Floor 1',
-        floor: 'Floor 1',
-        x: 0.14,
-        y: 0.72,
-        color: _Museum3DMapScreenState._restroomColor,
-        mapLabel: 'WC',
-      ),
-      _MapLocation(
-        name: 'Stairs - Floor 1',
-        floor: 'Floor 1',
-        x: 0.88,
-        y: 0.76,
-        color: _Museum3DMapScreenState._stairsColor,
-        mapLabel: 'Stairs',
-      ),
-      _MapLocation(
-        name: 'War Command Bunker',
-        floor: 'Floor 2',
-        x: 0.3,
-        y: 0.34,
-        mapLabel: 'War Command\nBunker',
-      ),
-      _MapLocation(
-        name: 'Air Warfare & Evacuation',
-        floor: 'Floor 2',
-        x: 0.72,
-        y: 0.34,
-        mapLabel: 'Air Warfare &\nEvacuation',
-      ),
-      _MapLocation(
-        name: 'Restroom - Floor 2',
-        floor: 'Floor 2',
-        x: 0.14,
-        y: 0.72,
-        color: _Museum3DMapScreenState._restroomColor,
-        mapLabel: 'WC',
-      ),
-      _MapLocation(
-        name: 'Stairs - Floor 2',
-        floor: 'Floor 2',
-        x: 0.88,
-        y: 0.76,
-        color: _Museum3DMapScreenState._stairsColor,
-        mapLabel: 'Stairs',
-      ),
-    ],
-    stopDescriptions: <String, String>{
-      'Main Entrance':
-          'Start from the main entrance and continue through the exhibition route of Independence Palace.',
-      'Fall of Saigon: April 30, 1975':
-          'This highlight exhibition presents Tank 390, Tank 843, Jeep M151A2, and F-5E bombing marks as the narrative of April 30, 1975 unfolds.',
-      'Presidential Power & Governance':
-          'A decision-making zone focused on the Cabinet Room Table, Vice President\'s Desk, and National Security Council Maps.',
-      'Diplomacy & State Ceremony':
-          'A ceremonial exhibition centered on the Binh Ngo Dai Cao lacquer painting and The Golden Dragon Tapestry.',
-      'Presidential Lifestyle':
-          'A domestic and symbolic power exhibition featuring the Mercedes-Benz 200 W110 and The Presidential Bed.',
-      'War Command Bunker':
-          'A bunker-centered exhibition covering the War Command Bunker Map and Telecommunications Center.',
-      'Air Warfare & Evacuation':
-          'A centerpiece exhibition about the UH-1 Helicopter, rooftop evacuation, and the final days of the war.',
-    },
-    locationOptions: _buildIndependencePalaceLocationOptions(),
-    routes: _independencePalaceRoutes,
-  ),
-  2: _MuseumMapConfig(
-    artifactLegendLabel: 'War Exhibits',
-    locations: <_MapLocation>[
-      _MapLocation(
-        name: 'War Crimes Exhibition',
-        floor: 'Floor 1',
-        x: 0.22,
-        y: 0.22,
-      ),
-      _MapLocation(
-        name: 'Guillotine (WRM-001)',
-        floor: 'Floor 1',
-        x: 0.62,
-        y: 0.28,
-      ),
-      _MapLocation(
-        name: 'Tiger Cages (WRM-002)',
-        floor: 'Floor 1',
-        x: 0.78,
-        y: 0.56,
-      ),
-      _MapLocation(
-        name: 'Main Entrance',
-        floor: 'Floor 1',
-        x: 0.32,
-        y: 0.82,
-        color: Color(0xFF22C55E),
-      ),
-      _MapLocation(
-        name: 'Restroom - Floor 1',
-        floor: 'Floor 1',
-        x: 0.12,
-        y: 0.7,
-        color: _Museum3DMapScreenState._restroomColor,
-      ),
-      _MapLocation(
-        name: 'Stairs - Floor 1',
-        floor: 'Floor 1',
-        x: 0.88,
-        y: 0.78,
-        color: _Museum3DMapScreenState._stairsColor,
-      ),
-      _MapLocation(
-        name: 'International Support Gallery',
-        floor: 'Floor 2',
-        x: 0.2,
-        y: 0.22,
-      ),
-      _MapLocation(
-        name: 'Peace and Reconciliation Display',
-        floor: 'Floor 2',
-        x: 0.62,
-        y: 0.34,
-      ),
-      _MapLocation(
-        name: 'Documentary Corner',
-        floor: 'Floor 2',
-        x: 0.78,
-        y: 0.56,
-      ),
-      _MapLocation(
-        name: 'Souvenir Shop',
-        floor: 'Floor 2',
-        x: 0.42,
-        y: 0.56,
-        color: Color(0xFFF59E0B),
-      ),
-      _MapLocation(
-        name: 'Cafe Break',
-        floor: 'Floor 2',
-        x: 0.3,
-        y: 0.78,
-        color: Color(0xFF8B5E3C),
-      ),
-      _MapLocation(
-        name: 'Restroom - Floor 2',
-        floor: 'Floor 2',
-        x: 0.12,
-        y: 0.72,
-        color: _Museum3DMapScreenState._restroomColor,
-      ),
-      _MapLocation(
-        name: 'Stairs - Floor 2',
-        floor: 'Floor 2',
-        x: 0.88,
-        y: 0.75,
-        color: _Museum3DMapScreenState._stairsColor,
-      ),
-    ],
-    stopDescriptions: <String, String>{
-      'War Crimes Exhibition':
-          'A central gallery documenting wartime devastation and eyewitness evidence.',
-      'Guillotine (WRM-001)':
-          'A preserved execution device from the colonial era, reflecting a dark chapter in resistance history.',
-      'Tiger Cages (WRM-002)':
-          'A reconstruction of prison cells used to detain political prisoners in brutal conditions.',
-      'International Support Gallery':
-          'This gallery highlights anti-war solidarity from around the world.',
-      'Peace and Reconciliation Display':
-          'An exhibit focused on recovery, remembrance, and reconciliation after conflict.',
-    },
-    locationOptions: _buildWarRemnantsLocationOptions(),
-    routes: _warRemnantsRoutes,
-  ),
-  3: _MuseumMapConfig(
-    artifactLegendLabel: 'Artworks',
-    locations: <_MapLocation>[
-      _MapLocation(
-        name: 'Contemporary Vietnamese Art',
-        floor: 'Floor 1',
-        x: 0.2,
-        y: 0.24,
-      ),
-      _MapLocation(
-        name: 'Lacquer Painting Rural Life (FAM-001)',
-        floor: 'Floor 1',
-        x: 0.58,
-        y: 0.34,
-      ),
-      _MapLocation(
-        name: 'Main Entrance',
-        floor: 'Floor 1',
-        x: 0.34,
-        y: 0.82,
-        color: Color(0xFF22C55E),
-      ),
-      _MapLocation(
-        name: 'Restroom - Floor 1',
-        floor: 'Floor 1',
-        x: 0.12,
-        y: 0.72,
-        color: _Museum3DMapScreenState._restroomColor,
-      ),
-      _MapLocation(
-        name: 'Stairs - Floor 1',
-        floor: 'Floor 1',
-        x: 0.88,
-        y: 0.78,
-        color: _Museum3DMapScreenState._stairsColor,
-      ),
-      _MapLocation(
-        name: 'Traditional Crafts Exhibition',
-        floor: 'Floor 2',
-        x: 0.2,
-        y: 0.22,
-      ),
-      _MapLocation(
-        name: 'Buddhist Statue (FAM-002)',
-        floor: 'Floor 2',
-        x: 0.6,
-        y: 0.36,
-      ),
-      _MapLocation(
-        name: 'International Art Collection',
-        floor: 'Floor 2',
-        x: 0.8,
-        y: 0.56,
-      ),
-      _MapLocation(
-        name: 'Museum Cafe',
-        floor: 'Floor 2',
-        x: 0.32,
-        y: 0.78,
-        color: Color(0xFF8B5E3C),
-      ),
-      _MapLocation(
-        name: 'Restroom - Floor 2',
-        floor: 'Floor 2',
-        x: 0.12,
-        y: 0.72,
-        color: _Museum3DMapScreenState._restroomColor,
-      ),
-      _MapLocation(
-        name: 'Stairs - Floor 2',
-        floor: 'Floor 2',
-        x: 0.88,
-        y: 0.76,
-        color: _Museum3DMapScreenState._stairsColor,
-      ),
-    ],
-    stopDescriptions: <String, String>{
-      'Contemporary Vietnamese Art':
-          'A curated display of modern Vietnamese artistic expression and cultural themes.',
-      'Lacquer Painting Rural Life (FAM-001)':
-          'A lacquer masterpiece that captures the rhythm and beauty of rural Vietnamese life.',
-      'Traditional Crafts Exhibition':
-          'An exhibit showcasing handcrafted objects and decorative arts from across Vietnam.',
-      'Buddhist Statue (FAM-002)':
-          'A 17th-century bronze statue highlighting the spiritual and sculptural heritage of Vietnam.',
-      'International Art Collection':
-          'A mixed collection of international works presented alongside Vietnamese fine arts.',
-    },
-    locationOptions: _buildFineArtsLocationOptions(),
-    routes: _fineArtsRoutes,
-  ),
-  4: _MuseumMapConfig(
-    artifactLegendLabel: 'City Heritage',
-    locations: <_MapLocation>[
-      _MapLocation(
-        name: 'City History Journey Hall',
-        floor: 'Floor 1',
-        x: 0.22,
-        y: 0.24,
-      ),
-      _MapLocation(
-        name: 'Traditional Ao Dai (HCM-001)',
-        floor: 'Floor 1',
-        x: 0.62,
-        y: 0.34,
-      ),
-      _MapLocation(
-        name: 'Main Entrance',
-        floor: 'Floor 1',
-        x: 0.35,
-        y: 0.82,
-        color: Color(0xFF22C55E),
-      ),
-      _MapLocation(
-        name: 'Restroom - Floor 1',
-        floor: 'Floor 1',
-        x: 0.12,
-        y: 0.72,
-        color: _Museum3DMapScreenState._restroomColor,
-      ),
-      _MapLocation(
-        name: 'Stairs - Floor 1',
-        floor: 'Floor 1',
-        x: 0.88,
-        y: 0.78,
-        color: _Museum3DMapScreenState._stairsColor,
-      ),
-      _MapLocation(
-        name: 'Cultural Heritage Trail Hall',
-        floor: 'Floor 2',
-        x: 0.22,
-        y: 0.22,
-      ),
-      _MapLocation(
-        name: 'Saigon Map 1930 (HCM-002)',
-        floor: 'Floor 2',
-        x: 0.62,
-        y: 0.38,
-      ),
-      _MapLocation(
-        name: 'Archive Reading Corner',
-        floor: 'Floor 2',
-        x: 0.78,
-        y: 0.56,
-      ),
-      _MapLocation(
-        name: 'Museum Cafe',
-        floor: 'Floor 2',
-        x: 0.3,
-        y: 0.78,
-        color: Color(0xFF8B5E3C),
-      ),
-      _MapLocation(
-        name: 'Restroom - Floor 2',
-        floor: 'Floor 2',
-        x: 0.12,
-        y: 0.72,
-        color: _Museum3DMapScreenState._restroomColor,
-      ),
-      _MapLocation(
-        name: 'Stairs - Floor 2',
-        floor: 'Floor 2',
-        x: 0.88,
-        y: 0.75,
-        color: _Museum3DMapScreenState._stairsColor,
-      ),
-    ],
-    stopDescriptions: <String, String>{
-      'City History Journey Hall':
-          'A gallery introducing the transformation of Ho Chi Minh City across major historical eras.',
-      'Traditional Ao Dai (HCM-001)':
-          'A classic Ao Dai garment illustrating cultural identity and changing urban fashion.',
-      'Cultural Heritage Trail Hall':
-          'An exhibit about the city\'s architecture, communities, and cultural continuity.',
-      'Saigon Map 1930 (HCM-002)':
-          'A historical map that reveals the colonial-era layout and expansion of Saigon.',
-      'Archive Reading Corner':
-          'A quiet corner where curated archive reproductions and city records are displayed.',
-    },
-    locationOptions: _buildCityMuseumLocationOptions(),
-    routes: _cityMuseumRoutes,
-  ),
-};
-
-const Map<String, List<_MapLocation>> _independencePalaceArtifactsByExhibition =
-    {
-      'Fall of Saigon: April 30, 1975': <_MapLocation>[
-        _MapLocation(
-          name: 'Tank 390 (IP-001)',
-          floor: 'Floor 1',
-          x: 0.16,
-          y: 0.2,
-        ),
-        _MapLocation(
-          name: 'T-54 Tank (IP-002)',
-          floor: 'Floor 1',
-          x: 0.29,
-          y: 0.18,
-        ),
-        _MapLocation(
-          name: 'Jeep M151A2 (IP-007)',
-          floor: 'Floor 1',
-          x: 0.21,
-          y: 0.34,
-        ),
-        _MapLocation(
-          name: 'F-5E Bombing Marks (IP-006)',
-          floor: 'Floor 1',
-          x: 0.33,
-          y: 0.3,
-        ),
-      ],
-      'Presidential Power & Governance': <_MapLocation>[
-        _MapLocation(
-          name: 'Cabinet Room Table (IP-009)',
-          floor: 'Floor 1',
-          x: 0.67,
-          y: 0.2,
-        ),
-        _MapLocation(
-          name: 'Vice President\'s Desk (IP-015)',
-          floor: 'Floor 1',
-          x: 0.79,
-          y: 0.18,
-        ),
-        _MapLocation(
-          name: 'National Security Council Maps (IP-013)',
-          floor: 'Floor 1',
-          x: 0.73,
-          y: 0.34,
-        ),
-      ],
-      'Diplomacy & State Ceremony': <_MapLocation>[
-        _MapLocation(
-          name: 'Presidential Throne (IP-003)',
-          floor: 'Floor 1',
-          x: 0.24,
-          y: 0.55,
-        ),
-        _MapLocation(
-          name: 'Binh Ngo Dai Cao Lacquer Painting (IP-008)',
-          floor: 'Floor 1',
-          x: 0.18,
-          y: 0.5,
-        ),
-        _MapLocation(
-          name: 'The Golden Dragon Tapestry (IP-010)',
-          floor: 'Floor 1',
-          x: 0.29,
-          y: 0.64,
-        ),
-      ],
-      'Presidential Lifestyle': <_MapLocation>[
-        _MapLocation(
-          name: 'Mercedes-Benz 200 W110 (IP-004)',
-          floor: 'Floor 1',
-          x: 0.68,
-          y: 0.5,
-        ),
-        _MapLocation(
-          name: 'The Presidential Bed (IP-012)',
-          floor: 'Floor 1',
-          x: 0.8,
-          y: 0.63,
-        ),
-      ],
-      'War Command Bunker': <_MapLocation>[
-        _MapLocation(
-          name: 'War Command Bunker Map (IP-005)',
-          floor: 'Floor 2',
-          x: 0.26,
-          y: 0.3,
-        ),
-        _MapLocation(
-          name: 'Telecommunications Center (IP-011)',
-          floor: 'Floor 2',
-          x: 0.36,
-          y: 0.42,
-        ),
-      ],
-      'Air Warfare & Evacuation': <_MapLocation>[
-        _MapLocation(
-          name: 'Basement Cinema Projector (IP-014)',
-          floor: 'Floor 2',
-          x: 0.74,
-          y: 0.3,
-        ),
-      ],
-    };
-
-List<_LocationOption> _buildIndependencePalaceLocationOptions() =>
-    <_LocationOption>[
-      _LocationOption(
-        name: 'Main Entrance',
-        subtitle: 'Entrance — Floor 1',
-        icon: Icons.meeting_room_outlined,
-        iconColor: const Color(0xFF22C55E),
-      ),
-      _LocationOption(
-        name: 'Fall of Saigon: April 30, 1975',
-        subtitle: 'Highlight Exhibition — Floor 1',
-        icon: Icons.history_edu_outlined,
-        iconColor: Colors.redAccent,
-      ),
-      _LocationOption(
-        name: 'Presidential Power & Governance',
-        subtitle: 'Decision-Making Center — Floor 1',
-        icon: Icons.account_balance_outlined,
-        iconColor: Colors.redAccent,
-      ),
-      _LocationOption(
-        name: 'Diplomacy & State Ceremony',
-        subtitle: 'Diplomatic Hall — Floor 1',
-        icon: Icons.auto_awesome_outlined,
-        iconColor: Colors.redAccent,
-      ),
-      _LocationOption(
-        name: 'Presidential Lifestyle',
-        subtitle: 'Private Quarters — Floor 1',
-        icon: Icons.king_bed_outlined,
-        iconColor: Colors.redAccent,
-      ),
-      _LocationOption(
-        name: 'Restroom - Floor 1',
-        subtitle: 'Facilities — Floor 1',
-        icon: Icons.wc_outlined,
-        iconColor: Color(0xFFF59E0B),
-      ),
-      _LocationOption(
-        name: 'Stairs - Floor 1',
-        subtitle: 'Transition — Floor 1',
-        icon: Icons.stairs_outlined,
-        iconColor: Color(0xFF60A5FA),
-      ),
-      _LocationOption(
-        name: 'War Command Bunker',
-        subtitle: 'Command Center — Floor 2',
-        icon: Icons.security_outlined,
-        iconColor: Colors.redAccent,
-      ),
-      _LocationOption(
-        name: 'Air Warfare & Evacuation',
-        subtitle: 'Helipad Centerpiece — Floor 2',
-        icon: Icons.flight_takeoff_outlined,
-        iconColor: Colors.redAccent,
-      ),
-      _LocationOption(
-        name: 'Restroom - Floor 2',
-        subtitle: 'Facilities — Floor 2',
-        icon: Icons.wc_outlined,
-        iconColor: Color(0xFFF59E0B),
-      ),
-      _LocationOption(
-        name: 'Stairs - Floor 2',
-        subtitle: 'Transition — Floor 2',
-        icon: Icons.stairs_outlined,
-        iconColor: Color(0xFF60A5FA),
-      ),
-    ];
-
-List<_LocationOption> _buildWarRemnantsLocationOptions() => <_LocationOption>[
-  _LocationOption(
-    name: 'War Crimes Exhibition',
-    subtitle: 'Building A — Floor 1',
-    icon: Icons.location_on,
-    iconColor: Colors.red,
-  ),
-  _LocationOption(
-    name: 'Guillotine (WRM-001)',
-    subtitle: 'Historical Hall — Floor 1',
-    icon: Icons.account_balance_outlined,
-    iconColor: Colors.red,
-  ),
-  _LocationOption(
-    name: 'Tiger Cages (WRM-002)',
-    subtitle: 'Outdoor Area — Floor 1',
-    icon: Icons.grid_view_outlined,
-    iconColor: Colors.red,
-  ),
-  _LocationOption(
-    name: 'Main Entrance',
-    subtitle: 'Entrance — Floor 1',
-    icon: Icons.meeting_room_outlined,
-    iconColor: themeNotifier.textSecondaryColor,
-  ),
-  _LocationOption(
-    name: 'Restroom - Floor 1',
-    subtitle: 'South Wing — Floor 1',
-    icon: Icons.wc_outlined,
-    iconColor: Color(0xFFF59E0B),
-  ),
-  _LocationOption(
-    name: 'Stairs - Floor 1',
-    subtitle: 'East Wing — Floor 1',
-    icon: Icons.stairs_outlined,
-    iconColor: Color(0xFF60A5FA),
-  ),
-  _LocationOption(
-    name: 'International Support Gallery',
-    subtitle: 'Building B — Floor 2',
-    icon: Icons.location_on,
-    iconColor: Colors.red,
-  ),
-  _LocationOption(
-    name: 'Peace and Reconciliation Display',
-    subtitle: 'Memorial Wing — Floor 2',
-    icon: Icons.location_on,
-    iconColor: Colors.red,
-  ),
-  _LocationOption(
-    name: 'Documentary Corner',
-    subtitle: 'Archive Hall — Floor 2',
-    icon: Icons.visibility_outlined,
-    iconColor: Colors.red,
-  ),
-  _LocationOption(
-    name: 'Restroom - Floor 2',
-    subtitle: 'South Wing — Floor 2',
-    icon: Icons.wc_outlined,
-    iconColor: Color(0xFFF59E0B),
-  ),
-  _LocationOption(
-    name: 'Stairs - Floor 2',
-    subtitle: 'East Wing — Floor 2',
-    icon: Icons.stairs_outlined,
-    iconColor: Color(0xFF60A5FA),
-  ),
-  _LocationOption(
-    name: 'Cafe Break',
-    subtitle: 'Upper Lobby — Floor 2',
-    icon: Icons.coffee_outlined,
-    iconColor: Color(0xFF8B5E3C),
-  ),
-];
-
-List<_LocationOption> _buildFineArtsLocationOptions() => <_LocationOption>[
-  _LocationOption(
-    name: 'Contemporary Vietnamese Art',
-    subtitle: 'Main Gallery — Floor 1',
-    icon: Icons.palette_outlined,
-    iconColor: Colors.deepPurple,
-  ),
-  _LocationOption(
-    name: 'Lacquer Painting Rural Life (FAM-001)',
-    subtitle: 'Main Gallery — Floor 1',
-    icon: Icons.brush_outlined,
-    iconColor: Colors.deepPurple,
-  ),
-  _LocationOption(
-    name: 'Main Entrance',
-    subtitle: 'Entrance — Floor 1',
-    icon: Icons.meeting_room_outlined,
-    iconColor: themeNotifier.textSecondaryColor,
-  ),
-  _LocationOption(
-    name: 'Restroom - Floor 1',
-    subtitle: 'South Wing — Floor 1',
-    icon: Icons.wc_outlined,
-    iconColor: Color(0xFFF59E0B),
-  ),
-  _LocationOption(
-    name: 'Stairs - Floor 1',
-    subtitle: 'East Wing — Floor 1',
-    icon: Icons.stairs_outlined,
-    iconColor: Color(0xFF60A5FA),
-  ),
-  _LocationOption(
-    name: 'Traditional Crafts Exhibition',
-    subtitle: 'Heritage Wing — Floor 2',
-    icon: Icons.palette_outlined,
-    iconColor: Colors.deepPurple,
-  ),
-  _LocationOption(
-    name: 'Buddhist Statue (FAM-002)',
-    subtitle: 'Sculpture Hall — Floor 2',
-    icon: Icons.account_balance_outlined,
-    iconColor: Colors.deepPurple,
-  ),
-  _LocationOption(
-    name: 'International Art Collection',
-    subtitle: 'International Gallery — Floor 2',
-    icon: Icons.image_outlined,
-    iconColor: Colors.deepPurple,
-  ),
-  _LocationOption(
-    name: 'Restroom - Floor 2',
-    subtitle: 'South Wing — Floor 2',
-    icon: Icons.wc_outlined,
-    iconColor: Color(0xFFF59E0B),
-  ),
-  _LocationOption(
-    name: 'Stairs - Floor 2',
-    subtitle: 'East Wing — Floor 2',
-    icon: Icons.stairs_outlined,
-    iconColor: Color(0xFF60A5FA),
-  ),
-  _LocationOption(
-    name: 'Museum Cafe',
-    subtitle: 'Upper Lobby — Floor 2',
-    icon: Icons.coffee_outlined,
-    iconColor: Color(0xFF8B5E3C),
-  ),
-];
-
-List<_LocationOption> _buildCityMuseumLocationOptions() => <_LocationOption>[
-  _LocationOption(
-    name: 'City History Journey Hall',
-    subtitle: 'Main Gallery — Floor 1',
-    icon: Icons.history_edu_outlined,
-    iconColor: Colors.teal,
-  ),
-  _LocationOption(
-    name: 'Traditional Ao Dai (HCM-001)',
-    subtitle: 'Textile Hall — Floor 1',
-    icon: Icons.checkroom_outlined,
-    iconColor: Colors.teal,
-  ),
-  _LocationOption(
-    name: 'Main Entrance',
-    subtitle: 'Entrance — Floor 1',
-    icon: Icons.meeting_room_outlined,
-    iconColor: themeNotifier.textSecondaryColor,
-  ),
-  _LocationOption(
-    name: 'Restroom - Floor 1',
-    subtitle: 'South Wing — Floor 1',
-    icon: Icons.wc_outlined,
-    iconColor: Color(0xFFF59E0B),
-  ),
-  _LocationOption(
-    name: 'Stairs - Floor 1',
-    subtitle: 'East Wing — Floor 1',
-    icon: Icons.stairs_outlined,
-    iconColor: Color(0xFF60A5FA),
-  ),
-  _LocationOption(
-    name: 'Cultural Heritage Trail Hall',
-    subtitle: 'Heritage Wing — Floor 2',
-    icon: Icons.history_edu_outlined,
-    iconColor: Colors.teal,
-  ),
-  _LocationOption(
-    name: 'Saigon Map 1930 (HCM-002)',
-    subtitle: 'Archive Hall — Floor 2',
-    icon: Icons.map_outlined,
-    iconColor: Colors.teal,
-  ),
-  _LocationOption(
-    name: 'Archive Reading Corner',
-    subtitle: 'Research Corner — Floor 2',
-    icon: Icons.menu_book_outlined,
-    iconColor: Colors.teal,
-  ),
-  _LocationOption(
-    name: 'Restroom - Floor 2',
-    subtitle: 'South Wing — Floor 2',
-    icon: Icons.wc_outlined,
-    iconColor: Color(0xFFF59E0B),
-  ),
-  _LocationOption(
-    name: 'Stairs - Floor 2',
-    subtitle: 'East Wing — Floor 2',
-    icon: Icons.stairs_outlined,
-    iconColor: Color(0xFF60A5FA),
-  ),
-  _LocationOption(
-    name: 'Museum Cafe',
-    subtitle: 'Upper Lobby — Floor 2',
-    icon: Icons.coffee_outlined,
-    iconColor: Color(0xFF8B5E3C),
-  ),
-];
-
-const _independencePalaceRoutes = <_RouteOption>[
-  _RouteOption(
-    emoji: '🚶',
-    name: 'Quick Explorer',
-    description: 'A short walk through highlights near your current location.',
-    duration: '15 min',
-    stopsCount: 4,
-    stops: [
-      _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
-      _RouteStop(
-        name: 'Fall of Saigon: April 30, 1975',
-        subtitle: 'Highlight Exhibition · Floor 1',
-      ),
-      _RouteStop(
-        name: 'Presidential Power & Governance',
-        subtitle: 'Decision-Making Center · Floor 1',
-      ),
-      _RouteStop(
-        name: 'Diplomacy & State Ceremony',
-        subtitle: 'Diplomatic Hall · Floor 1',
-      ),
-    ],
-  ),
-  _RouteOption(
-    emoji: '🧭',
-    name: 'Deep Dive',
-    description: 'A full exploration of the main highlights from your spot.',
-    duration: '45 min',
-    stopsCount: 9,
-    stops: [
-      _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
-      _RouteStop(
-        name: 'Fall of Saigon: April 30, 1975',
-        subtitle: 'Highlight Exhibition · Floor 1',
-      ),
-      _RouteStop(
-        name: 'Presidential Power & Governance',
-        subtitle: 'Decision-Making Center · Floor 1',
-      ),
-      _RouteStop(
-        name: 'Diplomacy & State Ceremony',
-        subtitle: 'Diplomatic Hall · Floor 1',
-      ),
-      _RouteStop(
-        name: 'Presidential Lifestyle',
-        subtitle: 'Private Quarters · Floor 1',
-      ),
-      _RouteStop(name: 'Stairs - Floor 1', subtitle: 'Transition · Floor 1'),
-      _RouteStop(name: 'Stairs - Floor 2', subtitle: 'Transition · Floor 2'),
-      _RouteStop(
-        name: 'War Command Bunker',
-        subtitle: 'Command Center · Floor 2',
-      ),
-      _RouteStop(
-        name: 'Air Warfare & Evacuation',
-        subtitle: 'Helipad Centerpiece · Floor 2',
-      ),
-    ],
-  ),
-  _RouteOption(
-    emoji: '🕵',
-    name: 'War Operations & Bunker',
-    description:
-        'Focus on secret command infrastructure and the evacuation story on Floor 2.',
-    duration: '60 min',
-    stopsCount: 5,
-    stops: [
-      _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
-      _RouteStop(name: 'Stairs - Floor 1', subtitle: 'Transition · Floor 1'),
-      _RouteStop(name: 'Stairs - Floor 2', subtitle: 'Transition · Floor 2'),
-      _RouteStop(
-        name: 'War Command Bunker',
-        subtitle: 'Command Center · Floor 2',
-      ),
-      _RouteStop(
-        name: 'Air Warfare & Evacuation',
-        subtitle: 'Helipad Centerpiece · Floor 2',
-      ),
-    ],
-  ),
-  _RouteOption(
-    emoji: '🌟',
-    name: 'Full Palace Narrative',
-    description:
-        'Complete walkthrough across all six exhibitions over two thematic floors.',
-    duration: '2 hours',
-    stopsCount: 8,
-    stops: [
-      _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
-      _RouteStop(
-        name: 'Fall of Saigon: April 30, 1975',
-        subtitle: 'Highlight Exhibition · Floor 1',
-      ),
-      _RouteStop(
-        name: 'Presidential Power & Governance',
-        subtitle: 'Decision-Making Center · Floor 1',
-      ),
-      _RouteStop(
-        name: 'Diplomacy & State Ceremony',
-        subtitle: 'Diplomatic Hall · Floor 1',
-      ),
-      _RouteStop(
-        name: 'Presidential Lifestyle',
-        subtitle: 'Private Quarters · Floor 1',
-      ),
-      _RouteStop(name: 'Stairs - Floor 1', subtitle: 'Transition · Floor 1'),
-      _RouteStop(name: 'Stairs - Floor 2', subtitle: 'Transition · Floor 2'),
-      _RouteStop(
-        name: 'Air Warfare & Evacuation',
-        subtitle: 'Helipad Centerpiece · Floor 2',
-      ),
-    ],
-  ),
-];
-
-const _warRemnantsRoutes = <_RouteOption>[
-  _RouteOption(
-    emoji: '🔥',
-    name: 'War History Path',
-    description: 'Key wartime exhibits and evidence galleries',
-    duration: '90 min',
-    stopsCount: 7,
-    stops: [
-      _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
-      _RouteStop(
-        name: 'War Crimes Exhibition',
-        subtitle: 'Building A · Floor 1',
-      ),
-      _RouteStop(
-        name: 'Guillotine (WRM-001)',
-        subtitle: 'Historical Hall · Floor 1',
-      ),
-      _RouteStop(
-        name: 'Tiger Cages (WRM-002)',
-        subtitle: 'Outdoor Area · Floor 1',
-      ),
-      _RouteStop(name: 'Stairs - Floor 1', subtitle: 'Transition · Floor 1'),
-      _RouteStop(name: 'Stairs - Floor 2', subtitle: 'Transition · Floor 2'),
-      _RouteStop(
-        name: 'Peace and Reconciliation Display',
-        subtitle: 'Memorial Wing · Floor 2',
-      ),
-    ],
-  ),
-  _RouteOption(
-    emoji: '⚡',
-    name: 'Quick Overview',
-    description: 'A short route through the core museum highlights',
-    duration: '30 min',
-    stopsCount: 5,
-    stops: [
-      _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
-      _RouteStop(
-        name: 'War Crimes Exhibition',
-        subtitle: 'Building A · Floor 1',
-      ),
-      _RouteStop(name: 'Stairs - Floor 1', subtitle: 'Transition · Floor 1'),
-      _RouteStop(name: 'Stairs - Floor 2', subtitle: 'Transition · Floor 2'),
-      _RouteStop(
-        name: 'International Support Gallery',
-        subtitle: 'Building B · Floor 2',
-      ),
-    ],
-  ),
-  _RouteOption(
-    emoji: '📷',
-    name: 'Photography Tour',
-    description: 'Best spots for photography and reflection',
-    duration: '45 min',
-    stopsCount: 5,
-    stops: [
-      _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
-      _RouteStop(
-        name: 'Tiger Cages (WRM-002)',
-        subtitle: 'Outdoor Area · Floor 1',
-      ),
-      _RouteStop(name: 'Stairs - Floor 1', subtitle: 'Transition · Floor 1'),
-      _RouteStop(name: 'Stairs - Floor 2', subtitle: 'Transition · Floor 2'),
-      _RouteStop(
-        name: 'Documentary Corner',
-        subtitle: 'Archive Hall · Floor 2',
-      ),
-    ],
-  ),
-];
-
-const _fineArtsRoutes = <_RouteOption>[
-  _RouteOption(
-    emoji: '🎨',
-    name: 'Masterpieces Collection',
-    description: 'A curated route through signature fine art works',
-    duration: '60 min',
-    stopsCount: 6,
-    stops: [
-      _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
-      _RouteStop(
-        name: 'Contemporary Vietnamese Art',
-        subtitle: 'Main Gallery · Floor 1',
-      ),
-      _RouteStop(
-        name: 'Lacquer Painting Rural Life (FAM-001)',
-        subtitle: 'Main Gallery · Floor 1',
-      ),
-      _RouteStop(name: 'Stairs - Floor 1', subtitle: 'Transition · Floor 1'),
-      _RouteStop(name: 'Stairs - Floor 2', subtitle: 'Transition · Floor 2'),
-      _RouteStop(
-        name: 'Buddhist Statue (FAM-002)',
-        subtitle: 'Sculpture Hall · Floor 2',
-      ),
-    ],
-  ),
-  _RouteOption(
-    emoji: '🪷',
-    name: 'Traditional Arts Walk',
-    description: 'Explore traditional Vietnamese craft and sculpture',
-    duration: '40 min',
-    stopsCount: 5,
-    stops: [
-      _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
-      _RouteStop(name: 'Stairs - Floor 1', subtitle: 'Transition · Floor 1'),
-      _RouteStop(name: 'Stairs - Floor 2', subtitle: 'Transition · Floor 2'),
-      _RouteStop(
-        name: 'Traditional Crafts Exhibition',
-        subtitle: 'Heritage Wing · Floor 2',
-      ),
-      _RouteStop(
-        name: 'Buddhist Statue (FAM-002)',
-        subtitle: 'Sculpture Hall · Floor 2',
-      ),
-    ],
-  ),
-];
-
-const _cityMuseumRoutes = <_RouteOption>[
-  _RouteOption(
-    emoji: '🏙',
-    name: 'City History Journey',
-    description:
-        'A route through key exhibits on the history of Saigon and Ho Chi Minh City',
-    duration: '75 min',
-    stopsCount: 6,
-    stops: [
-      _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
-      _RouteStop(
-        name: 'City History Journey Hall',
-        subtitle: 'Main Gallery · Floor 1',
-      ),
-      _RouteStop(
-        name: 'Traditional Ao Dai (HCM-001)',
-        subtitle: 'Textile Hall · Floor 1',
-      ),
-      _RouteStop(name: 'Stairs - Floor 1', subtitle: 'Transition · Floor 1'),
-      _RouteStop(name: 'Stairs - Floor 2', subtitle: 'Transition · Floor 2'),
-      _RouteStop(
-        name: 'Saigon Map 1930 (HCM-002)',
-        subtitle: 'Archive Hall · Floor 2',
-      ),
-    ],
-  ),
-  _RouteOption(
-    emoji: '📜',
-    name: 'Cultural Heritage Trail',
-    description: 'Highlights of local heritage, archives, and urban memory',
-    duration: '50 min',
-    stopsCount: 5,
-    stops: [
-      _RouteStop(name: 'Main Entrance', subtitle: 'Entrance · Floor 1'),
-      _RouteStop(name: 'Stairs - Floor 1', subtitle: 'Transition · Floor 1'),
-      _RouteStop(name: 'Stairs - Floor 2', subtitle: 'Transition · Floor 2'),
-      _RouteStop(
-        name: 'Cultural Heritage Trail Hall',
-        subtitle: 'Heritage Wing · Floor 2',
-      ),
-      _RouteStop(
-        name: 'Archive Reading Corner',
-        subtitle: 'Research Corner · Floor 2',
-      ),
-    ],
-  ),
-];
 
 // ── Detecting Screen ──────────────────────────────────────────────────────
 
@@ -3032,136 +2445,301 @@ class _NavigationPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final currentStop = route.stops[currentStopIndex];
     final isLast = currentStopIndex == route.stops.length - 1;
-    return Container(
-      color: Theme.of(context).colorScheme.primary,
-      padding: EdgeInsets.fromLTRB(12, 10, 12, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
+    final primary = Theme.of(context).colorScheme.primary;
+
+    final body = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
                 '${'Navigating - Stop'.tr} ${currentStopIndex + 1}/${route.stops.length}',
                 style: TextStyle(
                   color: themeNotifier.surfaceColor,
                   fontSize: 12,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              const Spacer(),
-              GestureDetector(
-                onTap: onStop,
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.24),
-                    borderRadius: BorderRadius.circular(20),
+            ),
+            GestureDetector(
+              onTap: onStop,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.24),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  'Stop'.tr,
+                  style: TextStyle(
+                    color: themeNotifier.surfaceColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
                   ),
-                  child: Text(
-                    'Stop'.tr,
-                    style: TextStyle(
-                      color: themeNotifier.surfaceColor,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 8),
+        Text(
+          'To:'.tr,
+          style: TextStyle(color: themeNotifier.surfaceColor, fontSize: 16),
+        ),
+        SizedBox(height: 2),
+        Text(
+          currentStop.name.tr,
+          style: TextStyle(
+            color: themeNotifier.surfaceColor,
+            fontSize: 26,
+            height: 1.15,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        SizedBox(height: 8),
+        Row(
+          children: List.generate(route.stops.length, (i) {
+            final done = i <= currentStopIndex;
+            return Expanded(
+              child: Container(
+                margin: EdgeInsets.only(
+                  right: i == route.stops.length - 1 ? 0 : 4,
+                ),
+                height: 3,
+                decoration: BoxDecoration(
+                  color: done ? Colors.white : Colors.white.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            );
+          }),
+        ),
+        SizedBox(height: 10),
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: themeNotifier.surfaceColor,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          padding: EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      currentStop.name.tr,
+                      style: TextStyle(
+                        color: themeNotifier.textPrimaryColor,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
+                  Icon(
+                    Icons.volume_up_outlined,
+                    color: primary,
+                  ),
+                ],
+              ),
+              SizedBox(height: 6),
+              Text(
+                description.tr,
+                style: TextStyle(
+                  color: Color(0xFF4B5563),
+                  height: 1.4,
+                  fontSize: 14,
                 ),
               ),
             ],
           ),
-          SizedBox(height: 8),
-          Text(
-            'To:'.tr,
-            style: TextStyle(color: themeNotifier.surfaceColor, fontSize: 16),
-          ),
-          SizedBox(height: 2),
-          Text(
-            currentStop.name.tr,
-            style: TextStyle(
-              color: themeNotifier.surfaceColor,
-              fontSize: 30,
-              height: 1,
-              fontWeight: FontWeight.w500,
+        ),
+        SizedBox(height: 10),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: onNext,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: themeNotifier.surfaceColor,
+              foregroundColor: primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              padding: EdgeInsets.symmetric(vertical: 12),
+            ),
+            child: Text(
+              isLast ? 'Finish'.tr : 'Next  →'.tr,
+              style: TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
-          SizedBox(height: 8),
-          Row(
-            children: List.generate(route.stops.length, (i) {
-              final done = i <= currentStopIndex;
-              return Expanded(
-                child: Container(
-                  margin: EdgeInsets.only(
-                    right: i == route.stops.length - 1 ? 0 : 4,
-                  ),
-                  height: 3,
-                  decoration: BoxDecoration(
-                    color: done ? Colors.white : Colors.white.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-              );
-            }),
-          ),
-          SizedBox(height: 10),
-          Container(
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: themeNotifier.surfaceColor,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            padding: EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        ),
+      ],
+    );
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+      child: Material(
+        elevation: 12,
+        shadowColor: Colors.black38,
+        borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
+        color: primary,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+          child: body,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Indoor map image (from backend) + overlay ─────────────────────────────
+
+class _IndoorMapRasterView extends StatefulWidget {
+  const _IndoorMapRasterView({
+    required this.imageUrl,
+    required this.locations,
+    required this.routePoints,
+    required this.visitedStopNames,
+    required this.currentStopName,
+    required this.markerColor,
+    this.labelMaxWidth = 120,
+  });
+
+  final String imageUrl;
+  final List<_MapLocation> locations;
+  final List<_MapLocation> routePoints;
+  final Set<String> visitedStopNames;
+  final String? currentStopName;
+  final Color markerColor;
+  final double labelMaxWidth;
+
+  @override
+  State<_IndoorMapRasterView> createState() => _IndoorMapRasterViewState();
+}
+
+class _IndoorMapRasterViewState extends State<_IndoorMapRasterView> {
+  double? _w;
+  double? _h;
+  late final TransformationController _transformationController;
+  double _viewerScale = 1.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _transformationController = TransformationController();
+    _transformationController.addListener(_onTransformChanged);
+    _resolveImage();
+  }
+
+  void _onTransformChanged() {
+    final s = _uniformScaleFromMatrix(_transformationController.value);
+    if (!mounted) return;
+    if ((s - _viewerScale).abs() > 0.002) {
+      setState(() => _viewerScale = s);
+    }
+  }
+
+  @override
+  void dispose() {
+    _transformationController.removeListener(_onTransformChanged);
+    _transformationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant _IndoorMapRasterView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.imageUrl != widget.imageUrl) {
+      _w = null;
+      _h = null;
+      _resolveImage();
+    }
+  }
+
+  void _resolveImage() {
+    final provider = NetworkImage(widget.imageUrl);
+    final stream = provider.resolve(const ImageConfiguration());
+    late ImageStreamListener listener;
+    listener = ImageStreamListener(
+      (ImageInfo info, bool _) {
+        stream.removeListener(listener);
+        if (!mounted) return;
+        setState(() {
+          _w = info.image.width.toDouble();
+          _h = info.image.height.toDouble();
+        });
+      },
+      onError: (Object _, StackTrace? __) {
+        stream.removeListener(listener);
+        if (!mounted) return;
+        setState(() {
+          _w = 400;
+          _h = 300;
+        });
+      },
+    );
+    stream.addListener(listener);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_w == null || _h == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return ColoredBox(
+      color: const Color(0xFF1A1A1A),
+      child: Center(
+        child: InteractiveViewer(
+          transformationController: _transformationController,
+          minScale: 0.35,
+          maxScale: 5,
+          constrained: true,
+          clipBehavior: Clip.hardEdge,
+          child: SizedBox(
+            width: _w,
+            height: _h,
+            child: Stack(
+              fit: StackFit.expand,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        currentStop.name.tr,
-                        style: TextStyle(
-                          color: themeNotifier.textPrimaryColor,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                        ),
+                Image.network(
+                  widget.imageUrl,
+                  width: _w,
+                  height: _h,
+                  fit: BoxFit.fill,
+                  errorBuilder: (_, __, ___) => ColoredBox(
+                    color: Colors.grey.shade800,
+                    child: Center(
+                      child: Icon(
+                        Icons.broken_image,
+                        color: Colors.grey.shade500,
+                        size: 48,
                       ),
                     ),
-                    Icon(
-                      Icons.volume_up_outlined,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ],
+                  ),
                 ),
-                SizedBox(height: 6),
-                Text(
-                  description.tr,
-                  style: TextStyle(
-                    color: Color(0xFF4B5563),
-                    height: 1.4,
-                    fontSize: 14,
+                CustomPaint(
+                  size: Size(_w!, _h!),
+                  painter: Museum3DPainter(
+                    locations: widget.locations,
+                    routePoints: widget.routePoints,
+                    visitedStopNames: widget.visitedStopNames,
+                    currentStopName: widget.currentStopName,
+                    show3D: false,
+                    compactBackdrop: false,
+                    labelMaxWidth: widget.labelMaxWidth,
+                    markerColor: widget.markerColor,
+                    rasterMapMode: true,
+                    viewerScale: _viewerScale,
                   ),
                 ),
               ],
             ),
           ),
-          SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: onNext,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: themeNotifier.surfaceColor,
-                foregroundColor: Theme.of(context).colorScheme.primary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                padding: EdgeInsets.symmetric(vertical: 12),
-              ),
-              child: Text(
-                isLast ? 'Finish'.tr : 'Next  →'.tr,
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -3178,6 +2756,9 @@ class Museum3DPainter extends CustomPainter {
   final bool compactBackdrop;
   final double labelMaxWidth;
   final Color markerColor;
+  final bool rasterMapMode;
+  /// [InteractiveViewer] scale so label text stays ~constant size on screen when zooming.
+  final double viewerScale;
 
   Museum3DPainter({
     required this.locations,
@@ -3188,24 +2769,28 @@ class Museum3DPainter extends CustomPainter {
     this.compactBackdrop = false,
     this.labelMaxWidth = 84,
     required this.markerColor,
+    this.rasterMapMode = false,
+    this.viewerScale = 1.0,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = show3D ? const Color(0xFF2B3340) : const Color(0xFF3A3A3A)
-      ..strokeWidth = 1;
+    if (!rasterMapMode) {
+      final paint = Paint()
+        ..color = show3D ? const Color(0xFF2B3340) : const Color(0xFF3A3A3A)
+        ..strokeWidth = 1;
 
-    final fillPaint = Paint()
-      ..color = show3D ? const Color(0xFF151C28) : const Color(0xFF202020);
+      final fillPaint = Paint()
+        ..color = show3D ? const Color(0xFF151C28) : const Color(0xFF202020);
 
-    canvas.drawRect(Offset.zero & size, fillPaint);
+      canvas.drawRect(Offset.zero & size, fillPaint);
 
-    if (compactBackdrop) {
-      _drawFocusPanel(canvas, size);
-    } else {
-      // Draw basic 3D floor plan
-      _draw3DFloor(canvas, size, paint, fillPaint);
+      if (compactBackdrop) {
+        _drawFocusPanel(canvas, size);
+      } else {
+        // Draw basic 3D floor plan
+        _draw3DFloor(canvas, size, paint, fillPaint);
+      }
     }
 
     // Draw active route path if available
@@ -3341,14 +2926,24 @@ class Museum3DPainter extends CustomPainter {
     canvas.drawCircle(Offset(x, y), 6, markerPaint);
 
     final label = location.mapLabel ?? location.name;
+    final baseFs = compactBackdrop
+        ? (label.contains('\n') ? 11.0 : 12.0)
+        : (label.contains('\n') ? 10.0 : 11.0);
+    final inv =
+        rasterMapMode && viewerScale > 0 ? (1.0 / viewerScale) : 1.0;
+    final fs = baseFs * inv;
+    final maxW = labelMaxWidth * inv;
+    final pad = 5.0 * inv;
+    final padV = 2.0 * inv;
+    final gapBelowDot = 10.0 * inv;
+    final radius = 8.0 * inv;
+
     final textPainter = TextPainter(
       text: TextSpan(
         text: label.tr,
         style: TextStyle(
           color: Color(0xFFFFFFFF),
-          fontSize: compactBackdrop
-              ? (label.contains('\n') ? 11 : 12)
-              : (label.contains('\n') ? 10 : 11),
+          fontSize: fs,
           fontWeight: FontWeight.w600,
           height: 1.15,
         ),
@@ -3356,21 +2951,21 @@ class Museum3DPainter extends CustomPainter {
       textAlign: TextAlign.center,
       textDirection: TextDirection.ltr,
     );
-    textPainter.layout(maxWidth: labelMaxWidth);
+    textPainter.layout(maxWidth: maxW);
 
-    final labelOffset = Offset(x - textPainter.width / 2 - 5, y + 10);
+    final labelOffset = Offset(x - textPainter.width / 2 - pad, y + gapBelowDot);
     final labelRect = RRect.fromRectAndRadius(
       Rect.fromLTWH(
         labelOffset.dx,
-        labelOffset.dy - 2,
-        textPainter.width + 10,
-        textPainter.height + 6,
+        labelOffset.dy - padV,
+        textPainter.width + pad * 2,
+        textPainter.height + padV * 2,
       ),
-      const Radius.circular(8),
+      Radius.circular(radius),
     );
 
     canvas.drawRRect(labelRect, Paint()..color = const Color(0xAA0F172A));
-    textPainter.paint(canvas, Offset(labelOffset.dx + 5, labelOffset.dy + 1));
+    textPainter.paint(canvas, Offset(labelOffset.dx + pad, labelOffset.dy + padV * 0.5));
   }
 
   @override
@@ -3381,7 +2976,9 @@ class Museum3DPainter extends CustomPainter {
         oldDelegate.currentStopName != currentStopName ||
         oldDelegate.show3D != show3D ||
         oldDelegate.compactBackdrop != compactBackdrop ||
-        oldDelegate.labelMaxWidth != labelMaxWidth;
+        oldDelegate.labelMaxWidth != labelMaxWidth ||
+        oldDelegate.rasterMapMode != rasterMapMode ||
+        oldDelegate.viewerScale != viewerScale;
   }
 }
 
@@ -3392,6 +2989,11 @@ class _MapLocation {
   final double y; // 0.0 to 1.0
   final Color? color; // override marker color
   final String? mapLabel;
+  final bool isExhibition;
+  /// Dashboard-edited POI (WC, café, stairs, …).
+  final bool isManagedDestination;
+  /// Backend category: restroom, cafe, stairs, entrance, other.
+  final String? category;
 
   const _MapLocation({
     required this.name,
@@ -3400,6 +3002,9 @@ class _MapLocation {
     required this.y,
     this.color,
     this.mapLabel,
+    this.isExhibition = false,
+    this.isManagedDestination = false,
+    this.category,
   });
 }
 

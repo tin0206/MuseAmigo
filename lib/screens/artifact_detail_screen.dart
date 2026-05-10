@@ -174,62 +174,64 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
   Widget _buildContent(BuildContext context, Artifact artifact) {
     // Resolve current language once per build for all localized fields.
     final lang = languageNotifier.currentLanguage;
+    final topInset = MediaQuery.paddingOf(context).top;
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
     return Scaffold(
       backgroundColor: themeNotifier.surfaceColor,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              // ── Hero image ──────────────────────────────────────────────
-              Stack(
-                children: [
-                  SizedBox(
-                    width: double.infinity,
-                    height: 370,
-                    child: ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
-                        bottom: Radius.circular(24),
-                      ),
-                      child: Image.asset(
-                        artifact.imagePath,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          color: themeNotifier.isDarkMode
-                              ? const Color(0xFF27272A)
-                              : Colors.grey.shade300,
-                          child: Center(
-                            child: Icon(
-                              Icons.image_outlined,
-                              size: 56,
-                              color: themeNotifier.textSecondaryColor,
-                            ),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // ── Hero image (extends under status bar; back button respects inset) ──
+            Stack(
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  height: 370 + topInset,
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.vertical(
+                      bottom: Radius.circular(24),
+                    ),
+                    child: Image.asset(
+                      artifact.imagePath,
+                      fit: BoxFit.cover,
+                      alignment: Alignment.topCenter,
+                      errorBuilder: (_, __, ___) => Container(
+                        color: themeNotifier.isDarkMode
+                            ? const Color(0xFF27272A)
+                            : Colors.grey.shade300,
+                        child: Center(
+                          child: Icon(
+                            Icons.image_outlined,
+                            size: 56,
+                            color: themeNotifier.textSecondaryColor,
                           ),
                         ),
                       ),
                     ),
                   ),
-                  Positioned(
-                    top: 16,
-                    left: 16,
-                    child: InkWell(
-                      onTap: () => Navigator.of(context).pop(),
-                      borderRadius: BorderRadius.circular(22),
-                      child: Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: themeNotifier.surfaceColor,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.arrow_back_ios_new_rounded,
-                          color: themeNotifier.textPrimaryColor,
-                        ),
+                ),
+                Positioned(
+                  top: topInset + 16,
+                  left: 16,
+                  child: InkWell(
+                    onTap: () => Navigator.of(context).pop(),
+                    borderRadius: BorderRadius.circular(22),
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: themeNotifier.surfaceColor,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        color: themeNotifier.textPrimaryColor,
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
+            ),
               const SizedBox(height: 12),
               const SizedBox(height: 14),
               // 3D Model View Section - Temporarily commented out
@@ -353,8 +355,8 @@ class _ArtifactDetailScreenState extends State<ArtifactDetailScreen> {
                   ),
                 ),
               ),
-            ],
-          ),
+            SizedBox(height: bottomInset > 0 ? bottomInset : 12),
+          ],
         ),
       ),
     );

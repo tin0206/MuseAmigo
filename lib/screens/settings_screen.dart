@@ -1004,9 +1004,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () {
+                        onPressed: () async {
                           Navigator.of(ctx).pop();
-                          AppSession.activeMuseumVisit.value = false;
+                          // Keep museum journey prefs so the same user can resume after logging in again.
+                          AppSession.userId.value = null;
+                          AppSession.fullName.value = '';
+                          profileNotifier.setUser(name: '', email: '');
+                          await AppSession.clearSavedLoginCredentials();
+                          if (!context.mounted) return;
                           Navigator.of(context).pushNamedAndRemoveUntil(
                             AppRoutes.login,
                             (route) => false,

@@ -249,10 +249,14 @@ class _SearchScreenState extends State<SearchScreen> {
     return ListenableBuilder(
       listenable: Listenable.merge([languageNotifier, themeNotifier]),
       builder: (context, _) {
+        final bottomInset = MediaQuery.paddingOf(context).bottom;
         return Scaffold(
           backgroundColor: themeNotifier.surfaceColor,
+          // Top: primary bar uses status-bar padding manually. Bottom: fill to home
+          // indicator; scroll areas add [bottomInset] so content stays clear of it.
           body: SafeArea(
             top: false,
+            bottom: false,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -501,20 +505,24 @@ class _SearchScreenState extends State<SearchScreen> {
                     padding: EdgeInsets.fromLTRB(16, 4, 16, 10),
                     child: Row(
                       children: [
-                        Text(
-                          '${_filteredResults.length} ${'Results'.tr}',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16,
-                            color: themeNotifier.textPrimaryColor,
+                        Expanded(
+                          child: Text(
+                            '${_filteredResults.length} ${'Results'.tr}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
+                              color: themeNotifier.textPrimaryColor,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const Spacer(),
                         GestureDetector(
                           onTap: () => setState(() {
                             _sortBy = _sortBy == 'default' ? 'a-z' : 'default';
                           }),
                           child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
                                 Icons.filter_list_rounded,
@@ -538,7 +546,12 @@ class _SearchScreenState extends State<SearchScreen> {
                   // ── Results list ──────────────────────────────────────────
                   Expanded(
                     child: ListView.builder(
-                      padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      padding: EdgeInsets.fromLTRB(
+                        16,
+                        0,
+                        16,
+                        16 + bottomInset,
+                      ),
                       itemCount: _filteredResults.length,
                       itemBuilder: (context, index) =>
                           _ResultCard(item: _filteredResults[index]),
@@ -548,7 +561,12 @@ class _SearchScreenState extends State<SearchScreen> {
                   // ── Recent + Trending ─────────────────────────────────────
                   Expanded(
                     child: SingleChildScrollView(
-                      padding: EdgeInsets.fromLTRB(16, 20, 16, 20),
+                      padding: EdgeInsets.fromLTRB(
+                        16,
+                        20,
+                        16,
+                        20 + bottomInset,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -780,6 +798,8 @@ class _ResultCard extends StatelessWidget {
                       color: themeNotifier.textPrimaryColor,
                       height: 1.4,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   SizedBox(height: 8),
                   Row(
@@ -793,11 +813,15 @@ class _ResultCard extends StatelessWidget {
                         ),
                       ),
                       SizedBox(width: 4),
-                      Text(
-                        item.exhibition.tr,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: themeNotifier.textSecondaryColor,
+                      Expanded(
+                        child: Text(
+                          item.exhibition.tr,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: themeNotifier.textSecondaryColor,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
@@ -806,7 +830,7 @@ class _ResultCard extends StatelessWidget {
               ),
             ),
             SizedBox(width: 8),
-            // Detail button
+            // Detail button (shrink-wrap so thumbnail + text never overflow)
             FilledButton(
               onPressed: () => _openDetail(context),
               style: FilledButton.styleFrom(
@@ -814,13 +838,15 @@ class _ResultCard extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
-                padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               child: Text(
                 'Detail'.tr,
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],

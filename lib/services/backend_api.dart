@@ -74,6 +74,9 @@ class ArtifactDto {
     required this.museumId,
     required this.unityPrefabName,
     this.audioAsset = '',
+    this.mapX,
+    this.mapY,
+    this.mapFloor,
   });
 
   final int id;
@@ -85,6 +88,12 @@ class ArtifactDto {
   final int museumId;
   final String unityPrefabName;
   final String audioAsset;
+  /// Normalized 0–1 horizontal position on the museum indoor map image.
+  final double? mapX;
+  /// Normalized 0–1 vertical position on the museum indoor map image.
+  final double? mapY;
+  /// e.g. "Floor 1"; should match map screen floor labels.
+  final String? mapFloor;
 
   factory ArtifactDto.fromJson(Map<String, dynamic> json) => ArtifactDto(
     id: json['id'] as int,
@@ -96,7 +105,88 @@ class ArtifactDto {
     museumId: json['museum_id'] as int,
     unityPrefabName: json['unity_prefab_name'] as String,
     audioAsset: json['audio_asset'] as String? ?? '',
+    mapX: (json['map_x'] as num?)?.toDouble(),
+    mapY: (json['map_y'] as num?)?.toDouble(),
+    mapFloor: json['map_floor'] as String?,
   );
+}
+
+class IndoorMapDto {
+  const IndoorMapDto({
+    required this.museumId,
+    this.map2dPath,
+    this.map3dPath,
+  });
+
+  final int museumId;
+  /// Server path such as `/static/maps/floor1.png` or absolute URL.
+  final String? map2dPath;
+  final String? map3dPath;
+
+  factory IndoorMapDto.fromJson(Map<String, dynamic> json) => IndoorMapDto(
+    museumId: json['museum_id'] as int,
+    map2dPath: json['map_2d_path'] as String?,
+    map3dPath: json['map_3d_path'] as String?,
+  );
+}
+
+class MuseumFloorDto {
+  const MuseumFloorDto({
+    required this.id,
+    required this.museumId,
+    required this.label,
+    required this.sortOrder,
+  });
+
+  final int id;
+  final int museumId;
+  final String label;
+  final int sortOrder;
+
+  factory MuseumFloorDto.fromJson(Map<String, dynamic> json) => MuseumFloorDto(
+    id: json['id'] as int,
+    museumId: json['museum_id'] as int,
+    label: json['label'] as String,
+    sortOrder: json['sort_order'] as int,
+  );
+}
+
+/// Editable POIs on the indoor map (WC, café, stairs, …) from the dashboard API.
+class MapDestinationDto {
+  const MapDestinationDto({
+    required this.id,
+    required this.museumId,
+    required this.title,
+    required this.category,
+    required this.markerColor,
+    required this.mapX,
+    required this.mapY,
+    required this.floorId,
+    required this.floorLabel,
+  });
+
+  final int id;
+  final int museumId;
+  final String title;
+  final String category;
+  final String markerColor;
+  final double mapX;
+  final double mapY;
+  final int floorId;
+  final String floorLabel;
+
+  factory MapDestinationDto.fromJson(Map<String, dynamic> json) =>
+      MapDestinationDto(
+        id: json['id'] as int,
+        museumId: json['museum_id'] as int,
+        title: json['title'] as String,
+        category: json['category'] as String? ?? 'other',
+        markerColor: json['marker_color'] as String? ?? '#6366F1',
+        mapX: (json['map_x'] as num).toDouble(),
+        mapY: (json['map_y'] as num).toDouble(),
+        floorId: json['floor_id'] as int,
+        floorLabel: json['floor_label'] as String? ?? '',
+      );
 }
 
 class ExhibitionDto {
@@ -105,19 +195,38 @@ class ExhibitionDto {
     required this.name,
     required this.location,
     required this.museumId,
+    this.artifactCodes = const [],
+    this.mapX,
+    this.mapY,
+    this.mapFloor,
   });
 
   final int id;
   final String name;
   final String location;
   final int museumId;
+  final List<String> artifactCodes;
+  final double? mapX;
+  final double? mapY;
+  final String? mapFloor;
 
-  factory ExhibitionDto.fromJson(Map<String, dynamic> json) => ExhibitionDto(
-    id: json['id'] as int,
-    name: json['name'] as String,
-    location: json['location'] as String,
-    museumId: json['museum_id'] as int,
-  );
+  factory ExhibitionDto.fromJson(Map<String, dynamic> json) {
+    List<String> codes = const [];
+    final raw = json['artifacts'];
+    if (raw is List) {
+      codes = raw.map((e) => e.toString()).toList();
+    }
+    return ExhibitionDto(
+      id: json['id'] as int,
+      name: json['name'] as String,
+      location: json['location'] as String,
+      museumId: json['museum_id'] as int,
+      artifactCodes: codes,
+      mapX: (json['map_x'] as num?)?.toDouble(),
+      mapY: (json['map_y'] as num?)?.toDouble(),
+      mapFloor: json['map_floor'] as String?,
+    );
+  }
 }
 
 class RouteDto {
@@ -189,7 +298,7 @@ class BackendApi {
     if (_definedBaseUrl.isNotEmpty) return _definedBaseUrl;
 
     // Use production backend URL
-    return 'http://localhost:8000';
+    return 'https://museamigo-backend.onrender.com';
 
     // Development URLs (commented out)
     // if (kIsWeb) return 'http://localhost:8000';
@@ -202,6 +311,18 @@ class BackendApi {
     final url = '$baseUrl$path';
     print('Constructed URL: $url');
     return Uri.parse(url);
+  }
+
+  /// Turn a path from the API (e.g. `/static/maps/x.png`) into a full URL for [Image.network].
+  String? resolveApiAssetUrl(String? pathOrUrl) {
+    if (pathOrUrl == null || pathOrUrl.isEmpty) return null;
+    final t = pathOrUrl.trim();
+    if (t.startsWith('http://') || t.startsWith('https://')) return t;
+    final base = baseUrl.endsWith('/')
+        ? baseUrl.substring(0, baseUrl.length - 1)
+        : baseUrl;
+    final p = t.startsWith('/') ? t : '/$t';
+    return '$base$p';
   }
 
   Future<Map<String, dynamic>> _readJson(http.Response response) async {
@@ -368,6 +489,15 @@ class BackendApi {
     }
   }
 
+  Future<IndoorMapDto> fetchIndoorMap(int museumId) async {
+    final response = await http.get(_uri('/museums/$museumId/indoor-map'));
+    final json = await _readJson(response);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      _throwForResponse(response, json);
+    }
+    return IndoorMapDto.fromJson(json);
+  }
+
   Future<List<ArtifactDto>> fetchArtifacts(int museumId) async {
     final response = await http.get(_uri('/museums/$museumId/artifacts'));
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -395,6 +525,38 @@ class BackendApi {
     }
     return decoded
         .map((e) => ExhibitionDto.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Museum-defined floor labels and order (for chips and tying destinations to floors).
+  Future<List<MuseumFloorDto>> fetchMuseumFloors(int museumId) async {
+    final response = await http.get(_uri('/museums/$museumId/floors'));
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final json = await _readJson(response);
+      _throwForResponse(response, json);
+    }
+    final decoded = jsonDecode(response.body);
+    if (decoded is! List) {
+      throw ApiException('Unexpected museum floors list format');
+    }
+    return decoded
+        .map((e) => MuseumFloorDto.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Map destinations (amenities, stairs, etc.) with title, color, and coordinates.
+  Future<List<MapDestinationDto>> fetchMapDestinations(int museumId) async {
+    final response = await http.get(_uri('/museums/$museumId/map-destinations'));
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final json = await _readJson(response);
+      _throwForResponse(response, json);
+    }
+    final decoded = jsonDecode(response.body);
+    if (decoded is! List) {
+      throw ApiException('Unexpected map destinations list format');
+    }
+    return decoded
+        .map((e) => MapDestinationDto.fromJson(e as Map<String, dynamic>))
         .toList();
   }
 
