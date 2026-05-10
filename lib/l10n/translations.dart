@@ -60,6 +60,11 @@ const Map<String, Map<String, String>> _localizedStrings = {
     'SUPPORT': 'SUPPORT',
     'Search artifacts, exhibitions...': 'Search artifacts, exhibitions...',
     'Where do you want to go?': 'Where do you want to go?',
+    'Tap for hours, tickets, and directions.':
+        'Tap for hours, tickets, and directions.',
+    'Could not load museums. Check your connection.':
+        'Could not load museums. Check your connection.',
+    'No museums available.': 'No museums available.',
     'Welcome': 'Welcome',
     'You are exploring the': 'You are exploring the',
     'You are exploring the Independence Palace':
@@ -619,6 +624,11 @@ const Map<String, Map<String, String>> _localizedStrings = {
         'Tùy chỉnh trải nghiệm bảo tàng của bạn',
     'Search artifacts, exhibitions...': 'Tìm kiếm hiện vật, triển lãm...',
     'Where do you want to go?': 'Bạn muốn đi đâu?',
+    'Tap for hours, tickets, and directions.':
+        'Chạm để xem giờ mở cửa, vé và chỉ đường.',
+    'Could not load museums. Check your connection.':
+        'Không tải được danh sách bảo tàng. Vui lòng kiểm tra kết nối.',
+    'No museums available.': 'Không có bảo tàng nào.',
     'Welcome': 'Chào mừng',
     'You are exploring the': 'Bạn đang khám phá',
     'You are exploring the Independence Palace':

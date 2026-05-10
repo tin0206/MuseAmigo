@@ -22,6 +22,47 @@ class TicketPaymentInfo {
   String qrCode;
 }
 
+/// Full-width panel for [showModalBottomSheet]: flush left/right/bottom, slides up
+/// from below; only the top edge is rounded. Use with `useSafeArea: false` on the modal.
+///
+/// Safe area: [Material] extends edge-to-edge to the physical bottom (iPhone home
+/// indicator area is filled with the sheet color); only the **content** is inset.
+/// Keyboard: outer padding lifts the whole sheet using [MediaQuery.viewInsets].
+Widget museAmigoBottomSheetShell({
+  required BuildContext context,
+  required Widget child,
+  Color? backgroundColor,
+  double maxHeightFraction = 0.94,
+  double topCornerRadius = 16,
+}) {
+  final theme = Theme.of(context);
+  final mq = MediaQuery.of(context);
+  final keyboard = mq.viewInsets.bottom;
+  final homeIndicator = mq.padding.bottom;
+
+  return Padding(
+    padding: EdgeInsets.only(bottom: keyboard),
+    child: Material(
+      color: backgroundColor ?? theme.cardColor,
+      elevation: 10,
+      shadowColor: Colors.black38,
+      surfaceTintColor: Colors.transparent,
+      borderRadius: BorderRadius.vertical(top: Radius.circular(topCornerRadius)),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: EdgeInsets.only(bottom: homeIndicator),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: mq.size.width,
+            maxHeight: mq.size.height * maxHeightFraction,
+          ),
+          child: child,
+        ),
+      ),
+    ),
+  );
+}
+
 // ─── Card Payment Sheet ───────────────────────────────────────────────────────
 
 class CardPaymentSheet extends StatefulWidget {
@@ -58,22 +99,12 @@ class _CardPaymentSheetState extends State<CardPaymentSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: 10,
-          right: 10,
-          top: 10,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 10,
-        ),
-        child: Container(
-          decoration: BoxDecoration(
-            color: themeNotifier.surfaceColor,
-            borderRadius: BorderRadius.circular(22),
-          ),
-          child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(24, 18, 24, 24),
-            child: Column(
+    return museAmigoBottomSheetShell(
+      context: context,
+      backgroundColor: themeNotifier.surfaceColor,
+      child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(24, 18, 24, 24),
+        child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
@@ -172,8 +203,6 @@ class _CardPaymentSheetState extends State<CardPaymentSheet> {
               ],
             ),
           ),
-        ),
-      ),
     );
   }
 }
@@ -262,20 +291,16 @@ class _QrPaymentSheetState extends State<QrPaymentSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(10, 16, 10, 16),
-        child: Container(
-          decoration: BoxDecoration(
-            color: themeNotifier.surfaceColor,
-            borderRadius: BorderRadius.circular(22),
-          ),
-          child: Stack(
-            children: [
-              SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(20, 10, 20, 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+    return museAmigoBottomSheetShell(
+      context: context,
+      backgroundColor: themeNotifier.surfaceColor,
+      child: Stack(
+        fit: StackFit.loose,
+        children: [
+          SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(20, 16, 20, 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // ── Header row ──────────────────────────────────────────
                 Row(
@@ -505,10 +530,7 @@ class _QrPaymentSheetState extends State<QrPaymentSheet> {
           if (_isProcessing)
             Positioned.fill(
               child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.6),
-                  borderRadius: BorderRadius.circular(22),
-                ),
+                color: Colors.white.withOpacity(0.6),
                 child: const Center(
                   child: CircularProgressIndicator(),
                 ),
@@ -516,8 +538,6 @@ class _QrPaymentSheetState extends State<QrPaymentSheet> {
             ),
         ],
       ),
-    ),
-  ),
     );
   }
 }
@@ -680,6 +700,10 @@ Future<void> showTicketSheet(BuildContext context, TicketPaymentInfo ticket) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
+    useSafeArea: false,
+    constraints: BoxConstraints(
+      maxWidth: MediaQuery.sizeOf(context).width,
+    ),
     backgroundColor: Colors.transparent,
     builder: (_) => _TicketResultSheet(ticket: ticket),
   );
@@ -700,17 +724,12 @@ class _TicketResultSheet extends StatelessWidget {
     final now = DateTime.now();
     final dateStr = '${now.day}/${now.month}/${now.year}';
 
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.all(10),
-        child: Container(
-          decoration: BoxDecoration(
-            color: themeNotifier.surfaceColor,
-            borderRadius: BorderRadius.circular(22),
-          ),
-          child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(24, 18, 24, 24),
-            child: Column(
+    return museAmigoBottomSheetShell(
+      context: context,
+      backgroundColor: themeNotifier.surfaceColor,
+      child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(24, 18, 24, 24),
+        child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
@@ -893,8 +912,6 @@ class _TicketResultSheet extends StatelessWidget {
               ],
             ),
           ),
-        ),
-      ),
     );
   }
 }

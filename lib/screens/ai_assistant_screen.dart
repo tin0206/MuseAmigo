@@ -2525,6 +2525,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       return MuseumDto(
         id: AppSession.currentMuseumId.value,
         name: AppSession.currentMuseumName.value,
+        description: '',
         operatingHours: '',
         baseTicketPrice: 0,
         latitude: 0,

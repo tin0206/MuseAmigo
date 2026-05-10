@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -10,7 +11,6 @@ import 'package:museamigo/services/backend_api.dart';
 import 'package:museamigo/theme_notifier.dart';
 import 'package:museamigo/session.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'payment_screens.dart';
 
 class ExploreMapScreen extends StatefulWidget {
@@ -27,36 +27,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
   int? _selectedMuseumId;
   LatLng? _currentPosition;
   List<LatLng> _routePoints = [];
-
-  static const _fallbackMuseums = <_Museum>[
-    _Museum(
-      id: 1,
-      name: 'Independence Palace',
-      position: LatLng(10.7769, 106.6953),
-      description:
-          'The Independence Palace is one of the most significant historical and architectural landmarks of Ho Chi Minh City.',
-      hours: '8:00 AM - 5:00 PM',
-      baseTicketPrice: 30000,
-    ),
-    _Museum(
-      id: 2,
-      name: 'HCMC Museum of Fine Arts',
-      position: LatLng(10.7716, 106.6992),
-      description:
-          'A beautiful blend of architecture and art collections from modern to traditional Vietnam.',
-      hours: '9:00 AM - 5:00 PM',
-      baseTicketPrice: 30000,
-    ),
-    _Museum(
-      id: 3,
-      name: 'War Remnants Museum',
-      position: LatLng(10.7794, 106.6920),
-      description:
-          'A powerful museum featuring important exhibitions documenting modern history.',
-      hours: '7:30 AM - 6:00 PM',
-      baseTicketPrice: 30000,
-    ),
-  ];
+  bool _museumLoadFailed = false;
 
   @override
   void initState() {
@@ -72,18 +43,17 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
 
   Future<List<_Museum>> _loadMuseums() async {
     try {
+      _museumLoadFailed = false;
       final data = await BackendApi.instance.fetchMuseums();
-      if (data.isEmpty) {
-        return _fallbackMuseums;
-      }
-      final mapped = data
+      return data
           .map(
             (m) => _Museum(
               id: m.id,
               name: m.name,
               position: LatLng(m.latitude, m.longitude),
-              description:
-                  'Museum information is loaded from backend. Tap to view details.',
+              description: m.description.trim().isNotEmpty
+                  ? m.description.trim()
+                  : 'Tap for hours, tickets, and directions.'.tr,
               hours: m.operatingHours,
               baseTicketPrice: m.baseTicketPrice,
             ),
@@ -94,13 +64,12 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                 m.position.latitude <= 90 &&
                 m.position.longitude >= -180 &&
                 m.position.longitude <= 180 &&
-                // Ignore placeholder coordinates from backend seeds.
                 !(m.position.latitude == 0 && m.position.longitude == 0),
           )
           .toList();
-      return mapped.isEmpty ? _fallbackMuseums : mapped;
     } catch (_) {
-      return _fallbackMuseums;
+      _museumLoadFailed = true;
+      return [];
     }
   }
 
@@ -115,7 +84,10 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
         return FutureBuilder<List<_Museum>>(
           future: _museumsFuture,
           builder: (context, snapshot) {
-            final museums = snapshot.data ?? _fallbackMuseums;
+            final loading =
+                snapshot.connectionState == ConnectionState.waiting &&
+                !snapshot.hasData;
+            final museums = snapshot.data ?? const <_Museum>[];
             final query = _searchController.text.trim().toLowerCase();
             final filteredMuseums = query.isEmpty
                 ? museums
@@ -148,6 +120,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
               backgroundColor: theme.scaffoldBackgroundColor,
               body: SafeArea(
                 top: false,
+                bottom: false,
                 child: Column(
                   children: [
                     Container(
@@ -314,6 +287,35 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                                 ),
                             ],
                           ),
+                          if (loading)
+                            Positioned.fill(
+                              child: Container(
+                                color: theme.scaffoldBackgroundColor
+                                    .withValues(alpha: 0.82),
+                                alignment: Alignment.center,
+                                child: CircularProgressIndicator(
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                            ),
+                          if (!loading &&
+                              museums.isEmpty &&
+                              query.isEmpty)
+                            Positioned.fill(
+                              child: Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(24),
+                                  child: Text(
+                                    (_museumLoadFailed
+                                            ? 'Could not load museums. Check your connection.'
+                                            : 'No museums available.')
+                                        .tr,
+                                    textAlign: TextAlign.center,
+                                    style: theme.textTheme.bodyLarge,
+                                  ),
+                                ),
+                              ),
+                            ),
                           if (query.isNotEmpty && filteredMuseums.isEmpty)
                             Positioned(
                               bottom: 0,
@@ -349,7 +351,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                               ),
                             ),
                           Positioned(
-                            bottom: 16,
+                            bottom: 16 + MediaQuery.paddingOf(context).bottom,
                             right: 16,
                             child: FloatingActionButton(
                               onPressed: _getCurrentLocation,
@@ -383,6 +385,10 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: false,
+      constraints: BoxConstraints(
+        maxWidth: MediaQuery.sizeOf(context).width,
+      ),
       backgroundColor: Colors.transparent,
       builder: (_) => _MuseumDetailSheet(
         museum: museum,
@@ -425,6 +431,10 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: false,
+      constraints: BoxConstraints(
+        maxWidth: MediaQuery.sizeOf(context).width,
+      ),
       backgroundColor: Colors.transparent,
       builder: (_) => _TicketSheet(
         museumName: museum.name,
@@ -459,6 +469,10 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: false,
+      constraints: BoxConstraints(
+        maxWidth: MediaQuery.sizeOf(context).width,
+      ),
       backgroundColor: Colors.transparent,
       builder: (_) => _PaymentMethodSheet(
         ticket: ticket,
@@ -505,6 +519,10 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: false,
+      constraints: BoxConstraints(
+        maxWidth: MediaQuery.sizeOf(context).width,
+      ),
       backgroundColor: Colors.transparent,
       builder: (_) => QrPaymentSheet(
         ticket: info,
@@ -536,6 +554,10 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: false,
+      constraints: BoxConstraints(
+        maxWidth: MediaQuery.sizeOf(context).width,
+      ),
       backgroundColor: Colors.transparent,
       builder: (_) => CardPaymentSheet(
         ticket: info,
@@ -575,6 +597,38 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
     if (!context.mounted) return;
     Navigator.of(context).pop();
     showTicketSheet(context, info);
+  }
+
+  /// GNSS + fused provider settings so fixes use full precision (not coarse /
+  /// cached network location), matching OpenStreetMap’s WGS84 tiles.
+  LocationSettings _highAccuracyLocationSettings() {
+    if (kIsWeb) {
+      return const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 0,
+      );
+    }
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        return AndroidSettings(
+          accuracy: LocationAccuracy.bestForNavigation,
+          distanceFilter: 0,
+          timeLimit: const Duration(seconds: 45),
+        );
+      case TargetPlatform.iOS:
+        return AppleSettings(
+          accuracy: LocationAccuracy.bestForNavigation,
+          activityType: ActivityType.otherNavigation,
+          distanceFilter: 0,
+          timeLimit: const Duration(seconds: 45),
+          pauseLocationUpdatesAutomatically: false,
+        );
+      default:
+        return const LocationSettings(
+          accuracy: LocationAccuracy.best,
+          distanceFilter: 0,
+        );
+    }
   }
 
   Future<LatLng?> _getCurrentLocation() async {
@@ -618,7 +672,9 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
     }
 
     try {
-      final position = await Geolocator.getCurrentPosition();
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: _highAccuracyLocationSettings(),
+      );
       final newPos = LatLng(position.latitude, position.longitude);
       setState(() {
         _currentPosition = newPos;
@@ -802,28 +858,26 @@ class _MuseumDetailSheet extends StatefulWidget {
 class _MuseumDetailSheetState extends State<_MuseumDetailSheet> {
   bool _downloadOffline = false;
 
+  static const double _sheetTopRadius = 16;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: Container(
-          decoration: BoxDecoration(
-            color: theme.cardColor,
-            borderRadius: BorderRadius.circular(22),
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return museAmigoBottomSheetShell(
+      context: context,
+      backgroundColor: theme.cardColor,
+      topCornerRadius: _sheetTopRadius,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Stack(
               children: [
-                Stack(
-                  children: [
-                    ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(22),
-                      ),
-                      child: Image.asset(
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(_sheetTopRadius),
+                  ),
+                  child: Image.asset(
                         'assets/images/museum.jpg',
                         height: 260,
                         width: double.infinity,
@@ -891,7 +945,7 @@ class _MuseumDetailSheetState extends State<_MuseumDetailSheet> {
                         child: _MuseumMetaItem(
                           icon: Icons.attach_money,
                           label: 'Price'.tr,
-                          value: 'VND 30000',
+                          value: 'VND ${widget.museum.baseTicketPrice}',
                         ),
                       ),
                     ],
@@ -944,8 +998,6 @@ class _MuseumDetailSheetState extends State<_MuseumDetailSheet> {
               ],
             ),
           ),
-        ),
-      ),
     );
   }
 }
@@ -964,20 +1016,15 @@ class _TicketSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return SafeArea(
+    return museAmigoBottomSheetShell(
+      context: context,
+      backgroundColor: theme.cardColor,
       child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: Container(
-          decoration: BoxDecoration(
-            color: theme.cardColor,
-            borderRadius: BorderRadius.circular(22),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
                 Row(
                   children: [
                     Text(
@@ -1064,8 +1111,6 @@ class _TicketSheet extends StatelessWidget {
               ],
             ),
           ),
-        ),
-      ),
     );
   }
 }
@@ -1084,20 +1129,15 @@ class _PaymentMethodSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return SafeArea(
+    return museAmigoBottomSheetShell(
+      context: context,
+      backgroundColor: theme.cardColor,
       child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: Container(
-          decoration: BoxDecoration(
-            color: theme.cardColor,
-            borderRadius: BorderRadius.circular(22),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
                 Row(
                   children: [
                     TextButton.icon(
@@ -1216,8 +1256,6 @@ class _PaymentMethodSheet extends StatelessWidget {
               ],
             ),
           ),
-        ),
-      ),
     );
   }
 }

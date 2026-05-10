@@ -16,6 +16,7 @@ class MuseumDto {
   const MuseumDto({
     required this.id,
     required this.name,
+    required this.description,
     required this.operatingHours,
     required this.baseTicketPrice,
     required this.latitude,
@@ -24,6 +25,8 @@ class MuseumDto {
 
   final int id;
   final String name;
+  /// Optional museum blurb from `/museums`; empty when the backend omits it.
+  final String description;
   final String operatingHours;
   final int baseTicketPrice;
   final double latitude;
@@ -32,6 +35,7 @@ class MuseumDto {
   factory MuseumDto.fromJson(Map<String, dynamic> json) => MuseumDto(
     id: json['id'] as int,
     name: json['name'] as String,
+    description: json['description'] as String? ?? '',
     operatingHours: json['operating_hours'] as String,
     baseTicketPrice: json['base_ticket_price'] as int,
     latitude: (json['latitude'] as num).toDouble(),
@@ -185,7 +189,7 @@ class BackendApi {
     if (_definedBaseUrl.isNotEmpty) return _definedBaseUrl;
 
     // Use production backend URL
-    return 'https://museamigo-backend.onrender.com';
+    return 'http://localhost:8000';
 
     // Development URLs (commented out)
     // if (kIsWeb) return 'http://localhost:8000';
