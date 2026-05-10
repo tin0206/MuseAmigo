@@ -291,17 +291,30 @@ class _QrPaymentSheetState extends State<QrPaymentSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final screenH = MediaQuery.sizeOf(context).height;
     return museAmigoBottomSheetShell(
       context: context,
       backgroundColor: themeNotifier.surfaceColor,
-      child: Stack(
-        fit: StackFit.loose,
-        children: [
-          SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(20, 16, 20, 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+      maxHeightFraction: 0.8,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final panelH = constraints.hasBoundedHeight &&
+                  constraints.maxHeight.isFinite &&
+                  constraints.maxHeight > 0
+              ? constraints.maxHeight
+              : screenH * 0.8;
+          return SizedBox(
+            width: constraints.maxWidth,
+            height: panelH,
+            child: Stack(
+              fit: StackFit.expand,
               children: [
+                Positioned.fill(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.fromLTRB(20, 16, 20, 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
                 // ── Header row ──────────────────────────────────────────
                 Row(
                   children: [
@@ -526,17 +539,21 @@ class _QrPaymentSheetState extends State<QrPaymentSheet> {
                 ),
               ],
             ),
-          ),
-          if (_isProcessing)
-            Positioned.fill(
-              child: Container(
-                color: Colors.white.withOpacity(0.6),
-                child: const Center(
-                  child: CircularProgressIndicator(),
+                  ),
                 ),
-              ),
+                if (_isProcessing)
+                  Positioned.fill(
+                    child: Container(
+                      color: Colors.white.withValues(alpha: 0.6),
+                      child: const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                  ),
+              ],
             ),
-        ],
+          );
+        },
       ),
     );
   }
