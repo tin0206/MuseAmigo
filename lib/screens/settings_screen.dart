@@ -279,7 +279,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           backgroundColor: Theme.of(
                             context,
                           ).colorScheme.primary,
-                          foregroundColor: themeNotifier.surfaceColor,
+                          foregroundColor: Theme.of(context).colorScheme.onPrimary,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -399,7 +399,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Theme.of(context).colorScheme.primary,
-                      foregroundColor: themeNotifier.surfaceColor,
+                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -527,7 +527,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Theme.of(context).colorScheme.primary,
-                      foregroundColor: themeNotifier.surfaceColor,
+                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -689,7 +689,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     onPressed: () => Navigator.of(ctx).pop(),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Theme.of(context).colorScheme.primary,
-                      foregroundColor: themeNotifier.surfaceColor,
+                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -801,7 +801,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       Icon(
                         Icons.storage_rounded,
-                        color: Color(0xFF3B82F6),
+                        color: Theme.of(context).colorScheme.primary,
                         size: 20,
                       ),
                       SizedBox(width: 8),
@@ -823,7 +823,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   .tr,
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Color(0xFF3B82F6),
+                                color: themeNotifier.textSecondaryColor,
                                 height: 1.4,
                               ),
                             ),
@@ -923,7 +923,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     onPressed: () => Navigator.of(ctx).pop(),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Theme.of(context).colorScheme.primary,
-                      foregroundColor: themeNotifier.surfaceColor,
+                      foregroundColor: Theme.of(context).colorScheme.onPrimary,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -1072,10 +1072,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             children: [
                               Text(
                                 'Settings'.tr,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 38,
                                   fontWeight: FontWeight.w500,
-                                  color: Color(0xFF171A21),
+                                  color: themeNotifier.textPrimaryColor,
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -1083,7 +1083,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 'Customize your museum experience'.tr,
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Color(0xFF6B7280),
+                                  color: themeNotifier.textSecondaryColor,
                                 ),
                               ),
                             ],
@@ -1138,6 +1138,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       style: TextStyle(
                                         fontSize: 17,
                                         fontWeight: FontWeight.w700,
+                                        color: themeNotifier.textPrimaryColor,
                                       ),
                                     ),
                                     SizedBox(height: 2),

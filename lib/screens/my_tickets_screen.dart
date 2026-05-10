@@ -4,7 +4,7 @@ import 'package:museamigo/l10n/translations.dart';
 import 'package:museamigo/services/backend_api.dart';
 import 'package:museamigo/theme_notifier.dart';
 import 'package:museamigo/session.dart';
-import 'package:qr_flutter/qr_flutter.dart';
+import 'package:museamigo/screens/payment_screens.dart';
 
 class MyTicketsScreen extends StatefulWidget {
   const MyTicketsScreen({super.key});
@@ -292,9 +292,16 @@ class _TicketCard extends StatelessWidget {
                 ],
               ),
             ),
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
+            Container(
+              width: double.infinity,
+              color: Color.lerp(
+                themeNotifier.surfaceColor,
+                Colors.black,
+                Theme.of(context).brightness == Brightness.dark ? 0.28 : 0.09,
+              ),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
                 Padding(
                   padding: EdgeInsets.fromLTRB(20, 16, 20, 16),
                   child: Column(
@@ -361,7 +368,9 @@ class _TicketCard extends StatelessWidget {
                               backgroundColor: Theme.of(
                                 context,
                               ).colorScheme.primary,
-                              foregroundColor: themeNotifier.surfaceColor,
+                              foregroundColor: Theme.of(
+                                context,
+                              ).colorScheme.onPrimary,
                               elevation: 3,
                               shadowColor: Theme.of(
                                 context,
@@ -406,7 +415,8 @@ class _TicketCard extends StatelessWidget {
                     ),
                   ),
                 ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
@@ -453,208 +463,16 @@ class _TicketCard extends StatelessWidget {
   }
 
   Future<void> _showQrDialog(BuildContext context, _TicketData ticket) {
-    final maxDialogHeight = MediaQuery.of(context).size.height * 0.88;
-
-    return showDialog<void>(
-      context: context,
-      builder: (_) => Dialog(
-        backgroundColor: themeNotifier.backgroundColor,
-        insetPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 20),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: maxDialogHeight),
-          child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(18, 16, 18, 18),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Your ticket'.tr,
-                        style: TextStyle(
-                          fontSize: 34,
-                          color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: Icon(Icons.close, size: 22),
-                    ),
-                  ],
-                ),
-                Text(
-                  'Please provide this QR code at the entrance'.tr,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: themeNotifier.textSecondaryColor,
-                  ),
-                ),
-                SizedBox(height: 12),
-                Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: themeNotifier.borderColor,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Column(
-                    children: [
-                      Container(
-                        width: 190,
-                        height: 190,
-                        decoration: BoxDecoration(
-                          color: themeNotifier.backgroundColor,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            QrImageView(
-                              data: ticket.id,
-                              version: QrVersions.auto,
-                              size: 102.0,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              ticket.id,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: themeNotifier.textSecondaryColor,
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              'SCAN ME'.tr,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: themeNotifier.textSecondaryColor,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(height: 12),
-                      _InfoRow(label: 'Museum:'.tr, value: ticket.title),
-                      _InfoRow(label: 'Ticket type:'.tr, value: 'Adult'.tr),
-                      _InfoRow(label: 'Purchase date:'.tr, value: ticket.date),
-                      _InfoRow(
-                        label: 'Total amount:'.tr,
-                        value: _formatPriceByLanguage(ticket.priceVnd),
-                        bold: true,
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 12),
-                Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFF8E8),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFFE9C672)),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        Icons.warning_amber_rounded,
-                        color: Color(0xFFB45309),
-                        size: 18,
-                      ),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          '${'Warning:'.tr}\n${'You might have to provide this to the museum\'s ticket inspectors to print you a paper ticket.'.tr}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFFB45309),
-                            height: 1.5,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+    return showTicketSheet(
+      context,
+      TicketPaymentInfo(
+        museumName: ticket.title,
+        ticketLabel: ticket.subtitle,
+        price: _formatPriceByLanguage(ticket.priceVnd),
+        qrCode: ticket.id,
       ),
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.label, required this.value, this.bold = false});
-
-  final String label;
-  final String value;
-  final bool bold;
-
-  @override
-  Widget build(BuildContext context) {
-    if (bold) {
-      return Padding(
-        padding: EdgeInsets.only(top: 4),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 15,
-                color: themeNotifier.textSecondaryColor,
-              ),
-            ),
-            SizedBox(height: 4),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 20,
-                color: themeNotifier.textPrimaryColor,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Padding(
-      padding: EdgeInsets.only(bottom: 5),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 108,
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 15,
-                color: themeNotifier.textSecondaryColor,
-              ),
-            ),
-          ),
-          SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-              style: TextStyle(
-                fontSize: 15,
-                color: themeNotifier.textPrimaryColor,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
+      showSaveForLaterButton: false,
+      purchaseDateOverride: ticket.date,
     );
   }
 }

@@ -960,7 +960,13 @@ class _MuseumDetailSheetState extends State<_MuseumDetailSheet> {
                         child: FilledButton.tonalIcon(
                           onPressed: widget.onStartRoute,
                           style: FilledButton.styleFrom(
-                            backgroundColor: theme.colorScheme.surfaceContainerHigh,
+                            backgroundColor: Color.lerp(
+                              theme.cardColor,
+                              Colors.black,
+                              theme.brightness == Brightness.dark
+                                  ? 0.32
+                                  : 0.09,
+                            ),
                             foregroundColor: theme.textTheme.bodyLarge?.color,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -1063,7 +1069,11 @@ class _TicketSheet extends StatelessWidget {
                           vertical: 16,
                         ),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.surfaceContainer,
+                          color: Color.lerp(
+                            theme.cardColor,
+                            Colors.black,
+                            theme.brightness == Brightness.dark ? 0.32 : 0.09,
+                          ),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Row(
@@ -1210,7 +1220,11 @@ class _PaymentMethodSheet extends StatelessWidget {
                           vertical: 16,
                         ),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.surfaceContainer,
+                          color: Color.lerp(
+                            theme.cardColor,
+                            Colors.black,
+                            theme.brightness == Brightness.dark ? 0.32 : 0.09,
+                          ),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Row(

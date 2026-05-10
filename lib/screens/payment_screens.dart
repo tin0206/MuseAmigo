@@ -713,7 +713,12 @@ class _PaymentSuccessDialog extends StatelessWidget {
 
 // ─── Ticket Result Sheet ──────────────────────────────────────────────────────
 
-Future<void> showTicketSheet(BuildContext context, TicketPaymentInfo ticket) {
+Future<void> showTicketSheet(
+  BuildContext context,
+  TicketPaymentInfo ticket, {
+  bool showSaveForLaterButton = true,
+  String? purchaseDateOverride,
+}) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -722,14 +727,24 @@ Future<void> showTicketSheet(BuildContext context, TicketPaymentInfo ticket) {
       maxWidth: MediaQuery.sizeOf(context).width,
     ),
     backgroundColor: Colors.transparent,
-    builder: (_) => _TicketResultSheet(ticket: ticket),
+    builder: (_) => _TicketResultSheet(
+      ticket: ticket,
+      showSaveForLaterButton: showSaveForLaterButton,
+      purchaseDateOverride: purchaseDateOverride,
+    ),
   );
 }
 
 class _TicketResultSheet extends StatelessWidget {
-  const _TicketResultSheet({required this.ticket});
+  const _TicketResultSheet({
+    required this.ticket,
+    this.showSaveForLaterButton = true,
+    this.purchaseDateOverride,
+  });
 
   final TicketPaymentInfo ticket;
+  final bool showSaveForLaterButton;
+  final String? purchaseDateOverride;
 
   void _handleSaveTicket(BuildContext context) {
     Navigator.of(context).pop();
@@ -739,11 +754,12 @@ class _TicketResultSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    final dateStr = '${now.day}/${now.month}/${now.year}';
+    final dateStr = purchaseDateOverride ?? '${now.day}/${now.month}/${now.year}';
 
     return museAmigoBottomSheetShell(
       context: context,
       backgroundColor: themeNotifier.surfaceColor,
+      maxHeightFraction: 0.8,
       child: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(24, 18, 24, 24),
         child: Column(
@@ -880,52 +896,79 @@ class _TicketResultSheet extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => _handleSaveTicket(context),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: themeNotifier.textPrimaryColor,
-                          side: BorderSide(color: Color(0xFFCCCCCC)),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                if (showSaveForLaterButton)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => _handleSaveTicket(context),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: themeNotifier.textPrimaryColor,
+                            side: BorderSide(color: Color(0xFFCCCCCC)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            minimumSize: const Size.fromHeight(50),
                           ),
-                          minimumSize: const Size.fromHeight(50),
-                        ),
-                        child: Text(
-                          'Save for later use'.tr,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
+                          child: Text(
+                            'Save for later use'.tr,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: FilledButton(
-                        onPressed: () {
-                          Navigator.of(context).popUntil((route) => route.isFirst);
-                          Navigator.of(context).pushReplacementNamed(AppRoutes.home);
-                        },
-                        style: FilledButton.styleFrom(
-                          backgroundColor: Theme.of(
-                            context,
-                          ).colorScheme.primary,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: () {
+                            Navigator.of(context).popUntil((route) => route.isFirst);
+                            Navigator.of(context).pushReplacementNamed(AppRoutes.home);
+                          },
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.primary,
+                            foregroundColor:
+                                Theme.of(context).colorScheme.onPrimary,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            minimumSize: const Size.fromHeight(50),
                           ),
-                          minimumSize: const Size.fromHeight(50),
-                        ),
-                        child: Text(
-                          "I'm in".tr,
-                          style: TextStyle(fontWeight: FontWeight.w700),
+                          child: Text(
+                            "I'm in".tr,
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
                         ),
                       ),
+                    ],
+                  )
+                else
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: () {
+                        Navigator.of(context).popUntil((route) => route.isFirst);
+                        Navigator.of(context).pushReplacementNamed(AppRoutes.home);
+                      },
+                      style: FilledButton.styleFrom(
+                        backgroundColor:
+                            Theme.of(context).colorScheme.primary,
+                        foregroundColor:
+                            Theme.of(context).colorScheme.onPrimary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        minimumSize: const Size.fromHeight(50),
+                      ),
+                      child: Text(
+                        "I'm in".tr,
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
                     ),
-                  ],
-                ),
+                  ),
               ],
             ),
           ),
