@@ -62,7 +62,8 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
         },
       );
 
-  late String _selectedFloor;
+  /// Selected museum floor (DB `museum_floors.id`). Map image + markers use this.
+  int? _selectedFloorId;
   bool _show3D = true;
   bool _showArtifactMarkers = true;
   bool _showExhibitionMarkers = true;
@@ -85,18 +86,67 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
   List<_MapLocation> _destinationMapLocations = [];
   List<MuseumFloorDto> _museumFloors = [];
   List<MapDestinationDto> _mapDestinations = [];
-  String? _resolvedMap2dUrl;
-  String? _resolvedMap3dUrl;
+  /// Resolved URLs for museum-level fallback (`/indoor-map`) when a floor has no raster.
+  String? _fallbackMap2dUrl;
+  String? _fallbackMap3dUrl;
   bool _indoorMapMetaLoaded = false;
   /// First paint: show loading UI until `_loadMapData` finishes (success or error).
   bool _initialMapLoading = true;
 
   String? get _activeRasterMapUrl {
     if (!_indoorMapMetaLoaded) return null;
-    if (_show3D) {
-      return _resolvedMap3dUrl ?? _resolvedMap2dUrl;
+    final api = BackendApi.instance;
+    String? raw2;
+    String? raw3;
+    final sel = _selectedFloorId;
+    if (sel != null) {
+      for (final f in _museumFloors) {
+        if (f.id == sel) {
+          raw2 = f.indoorMap2dPath;
+          raw3 = f.indoorMap3dPath;
+          break;
+        }
+      }
     }
-    return _resolvedMap2dUrl ?? _resolvedMap3dUrl;
+    var u2 = (raw2 != null && raw2.trim().isNotEmpty)
+        ? api.resolveApiAssetUrl(raw2)
+        : null;
+    var u3 = (raw3 != null && raw3.trim().isNotEmpty)
+        ? api.resolveApiAssetUrl(raw3)
+        : null;
+    u2 = u2 ?? _fallbackMap2dUrl;
+    u3 = u3 ?? _fallbackMap3dUrl;
+    if (_show3D) {
+      return u3 ?? u2;
+    }
+    return u2 ?? u3;
+  }
+
+  String get _selectedFloorLabel {
+    final id = _selectedFloorId;
+    if (id == null) return '';
+    for (final f in _museumFloors) {
+      if (f.id == id) return f.label;
+    }
+    return '';
+  }
+
+  String? _labelForFloorId(int id) {
+    for (final f in _museumFloors) {
+      if (f.id == id) return f.label;
+    }
+    return null;
+  }
+
+  int? _firstArtifactFloorId(
+    ExhibitionDto e,
+    Map<String, ArtifactDto> byCode,
+  ) {
+    for (final c in e.artifactCodes) {
+      final a = byCode[c];
+      if (a?.floorId != null) return a!.floorId;
+    }
+    return null;
   }
 
   List<_MapLocation> get _allLocationsForLookup {
@@ -105,76 +155,6 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
       ..._exhibitionMapLocations,
       ..._destinationMapLocations,
     ];
-  }
-
-  int _floorSortKey(String label) {
-    final m = RegExp(r'(\d+)').firstMatch(label);
-    if (m != null) return int.tryParse(m.group(1)!) ?? 0;
-    return 0;
-  }
-
-  String? _exhibitionFloor(
-    ExhibitionDto e,
-    Map<String, ArtifactDto> byCode,
-  ) {
-    if (e.mapFloor != null && e.mapFloor!.trim().isNotEmpty) {
-      return e.mapFloor!.trim();
-    }
-    for (final c in e.artifactCodes) {
-      final a = byCode[c];
-      if (a?.mapFloor != null && a!.mapFloor!.trim().isNotEmpty) {
-        return a.mapFloor!.trim();
-      }
-    }
-    return null;
-  }
-
-  List<String> get _floors {
-    final set = <String>{};
-    for (final f in _museumFloors) {
-      set.add(f.label.trim());
-    }
-    for (final a in _artifacts) {
-      if (a.mapFloor != null && a.mapFloor!.trim().isNotEmpty) {
-        set.add(a.mapFloor!.trim());
-      }
-    }
-    for (final e in _exhibitions) {
-      final f = _exhibitionFloor(e, _artifactByCode);
-      if (f != null) set.add(f);
-    }
-    if (set.isEmpty) return const ['Floor 1'];
-    if (_museumFloors.isNotEmpty) {
-      final ordered = _museumFloors.map((f) => f.label.trim()).toList();
-      final known = ordered.toSet();
-      final extras =
-          set.difference(known).toList()
-            ..sort((a, b) => _floorSortKey(a).compareTo(_floorSortKey(b)));
-      return [...ordered, ...extras];
-    }
-    final list = set.toList()
-      ..sort((a, b) => _floorSortKey(a).compareTo(_floorSortKey(b)));
-    return list;
-  }
-
-  String _computeFallbackFloor(
-    List<ArtifactDto> arts,
-    List<ExhibitionDto> exhs,
-    Map<String, ArtifactDto> byCode,
-  ) {
-    for (final a in arts) {
-      if (a.mapFloor != null && a.mapFloor!.trim().isNotEmpty) {
-        return a.mapFloor!.trim();
-      }
-    }
-    for (final e in exhs) {
-      if (e.mapFloor != null && e.mapFloor!.trim().isNotEmpty) {
-        return e.mapFloor!.trim();
-      }
-      final f = _exhibitionFloor(e, byCode);
-      if (f != null) return f;
-    }
-    return 'Floor 1';
   }
 
   Color _exhibitionPaletteColor(int id) {
@@ -191,11 +171,19 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
   _MapLocation? _buildExhibitionMarker(
     ExhibitionDto e,
     Map<String, ArtifactDto> byCode,
-    String fallbackFloor,
+    List<MuseumFloorDto> floors,
   ) {
-    var floor = fallbackFloor;
-    final ef = _exhibitionFloor(e, byCode);
-    if (ef != null) floor = ef;
+    final floorId = e.floorId ?? _firstArtifactFloorId(e, byCode);
+    if (floorId == null) return null;
+    var floorLabel = (e.floorLabel ?? '').trim();
+    if (floorLabel.isEmpty) {
+      for (final f in floors) {
+        if (f.id == floorId) {
+          floorLabel = f.label;
+          break;
+        }
+      }
+    }
 
     double? x = e.mapX, y = e.mapY;
     if (x == null || y == null) {
@@ -217,7 +205,8 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
 
     return _MapLocation(
       name: e.name,
-      floor: floor,
+      floorId: floorId,
+      floorLabel: floorLabel,
       x: x,
       y: y,
       mapLabel: e.name,
@@ -241,7 +230,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
       final desc = art?.description.trim() ?? '';
       final sub =
           desc.isEmpty
-              ? loc.floor
+              ? loc.floorLabel
               : (desc.length <= 72 ? desc : '${desc.substring(0, 69)}...');
       opts.add(
         _LocationOption(
@@ -263,7 +252,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
       opts.add(
         _LocationOption(
           name: loc.name,
-          subtitle: ex?.location ?? loc.floor,
+          subtitle: ex?.location ?? loc.floorLabel,
           icon: Icons.collections_bookmark_outlined,
           iconColor: loc.color ?? exhFallback,
         ),
@@ -273,7 +262,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
       opts.add(
         _LocationOption(
           name: loc.name,
-          subtitle: loc.floor,
+          subtitle: loc.floorLabel,
           icon: Icons.place_outlined,
           iconColor: loc.color ?? const Color(0xFF6366F1),
         ),
@@ -283,8 +272,10 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
   }
 
   List<ExhibitionDto> _exhibitionsOnSelectedFloor() {
+    final sel = _selectedFloorId;
+    if (sel == null) return const [];
     final namesOnFloor = _exhibitionMapLocations
-        .where((m) => m.floor == _selectedFloor)
+        .where((m) => m.floorId == sel)
         .map((m) => m.name)
         .toSet();
     return _exhibitions.where((e) => namesOnFloor.contains(e.name)).toList();
@@ -311,19 +302,24 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
       if (!mounted) return;
 
       final byCode = {for (final a in arts) a.artifactCode: a};
-      final fallbackFloor = _computeFallbackFloor(arts, exhs, byCode);
+
+      String labelForFloor(List<MuseumFloorDto> floors, int id, String? apiLabel) {
+        if (apiLabel != null && apiLabel.trim().isNotEmpty) return apiLabel.trim();
+        for (final f in floors) {
+          if (f.id == id) return f.label;
+        }
+        return '';
+      }
 
       final artifactMarkers = <_MapLocation>[];
       for (final a in arts) {
-        if (a.mapX != null && a.mapY != null) {
-          final floor =
-              (a.mapFloor != null && a.mapFloor!.trim().isNotEmpty)
-              ? a.mapFloor!.trim()
-              : fallbackFloor;
+        if (a.mapX != null && a.mapY != null && a.floorId != null) {
+          final fid = a.floorId!;
           artifactMarkers.add(
             _MapLocation(
               name: a.title,
-              floor: floor,
+              floorId: fid,
+              floorLabel: labelForFloor(museumFloors, fid, a.floorLabel),
               x: a.mapX!,
               y: a.mapY!,
               mapLabel: a.title,
@@ -334,19 +330,18 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
 
       final exhMarkers = <_MapLocation>[];
       for (final e in exhs) {
-        final m = _buildExhibitionMarker(e, byCode, fallbackFloor);
+        final m = _buildExhibitionMarker(e, byCode, museumFloors);
         if (m != null) exhMarkers.add(m);
       }
 
       final destMarkers = <_MapLocation>[];
       for (final d in mapDestinations) {
-        final fl = d.floorLabel.trim();
-        if (fl.isEmpty) continue;
         final col = _parseMarkerColorHex(d.markerColor);
         destMarkers.add(
           _MapLocation(
             name: d.title,
-            floor: fl,
+            floorId: d.floorId,
+            floorLabel: d.floorLabel,
             x: d.mapX,
             y: d.mapY,
             color: col,
@@ -357,38 +352,21 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
         );
       }
 
-      final floorSet = <String>{};
-      for (final f in museumFloors) {
-        floorSet.add(f.label.trim());
-      }
-      for (final a in arts) {
-        if (a.mapFloor != null && a.mapFloor!.trim().isNotEmpty) {
-          floorSet.add(a.mapFloor!.trim());
+      int? nextId = _selectedFloorId;
+      final initialName = widget.initialFloorName?.trim();
+      if (initialName != null &&
+          initialName.isNotEmpty &&
+          museumFloors.isNotEmpty) {
+        for (final f in museumFloors) {
+          if (f.label.trim() == initialName) {
+            nextId = f.id;
+            break;
+          }
         }
       }
-      for (final e in exhs) {
-        final f = _exhibitionFloor(e, byCode);
-        if (f != null) floorSet.add(f);
-      }
-      if (floorSet.isEmpty) floorSet.add('Floor 1');
-
-      late final List<String> floorsList;
-      if (museumFloors.isNotEmpty) {
-        final ordered =
-            museumFloors.map((f) => f.label.trim()).toList(growable: false);
-        final known = ordered.toSet();
-        final extras =
-            floorSet.difference(known).toList()
-              ..sort((a, b) => _floorSortKey(a).compareTo(_floorSortKey(b)));
-        floorsList = [...ordered, ...extras];
-      } else {
-        floorsList = floorSet.toList()
-          ..sort((a, b) => _floorSortKey(a).compareTo(_floorSortKey(b)));
-      }
-
-      var nextFloor = _selectedFloor;
-      if (nextFloor.isEmpty || !floorsList.contains(nextFloor)) {
-        nextFloor = floorsList.first;
+      if (nextId == null ||
+          !museumFloors.any((f) => f.id == nextId)) {
+        nextId = museumFloors.isNotEmpty ? museumFloors.first.id : null;
       }
 
       if (!mounted) return;
@@ -401,10 +379,10 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
         _apiMapLocations = artifactMarkers;
         _exhibitionMapLocations = exhMarkers;
         _destinationMapLocations = destMarkers;
-        _resolvedMap2dUrl = api.resolveApiAssetUrl(mapDto.map2dPath);
-        _resolvedMap3dUrl = api.resolveApiAssetUrl(mapDto.map3dPath);
+        _fallbackMap2dUrl = api.resolveApiAssetUrl(mapDto.map2dPath);
+        _fallbackMap3dUrl = api.resolveApiAssetUrl(mapDto.map3dPath);
         _indoorMapMetaLoaded = true;
-        _selectedFloor = nextFloor;
+        _selectedFloorId = nextId;
 
         if (!widget.autoStartRouteFlow) {
           final route = _buildInitialRoute();
@@ -419,8 +397,8 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
       if (mounted) {
         setState(() {
           _indoorMapMetaLoaded = true;
-          if (_selectedFloor.isEmpty) {
-            _selectedFloor = 'Floor 1';
+          if (_selectedFloorId == null && _museumFloors.isNotEmpty) {
+            _selectedFloorId = _museumFloors.first.id;
           }
         });
       }
@@ -534,21 +512,22 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
   }
 
   List<_MapLocation> _locationsForCurrentFloor() {
-    final floor = _selectedFloor;
+    final floorId = _selectedFloorId;
+    if (floorId == null) return const [];
     final out = <_MapLocation>[];
     if (_showArtifactMarkers) {
       out.addAll(
-        _apiMapLocations.where((location) => location.floor == floor),
+        _apiMapLocations.where((location) => location.floorId == floorId),
       );
     }
     if (_showExhibitionMarkers) {
       out.addAll(
-        _exhibitionMapLocations.where((location) => location.floor == floor),
+        _exhibitionMapLocations.where((location) => location.floorId == floorId),
       );
     }
     if (_showDestinationMarkers) {
       out.addAll(
-        _destinationMapLocations.where((location) => location.floor == floor),
+        _destinationMapLocations.where((location) => location.floorId == floorId),
       );
     }
     return out;
@@ -557,7 +536,6 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedFloor = widget.initialFloorName?.trim() ?? '';
 
     if (widget.autoStartRouteFlow) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -652,10 +630,10 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                   scrollDirection: Axis.horizontal,
                   physics: const BouncingScrollPhysics(),
                   padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  itemCount: _floors.length + 4,
+                  itemCount: _museumFloors.length + 4,
                   separatorBuilder: (_, __) => const SizedBox(width: 8),
                   itemBuilder: (context, index) {
-                    if (index == _floors.length) {
+                    if (index == _museumFloors.length) {
                       return FilterChip(
                         label: Text(
                           'Artifacts'.tr,
@@ -672,7 +650,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       );
                     }
-                    if (index == _floors.length + 1) {
+                    if (index == _museumFloors.length + 1) {
                       return FilterChip(
                         label: Text(
                           'Exhibitions'.tr,
@@ -689,7 +667,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       );
                     }
-                    if (index == _floors.length + 2) {
+                    if (index == _museumFloors.length + 2) {
                       return FilterChip(
                         label: Text(
                           'Map places'.tr,
@@ -706,7 +684,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       );
                     }
-                    if (index == _floors.length + 3) {
+                    if (index == _museumFloors.length + 3) {
                       return GestureDetector(
                         onTap: () => setState(() => _show3D = !_show3D),
                         child: Container(
@@ -744,10 +722,11 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                       );
                     }
 
-                    final floor = _floors[index];
-                    final selected = _selectedFloor == floor;
+                    final floorDto = _museumFloors[index];
+                    final selected = _selectedFloorId == floorDto.id;
                     return GestureDetector(
-                      onTap: () => setState(() => _selectedFloor = floor),
+                      onTap: () =>
+                          setState(() => _selectedFloorId = floorDto.id),
                       child: Container(
                         padding: EdgeInsets.symmetric(
                           horizontal: 16,
@@ -765,7 +744,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                           ),
                         ),
                         child: Text(
-                          floor.tr,
+                          floorDto.label.tr,
                           style: TextStyle(
                             color: selected
                                 ? themeNotifier.surfaceColor
@@ -886,7 +865,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              '${'Exhibitions on'.tr} ${_selectedFloor.tr}',
+                              '${'Exhibitions on'.tr} ${_selectedFloorLabel.tr}',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
@@ -960,9 +939,9 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
   Future<void> _selectLocationAsDestination(String placeName) async {
     _searchController.clear();
     _onSearchChanged('');
-    final floor = _floorOfStop(placeName);
-    if (floor != null) {
-      setState(() => _selectedFloor = floor);
+    final floorId = _floorIdOfStop(placeName);
+    if (floorId != null) {
+      setState(() => _selectedFloorId = floorId);
     }
 
     final fromLoc = await showModalBottomSheet<_LocationOption>(
@@ -1144,7 +1123,8 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
         .where((l) => l.name != fromLoc.name)
         .toList();
 
-    final sameFloor = allLocs.where((l) => l.floor == fromLoc.floor).toList();
+    final sameFloor =
+        allLocs.where((l) => l.floorId == fromLoc.floorId).toList();
     final quickTargets = sameFloor.isNotEmpty
         ? sameFloor.take(2).toList()
         : allLocs.take(2).toList();
@@ -1163,9 +1143,9 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
       );
 
       for (var target in targets) {
-        if (currentLoc.floor != target.floor) {
-          final fromStairs = _stairsOnFloor(currentLoc.floor);
-          final toStairs = _stairsOnFloor(target.floor);
+        if (currentLoc.floorId != target.floorId) {
+          final fromStairs = _stairsOnFloor(currentLoc.floorId);
+          final toStairs = _stairsOnFloor(target.floorId);
           if (fromStairs != null && stops.last.name != fromStairs.name) {
             stops.add(
               _RouteStop(
@@ -1258,14 +1238,14 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
       }
 
       final next = route.stops[i + 1];
-      final currentFloor = _floorOfStop(current.name);
-      final nextFloor = _floorOfStop(next.name);
+      final currentFloorId = _floorIdOfStop(current.name);
+      final nextFloorId = _floorIdOfStop(next.name);
 
-      if (currentFloor != null &&
-          nextFloor != null &&
-          currentFloor != nextFloor) {
-        final fromStairs = _stairsOnFloor(currentFloor);
-        final toStairs = _stairsOnFloor(nextFloor);
+      if (currentFloorId != null &&
+          nextFloorId != null &&
+          currentFloorId != nextFloorId) {
+        final fromStairs = _stairsOnFloor(currentFloorId);
+        final toStairs = _stairsOnFloor(nextFloorId);
         if (fromStairs != null) {
           addStopByName(fromStairs.name);
         }
@@ -1331,7 +1311,8 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
         final artifact = artifacts[i];
         return _MapLocation(
           name: artifact.name,
-          floor: artifact.floor,
+          floorId: artifact.floorId,
+          floorLabel: artifact.floorLabel,
           x: positions[i].x,
           y: positions[i].y,
           color: artifact.color,
@@ -1369,7 +1350,8 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
       spread.add(
         _MapLocation(
           name: artifact.name,
-          floor: artifact.floor,
+          floorId: artifact.floorId,
+          floorLabel: artifact.floorLabel,
           x: x,
           y: y,
           color: artifact.color,
@@ -1407,17 +1389,17 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
     final artifacts = <_MapLocation>[];
     for (final code in ex.artifactCodes) {
       final a = _artifactByCode[code];
-      if (a == null || a.mapX == null || a.mapY == null) continue;
-      final floor =
-          (a.mapFloor != null && a.mapFloor!.trim().isNotEmpty)
-          ? a.mapFloor!.trim()
-          : (_floors.isNotEmpty ? _floors.first : 'Floor 1');
-      if (floor != _selectedFloor) continue;
+      if (a == null || a.mapX == null || a.mapY == null || a.floorId == null) {
+        continue;
+      }
+      if (a.floorId != _selectedFloorId) continue;
       final label = '${a.title} (${a.artifactCode})';
       artifacts.add(
         _MapLocation(
           name: label,
-          floor: floor,
+          floorId: a.floorId!,
+          floorLabel:
+              _labelForFloorId(a.floorId!) ?? (a.floorLabel ?? '').trim(),
           x: a.mapX!,
           y: a.mapY!,
           mapLabel: _popupLabelForArtifact(label),
@@ -1453,7 +1435,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
                   children: [
                     Expanded(
                       child: Text(
-                        '${'Artifact Map'.tr} · ${_selectedFloor.tr}',
+                        '${'Artifact Map'.tr} · ${_selectedFloorLabel.tr}',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
@@ -1524,13 +1506,13 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
 
   void _startNavigation(_RouteOption route) {
     final normalizedRoute = _normalizeRouteForFloorTransfer(route);
-    final firstFloor = _floorOfStop(normalizedRoute.stops.first.name);
+    final firstFloorId = _floorIdOfStop(normalizedRoute.stops.first.name);
     setState(() {
       _isPreviewRoute = false;
       _activeRoute = normalizedRoute;
       _currentStopIndex = 0;
-      if (firstFloor != null) {
-        _selectedFloor = firstFloor;
+      if (firstFloorId != null) {
+        _selectedFloorId = firstFloorId;
       }
     });
   }
@@ -1551,11 +1533,11 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
       return;
     }
     final nextIndex = _currentStopIndex + 1;
-    final nextFloor = _floorOfStop(route.stops[nextIndex].name);
+    final nextFloorId = _floorIdOfStop(route.stops[nextIndex].name);
     setState(() {
       _currentStopIndex = nextIndex;
-      if (nextFloor != null) {
-        _selectedFloor = nextFloor;
+      if (nextFloorId != null) {
+        _selectedFloorId = nextFloorId;
       }
     });
   }
@@ -1568,7 +1550,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
     final points = <_MapLocation>[];
     for (final stop in route.stops) {
       final loc = _findLocationByName(stop.name);
-      if (loc != null && loc.floor == _selectedFloor) {
+      if (loc != null && loc.floorId == _selectedFloorId) {
         points.add(loc);
       }
     }
@@ -1584,7 +1566,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
     for (int i = 0; i < _currentStopIndex; i++) {
       final stopName = route.stops[i].name;
       final loc = _findLocationByName(stopName);
-      if (loc != null && loc.floor == _selectedFloor) {
+      if (loc != null && loc.floorId == _selectedFloorId) {
         visited.add(stopName);
       }
     }
@@ -1598,7 +1580,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
     }
     final stopName = route.stops[_currentStopIndex].name;
     final loc = _findLocationByName(stopName);
-    if (loc != null && loc.floor == _selectedFloor) {
+    if (loc != null && loc.floorId == _selectedFloorId) {
       return stopName;
     }
     return null;
@@ -1678,17 +1660,22 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
     return null;
   }
 
-  String? _floorOfStop(String stopName) {
-    return _findLocationByName(stopName)?.floor;
+  int? _floorIdOfStop(String stopName) {
+    return _findLocationByName(stopName)?.floorId;
   }
 
-  _MapLocation? _stairsOnFloor(String floorLabel) {
+  _MapLocation? _stairsOnFloor(int? floorId) {
+    if (floorId == null) return null;
     for (final loc in _destinationMapLocations) {
-      if (loc.floor == floorLabel && loc.category == 'stairs') {
+      if (loc.floorId == floorId && loc.category == 'stairs') {
         return loc;
       }
     }
-    return _findLocationByName('Stairs - $floorLabel');
+    final label = _labelForFloorId(floorId);
+    if (label != null && label.isNotEmpty) {
+      return _findLocationByName('Stairs - $label');
+    }
+    return null;
   }
 
   String _managedDestinationCategoryLabel(String? category) {
@@ -1731,9 +1718,9 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
     }
 
     addStop(from);
-    if (from.floor != to.floor) {
-      final fromStairs = _stairsOnFloor(from.floor);
-      final toStairs = _stairsOnFloor(to.floor);
+    if (from.floorId != to.floorId) {
+      final fromStairs = _stairsOnFloor(from.floorId);
+      final toStairs = _stairsOnFloor(to.floorId);
       if (fromStairs != null) {
         addStop(fromStairs);
       }
@@ -1747,7 +1734,8 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
       emoji: '🧭',
       name: 'Custom Route',
       description: 'Guidance from ${from.name} to ${to.name}',
-      duration: from.floor == to.floor ? 'Direct route' : 'Cross-floor route',
+      duration:
+          from.floorId == to.floorId ? 'Direct route' : 'Cross-floor route',
       stopsCount: stops.length,
       stops: stops,
     );
@@ -1766,10 +1754,10 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
 
   String _subtitleForLocation(_MapLocation location) {
     if (location.isManagedDestination) {
-      return '${_managedDestinationCategoryLabel(location.category)} · ${location.floor}';
+      return '${_managedDestinationCategoryLabel(location.category)} · ${location.floorLabel}';
     }
     if (location.isExhibition) {
-      return '${'Exhibitions'.tr} · ${location.floor}';
+      return '${'Exhibitions'.tr} · ${location.floorLabel}';
     }
     final hall = location.name.contains('Entrance')
         ? 'Entrance'
@@ -1778,7 +1766,7 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
         : location.name.contains('Stairs')
         ? 'Transition Point'
         : 'Gallery';
-    return '$hall · ${location.floor}';
+    return '$hall · ${location.floorLabel}';
   }
 }
 
@@ -2984,7 +2972,8 @@ class Museum3DPainter extends CustomPainter {
 
 class _MapLocation {
   final String name;
-  final String floor;
+  final int floorId;
+  final String floorLabel;
   final double x; // 0.0 to 1.0
   final double y; // 0.0 to 1.0
   final Color? color; // override marker color
@@ -2997,7 +2986,8 @@ class _MapLocation {
 
   const _MapLocation({
     required this.name,
-    required this.floor,
+    required this.floorId,
+    required this.floorLabel,
     required this.x,
     required this.y,
     this.color,

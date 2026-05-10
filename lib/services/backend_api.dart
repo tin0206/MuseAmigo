@@ -76,7 +76,8 @@ class ArtifactDto {
     this.audioAsset = '',
     this.mapX,
     this.mapY,
-    this.mapFloor,
+    this.floorId,
+    this.floorLabel,
   });
 
   final int id;
@@ -92,8 +93,10 @@ class ArtifactDto {
   final double? mapX;
   /// Normalized 0–1 vertical position on the museum indoor map image.
   final double? mapY;
-  /// e.g. "Floor 1"; should match map screen floor labels.
-  final String? mapFloor;
+  /// FK to `museum_floors.id`; coordinates are relative to that floor's map image.
+  final int? floorId;
+  /// Display label from backend (joined floor row).
+  final String? floorLabel;
 
   factory ArtifactDto.fromJson(Map<String, dynamic> json) => ArtifactDto(
     id: json['id'] as int,
@@ -107,7 +110,8 @@ class ArtifactDto {
     audioAsset: json['audio_asset'] as String? ?? '',
     mapX: (json['map_x'] as num?)?.toDouble(),
     mapY: (json['map_y'] as num?)?.toDouble(),
-    mapFloor: json['map_floor'] as String?,
+    floorId: (json['floor_id'] as num?)?.toInt(),
+    floorLabel: json['floor_label'] as String? ?? json['map_floor'] as String?,
   );
 }
 
@@ -136,18 +140,25 @@ class MuseumFloorDto {
     required this.museumId,
     required this.label,
     required this.sortOrder,
+    this.indoorMap2dPath,
+    this.indoorMap3dPath,
   });
 
   final int id;
   final int museumId;
   final String label;
   final int sortOrder;
+  /// Per-floor 2D map asset path (same host rules as museum indoor map).
+  final String? indoorMap2dPath;
+  final String? indoorMap3dPath;
 
   factory MuseumFloorDto.fromJson(Map<String, dynamic> json) => MuseumFloorDto(
     id: json['id'] as int,
     museumId: json['museum_id'] as int,
     label: json['label'] as String,
     sortOrder: json['sort_order'] as int,
+    indoorMap2dPath: json['indoor_map_2d_path'] as String?,
+    indoorMap3dPath: json['indoor_map_3d_path'] as String?,
   );
 }
 
@@ -198,7 +209,8 @@ class ExhibitionDto {
     this.artifactCodes = const [],
     this.mapX,
     this.mapY,
-    this.mapFloor,
+    this.floorId,
+    this.floorLabel,
   });
 
   final int id;
@@ -208,7 +220,8 @@ class ExhibitionDto {
   final List<String> artifactCodes;
   final double? mapX;
   final double? mapY;
-  final String? mapFloor;
+  final int? floorId;
+  final String? floorLabel;
 
   factory ExhibitionDto.fromJson(Map<String, dynamic> json) {
     List<String> codes = const [];
@@ -224,7 +237,8 @@ class ExhibitionDto {
       artifactCodes: codes,
       mapX: (json['map_x'] as num?)?.toDouble(),
       mapY: (json['map_y'] as num?)?.toDouble(),
-      mapFloor: json['map_floor'] as String?,
+      floorId: (json['floor_id'] as num?)?.toInt(),
+      floorLabel: json['floor_label'] as String? ?? json['map_floor'] as String?,
     );
   }
 }
