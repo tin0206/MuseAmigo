@@ -4,7 +4,16 @@ import 'package:museamigo/app_routes.dart';
 import 'package:museamigo/l10n/translations.dart';
 import 'package:museamigo/theme_notifier.dart';
 import 'package:museamigo/services/backend_api.dart';
+import 'package:museamigo/session.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+
+String _formatTicketPurchaseDateTimeLine(DateTime dt) {
+  final d =
+      '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
+  final t =
+      '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  return '$d · $t';
+}
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
@@ -14,12 +23,15 @@ class TicketPaymentInfo {
     required this.ticketLabel,
     required this.price,
     this.qrCode = '#AVLBQWJ05',
+    this.museumId,
   });
 
   final String museumName;
   final String ticketLabel;
   final String price;
   String qrCode;
+  /// Museum this ticket is for (used to hide **I'm in** on My Tickets when already visiting).
+  final int? museumId;
 }
 
 /// Full-width panel for [showModalBottomSheet]: flush left/right/bottom, slides up
@@ -751,10 +763,36 @@ class _TicketResultSheet extends StatelessWidget {
     Navigator.of(context).pushNamed(AppRoutes.myTickets);
   }
 
+  Future<void> _onImInNavigateHome(BuildContext context) async {
+    final uid = AppSession.userId.value;
+    if (uid == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Sign in required to check in your ticket.'.tr)),
+      );
+      return;
+    }
+    try {
+      await BackendApi.instance.markTicketUsed(
+        userId: uid,
+        qrCode: ticket.qrCode,
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not update ticket. Check connection and try again.'.tr)),
+      );
+      return;
+    }
+    AppSession.activeMuseumVisit.value = true;
+    if (!context.mounted) return;
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    Navigator.of(context).pushReplacementNamed(AppRoutes.home);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final dateStr = purchaseDateOverride ?? '${now.day}/${now.month}/${now.year}';
+    final purchaseLine = purchaseDateOverride ??
+        _formatTicketPurchaseDateTimeLine(DateTime.now());
 
     return museAmigoBottomSheetShell(
       context: context,
@@ -846,7 +884,7 @@ class _TicketResultSheet extends StatelessWidget {
                   label: 'Ticket type'.tr,
                   value: ticket.ticketLabel,
                 ),
-                _TicketDetailRow(label: 'Purchase date'.tr, value: dateStr),
+                _TicketDetailRow(label: 'Purchase date'.tr, value: purchaseLine),
                 _TicketDetailRow(
                   label: 'Total amount'.tr,
                   value: ticket.price,
@@ -896,79 +934,91 @@ class _TicketResultSheet extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: 24),
-                if (showSaveForLaterButton)
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => _handleSaveTicket(context),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: themeNotifier.textPrimaryColor,
-                            side: BorderSide(color: Color(0xFFCCCCCC)),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                ValueListenableBuilder<bool>(
+                  valueListenable: AppSession.activeMuseumVisit,
+                  builder: (context, activeVisit, _) {
+                    final hideImIn =
+                        !showSaveForLaterButton && activeVisit;
+                    if (hideImIn) {
+                      return Text(
+                        'museum_visit_my_tickets_notice'.tr,
+                        style: TextStyle(
+                          fontSize: 14,
+                          height: 1.45,
+                          color: themeNotifier.textSecondaryColor,
+                        ),
+                      );
+                    }
+                    if (showSaveForLaterButton) {
+                      return Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => _handleSaveTicket(context),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: themeNotifier.textPrimaryColor,
+                                side: BorderSide(color: Color(0xFFCCCCCC)),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                minimumSize: const Size.fromHeight(50),
+                              ),
+                              child: Text(
+                                'Save for later use'.tr,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
                             ),
-                            minimumSize: const Size.fromHeight(50),
                           ),
-                          child: Text(
-                            'Save for later use'.tr,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: FilledButton(
+                              onPressed: () => _onImInNavigateHome(context),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.primary,
+                                foregroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.onPrimary,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                minimumSize: const Size.fromHeight(50),
+                              ),
+                              child: Text(
+                                "I'm in".tr,
+                                style: TextStyle(fontWeight: FontWeight.w700),
+                              ),
                             ),
                           ),
+                        ],
+                      );
+                    }
+                    return SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: () => _onImInNavigateHome(context),
+                        style: FilledButton.styleFrom(
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primary,
+                          foregroundColor:
+                              Theme.of(context).colorScheme.onPrimary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          minimumSize: const Size.fromHeight(50),
+                        ),
+                        child: Text(
+                          "I'm in".tr,
+                          style: TextStyle(fontWeight: FontWeight.w700),
                         ),
                       ),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: FilledButton(
-                          onPressed: () {
-                            Navigator.of(context).popUntil((route) => route.isFirst);
-                            Navigator.of(context).pushReplacementNamed(AppRoutes.home);
-                          },
-                          style: FilledButton.styleFrom(
-                            backgroundColor: Theme.of(
-                              context,
-                            ).colorScheme.primary,
-                            foregroundColor:
-                                Theme.of(context).colorScheme.onPrimary,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            minimumSize: const Size.fromHeight(50),
-                          ),
-                          child: Text(
-                            "I'm in".tr,
-                            style: TextStyle(fontWeight: FontWeight.w700),
-                          ),
-                        ),
-                      ),
-                    ],
-                  )
-                else
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: () {
-                        Navigator.of(context).popUntil((route) => route.isFirst);
-                        Navigator.of(context).pushReplacementNamed(AppRoutes.home);
-                      },
-                      style: FilledButton.styleFrom(
-                        backgroundColor:
-                            Theme.of(context).colorScheme.primary,
-                        foregroundColor:
-                            Theme.of(context).colorScheme.onPrimary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        minimumSize: const Size.fromHeight(50),
-                      ),
-                      child: Text(
-                        "I'm in".tr,
-                        style: TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                  ),
+                    );
+                  },
+                ),
               ],
             ),
           ),

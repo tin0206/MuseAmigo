@@ -438,6 +438,8 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
       backgroundColor: Colors.transparent,
       builder: (_) => _TicketSheet(
         museumName: museum.name,
+        museumId: museum.id,
+        baseTicketPrice: museum.baseTicketPrice,
         options: options,
         onSelect: (ticket) {
           // Keep ticket-selection sheet open so payment-method sheet can pop back to it.
@@ -456,6 +458,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
       museumName: museum.name,
       ticketLabel: ticket.label,
       price: ticket.price,
+      museumId: museum.id,
     );
 
     final methods = <_PaymentMethodOption>[
@@ -1008,16 +1011,88 @@ class _MuseumDetailSheetState extends State<_MuseumDetailSheet> {
   }
 }
 
-class _TicketSheet extends StatelessWidget {
+class _TicketSheet extends StatefulWidget {
   const _TicketSheet({
     required this.museumName,
+    required this.museumId,
+    required this.baseTicketPrice,
     required this.options,
     required this.onSelect,
   });
 
   final String museumName;
+  final int museumId;
+  final int baseTicketPrice;
   final List<_TicketOption> options;
   final ValueChanged<_TicketOption> onSelect;
+
+  @override
+  State<_TicketSheet> createState() => _TicketSheetState();
+}
+
+class _TicketSheetState extends State<_TicketSheet> {
+  final _codeController = TextEditingController();
+
+  @override
+  void dispose() {
+    _codeController.dispose();
+    super.dispose();
+  }
+
+  String _priceForTicketType(String ticketType) {
+    final base = widget.baseTicketPrice;
+    switch (ticketType) {
+      case 'Student':
+        return 'VND ${(base * 0.7).round()}';
+      case 'Children':
+        return 'VND ${(base * 0.5).round()}';
+      case 'Preview':
+        return 'VND 5000';
+      default:
+        return 'VND $base';
+    }
+  }
+
+  Future<void> _redeemFriendTicket(BuildContext context) async {
+    final code = _codeController.text.trim();
+    if (code.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Enter the ticket or QR code.'.tr)),
+      );
+      return;
+    }
+    final uid = AppSession.userId.value;
+    if (uid == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Sign in required to use a ticket code.'.tr)),
+      );
+      return;
+    }
+    try {
+      final data = await BackendApi.instance.redeemTicket(
+        userId: uid,
+        ticketCode: code,
+      );
+      if (!context.mounted) return;
+      Navigator.of(context).pop();
+      final mid = data['museum_id'];
+      showTicketSheet(
+        context,
+        TicketPaymentInfo(
+          museumName: data['museum_name'] as String,
+          ticketLabel: data['ticket_type'] as String,
+          price: _priceForTicketType(data['ticket_type'] as String),
+          qrCode: data['qr_code'] as String,
+          museumId: mid is int ? mid : int.tryParse('$mid'),
+        ),
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not apply ticket code. Check code or login.'.tr)),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1031,96 +1106,171 @@ class _TicketSheet extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-                Row(
-                  children: [
-                    Text(
-                      'Tickets'.tr,
-                      style: TextStyle(
-                        fontSize: 42,
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close, size: 30),
-                      color: theme.iconTheme.color,
-                    ),
-                  ],
-                ),
+            Row(
+              children: [
                 Text(
-                  museumName.tr,
+                  'Tickets'.tr,
                   style: TextStyle(
-                    fontSize: 22,
-                    color: theme.textTheme.bodySmall?.color,
+                    fontSize: 42,
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 14),
-                ...options.map(
-                  (option) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: () => onSelect(option),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 16,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Color.lerp(
-                            theme.cardColor,
-                            Colors.black,
-                            theme.brightness == Brightness.dark ? 0.32 : 0.09,
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    option.label,
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    option.countText,
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: theme.textTheme.bodySmall?.color,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Text(
-                              option.price,
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Icon(
-                              Icons.chevron_right,
-                              color: theme.iconTheme.color,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
+                const Spacer(),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close, size: 30),
+                  color: theme.iconTheme.color,
                 ),
               ],
             ),
-          ),
+            Text(
+              widget.museumName.tr,
+              style: TextStyle(
+                fontSize: 22,
+                color: theme.textTheme.bodySmall?.color,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Have a ticket code from someone else?'.tr,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: theme.textTheme.bodyLarge?.color,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _codeController,
+              decoration: InputDecoration(
+                hintText: 'Ticket code (my tickets in settings)'.tr,
+                filled: true,
+                fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.35,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => _redeemFriendTicket(context),
+                icon: const Icon(Icons.card_membership_outlined, size: 20),
+                label: Text('Use ticket code'.tr),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: theme.colorScheme.primary,
+                  side: BorderSide(color: theme.colorScheme.primary),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 18),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Divider(
+                      color: theme.colorScheme.outlineVariant.withValues(
+                        alpha: 0.5,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Text(
+                      'Or buy a new ticket'.tr,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: theme.textTheme.bodySmall?.color,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Divider(
+                      color: theme.colorScheme.outlineVariant.withValues(
+                        alpha: 0.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ...widget.options.map(
+              (option) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () => widget.onSelect(option),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Color.lerp(
+                        theme.cardColor,
+                        Colors.black,
+                        theme.brightness == Brightness.dark ? 0.32 : 0.09,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                option.label,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                option.countText,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: theme.textTheme.bodySmall?.color,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Text(
+                          option.price,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Icon(
+                          Icons.chevron_right,
+                          color: theme.iconTheme.color,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

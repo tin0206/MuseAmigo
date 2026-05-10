@@ -602,6 +602,42 @@ class BackendApi {
     return decoded.cast<Map<String, dynamic>>();
   }
 
+  /// Persists **I'm in** / entrance check-in so `is_used` is updated server-side.
+  Future<void> markTicketUsed({
+    required int userId,
+    required String qrCode,
+  }) async {
+    final response = await http.post(
+      _uri('/users/$userId/tickets/mark-used'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'qr_code': qrCode}),
+    );
+    final json = await _readJson(response);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      _throwForResponse(response, json);
+    }
+  }
+
+  /// Links an existing unused ticket (friend's QR / code) to [userId].
+  Future<Map<String, dynamic>> redeemTicket({
+    required int userId,
+    required String ticketCode,
+  }) async {
+    final response = await http.post(
+      _uri('/tickets/redeem'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'user_id': userId,
+        'ticket_code': ticketCode,
+      }),
+    );
+    final json = await _readJson(response);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      _throwForResponse(response, json);
+    }
+    return json;
+  }
+
   Future<void> updateUserSettings(
     int userId, {
     required String theme,

@@ -11,6 +11,11 @@ class AppSession {
   /// Incremented after a new artifact is added to the collection.
   static final ValueNotifier<int> collectionUpdated = ValueNotifier<int>(0);
 
+  /// True after **I'm in** check-in succeeds; cleared when user taps **Finish journey**
+  /// on the Journey screen. Used to hide duplicate **I'm in** from My Tickets while visiting.
+  static final ValueNotifier<bool> activeMuseumVisit =
+      ValueNotifier<bool>(false);
+
   static Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     

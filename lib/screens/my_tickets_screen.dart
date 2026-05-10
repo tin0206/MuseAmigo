@@ -37,60 +37,124 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
     }
   }
 
-  static _TicketData _mapBackendTicket(Map<String, dynamic> json) {
-    final purchaseDate = json['purchase_date'] as String? ?? '';
-    final isUsed = json['is_used'] as bool? ?? false;
-    final today = _formatDate(DateTime.now());
+  static const List<String> _monthNames = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
 
-    // Upcoming = today's ticket AND not used
-    // Past = used OR expired (purchase_date < today)
-    final isUpcoming = purchaseDate == today && !isUsed;
-    final isPast = isUsed || (purchaseDate.isNotEmpty && purchaseDate != today);
+  static DateTime? _parsePurchaseInstant(Map<String, dynamic> json) {
+    for (final key in [
+      'purchase_date',
+      'purchased_at',
+      'created_at',
+    ]) {
+      final v = json[key];
+      if (v == null) continue;
+      if (v is int) {
+        final ms = v < 100000000000 ? v * 1000 : v;
+        return DateTime.fromMillisecondsSinceEpoch(ms, isUtc: true).toLocal();
+      }
+      if (v is double) {
+        final vi = v.round();
+        final ms = vi < 100000000000 ? vi * 1000 : vi;
+        return DateTime.fromMillisecondsSinceEpoch(ms, isUtc: true).toLocal();
+      }
+      if (v is! String || v.isEmpty) continue;
+      final trimmed = v.trim();
+      final iso = DateTime.tryParse(trimmed);
+      if (iso != null) return iso.toLocal();
+      final datePart = trimmed.split(RegExp(r'[T\s]')).first;
+      final parts = datePart.split('-');
+      if (parts.length == 3) {
+        final y = int.tryParse(parts[0]);
+        final m = int.tryParse(parts[1]);
+        final d = int.tryParse(parts[2]);
+        if (y != null && m != null && d != null) {
+          return DateTime(y, m, d);
+        }
+      }
+    }
+    return null;
+  }
+
+  static String _formatDateFriendlyFromDateTime(DateTime dt) {
+    return '${_monthNames[dt.month - 1]} ${dt.day.toString().padLeft(2, '0')}, ${dt.year}';
+  }
+
+  static String _formatTimeHm(DateTime dt) {
+    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  }
+
+  static int _priceFromJson(Map<String, dynamic> json) {
+    final p = json['price_vnd'] ?? json['amount'] ?? json['price'];
+    if (p is int) return p;
+    if (p is double) return p.round();
+    return _defaultTicketPriceVnd;
+  }
+
+  /// Server may send MySQL tinyint as bool, int (0/1), or string.
+  static bool _coerceTicketUsed(dynamic v) {
+    if (v == true) return true;
+    if (v == false || v == null) return false;
+    if (v is int) return v != 0;
+    if (v is double) return v != 0;
+    if (v is String) {
+      final s = v.trim().toLowerCase();
+      return s == '1' || s == 'true' || s == 'yes';
+    }
+    return false;
+  }
+
+  static _TicketData _mapBackendTicket(Map<String, dynamic> json) {
+    final parsed = _parsePurchaseInstant(json);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final purchaseDay = parsed != null
+        ? DateTime(parsed.year, parsed.month, parsed.day)
+        : null;
+
+    final qr = json['qr_code'] as String? ?? 'N/A';
+    final isUsed = _coerceTicketUsed(json['is_used']);
+
+    final isTodayPurchase = purchaseDay != null && purchaseDay == today;
+    final isUpcoming = isTodayPurchase && !isUsed;
+    // Past tab: used, or purchased on any day other than today (matches previous list logic).
+    final isPast =
+        isUsed || (purchaseDay != null && purchaseDay != today);
+
+    final dateStr = parsed != null
+        ? _formatDateFriendlyFromDateTime(parsed)
+        : 'N/A';
+    final timeStr = parsed != null ? _formatTimeHm(parsed) : '--:--';
+
+    final midRaw = json['museum_id'];
+    final museumId = midRaw is int
+        ? midRaw
+        : (midRaw != null ? int.tryParse(midRaw.toString()) : null);
 
     return _TicketData(
       title: json['museum_name'] as String? ?? 'Unknown Museum',
       subtitle: json['ticket_type'] as String? ?? 'General Admission',
-      date: _formatDateFriendly(purchaseDate),
-      time: '09:00 AM',
+      date: dateStr,
+      time: timeStr,
       location: 'Main Entrance',
-      id: json['qr_code'] as String? ?? 'N/A',
-      priceVnd: _defaultTicketPriceVnd,
-      active: !isUsed && purchaseDate == today,
+      id: qr,
+      museumId: museumId,
+      priceVnd: _priceFromJson(json),
+      active: !isUsed && isTodayPurchase,
       isUpcoming: isUpcoming,
       isPast: isPast,
     );
-  }
-
-  static String _formatDate(DateTime d) {
-    return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-  }
-
-  static String _formatDateFriendly(String raw) {
-    if (raw.isEmpty) return 'N/A';
-    try {
-      final parts = raw.split('-');
-      if (parts.length == 3) {
-        final year = int.parse(parts[0]);
-        final month = int.parse(parts[1]);
-        final day = int.parse(parts[2]);
-        final monthNames = [
-          'Jan',
-          'Feb',
-          'Mar',
-          'Apr',
-          'May',
-          'Jun',
-          'Jul',
-          'Aug',
-          'Sep',
-          'Oct',
-          'Nov',
-          'Dec',
-        ];
-        return '${monthNames[month - 1]} ${day.toString().padLeft(2, '0')}, $year';
-      }
-    } catch (_) {}
-    return raw;
   }
 
   @override
@@ -470,9 +534,10 @@ class _TicketCard extends StatelessWidget {
         ticketLabel: ticket.subtitle,
         price: _formatPriceByLanguage(ticket.priceVnd),
         qrCode: ticket.id,
+        museumId: ticket.museumId,
       ),
       showSaveForLaterButton: false,
-      purchaseDateOverride: ticket.date,
+      purchaseDateOverride: '${ticket.date} · ${ticket.time}',
     );
   }
 }
@@ -485,6 +550,7 @@ class _TicketData {
     required this.time,
     required this.location,
     required this.id,
+    this.museumId,
     required this.priceVnd,
     required this.active,
     this.isUpcoming = false,
@@ -497,6 +563,7 @@ class _TicketData {
   final String time;
   final String location;
   final String id;
+  final int? museumId;
   final int priceVnd;
   final bool active;
   final bool isUpcoming;

@@ -1006,6 +1006,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       child: ElevatedButton(
                         onPressed: () {
                           Navigator.of(ctx).pop();
+                          AppSession.activeMuseumVisit.value = false;
                           Navigator.of(context).pushNamedAndRemoveUntil(
                             AppRoutes.login,
                             (route) => false,

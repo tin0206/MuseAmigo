@@ -330,6 +330,7 @@ class _JourneyScreenState extends State<JourneyScreen> {
     );
 
     if (leave == true && context.mounted) {
+      AppSession.activeMuseumVisit.value = false;
       Navigator.of(context).pushReplacementNamed(AppRoutes.exploreMap);
     }
   }

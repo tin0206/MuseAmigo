@@ -228,6 +228,23 @@ const Map<String, Map<String, String>> _localizedStrings = {
         'You might have to provide this to the museum\'s ticket inspectors to print you a paper ticket.',
     'Save for later use': 'Save for later use',
     'I\'m in': 'I\'m in',
+    'Sign in required to check in your ticket.':
+        'Sign in required to check in your ticket.',
+    'Could not update ticket. Check connection and try again.':
+        'Could not update ticket. Check connection and try again.',
+    'museum_visit_my_tickets_notice':
+        'You are already in the museum. You can use this ticket again after you check out with Finish journey on the Journey screen, or you can share this ticket code with a friend to use.',
+    'Have a ticket code from someone else?':
+        'Have a ticket code from someone else?',
+    'Friend\'s QR / unused ticket code':
+        'Friend\'s QR / unused ticket code',
+    'Use ticket code': 'Use ticket code',
+    'Or buy a new ticket': 'Or buy a new ticket',
+    'Enter the ticket or QR code.': 'Enter the ticket or QR code.',
+    'Sign in required to use a ticket code.':
+        'Sign in required to use a ticket code.',
+    'Could not apply ticket code. Check code or login.':
+        'Could not apply ticket code. Check code or login.',
     'Card Information': 'Card Information',
     'Card number': 'Card number',
     'Cardholder name': 'Cardholder name',
@@ -804,6 +821,23 @@ const Map<String, Map<String, String>> _localizedStrings = {
         'Bạn có thể phải cung cấp mã này cho người soát vé của bảo tàng để in vé giấy cho bạn.',
     'Save for later use': 'Lưu để sử dụng sau',
     'I\'m in': 'Tôi tham gia',
+    'Sign in required to check in your ticket.':
+        'Vui lòng đăng nhập để xác nhận đã vào cửa bằng vé.',
+    'Could not update ticket. Check connection and try again.':
+        'Không cập nhật được vé. Kiểm tra kết nối và thử lại.',
+    'museum_visit_my_tickets_notice':
+        'Bạn đã vào bảo tàng. Bạn có thể dùng lại vé sau khi checkout bằng Kết thúc hành trình trên màn Hành trình, hoặc chia sẻ mã vé này cho bạn bè sử dụng.',
+    'Have a ticket code from someone else?':
+        'Bạn có mã vé từ người khác?',
+    'Friend\'s QR / unused ticket code':
+        'Mã QR / mã vé chưa dùng của bạn bè',
+    'Use ticket code': 'Dùng mã vé',
+    'Or buy a new ticket': 'Hoặc mua vé mới',
+    'Enter the ticket or QR code.': 'Nhập mã vé hoặc mã QR.',
+    'Sign in required to use a ticket code.':
+        'Vui lòng đăng nhập để dùng mã vé.',
+    'Could not apply ticket code. Check code or login.':
+        'Không áp dụng được mã vé. Kiểm tra mã hoặc đăng nhập.',
     'Card Information': 'Thông tin thẻ',
     'Card number': 'Số thẻ',
     'Cardholder name': 'Tên chủ thẻ',
