@@ -1065,17 +1065,70 @@ class _Museum3DMapScreenState extends State<Museum3DMapScreen> {
     List<RouteDto> apiRoutes,
     _LocationOption from,
   ) {
-    return apiRoutes.map((dto) {
+    final ranked = apiRoutes.map((dto) {
+      final mappedStops = _buildStopsFromRouteDto(dto);
       final fallback = _generateFallbackRouteFromApi(from, dto);
+      final resolvedStops = mappedStops.isNotEmpty ? mappedStops : fallback.stops;
+      final fromIndex = resolvedStops.indexWhere((s) => s.name == from.name);
+      final startsAtFrom = fromIndex >= 0;
+      final alignedStops = startsAtFrom
+          ? resolvedStops.sublist(fromIndex)
+          : resolvedStops;
       return _RouteOption(
-        emoji: fallback.emoji,
+        emoji: mappedStops.isNotEmpty ? '🗺️' : fallback.emoji,
         name: dto.name,
         description: 'Guided route generated from museum route data.'.tr,
         duration: dto.estimatedTime,
-        stopsCount: dto.stopsCount,
-        stops: fallback.stops,
+        stopsCount: alignedStops.length,
+        stops: alignedStops,
+        priority: startsAtFrom ? 0 : 1,
       );
     }).toList();
+
+    ranked.sort((a, b) {
+      final byPriority = a.priority.compareTo(b.priority);
+      if (byPriority != 0) return byPriority;
+      final byStops = b.stops.length.compareTo(a.stops.length);
+      if (byStops != 0) return byStops;
+      return a.name.compareTo(b.name);
+    });
+    return ranked;
+  }
+
+  List<_RouteStop> _buildStopsFromRouteDto(RouteDto dto) {
+    if (dto.stopsJson.isEmpty) return const <_RouteStop>[];
+    final stops = <_RouteStop>[];
+    for (final rs in dto.stopsJson) {
+      _MapLocation? loc;
+      final kind = rs.itemType;
+      if (kind == 'artifact' && rs.itemId != null) {
+        final match = _artifacts.where((a) => a.id == rs.itemId).toList();
+        if (match.isNotEmpty) {
+          loc = _findLocationByName(match.first.title);
+        }
+      } else if (kind == 'exhibition' && rs.itemId != null) {
+        final match = _exhibitions.where((e) => e.id == rs.itemId).toList();
+        if (match.isNotEmpty) {
+          loc = _findLocationByName(match.first.name);
+        }
+      } else if (kind == 'map_place' && rs.itemId != null) {
+        final match = _mapDestinations.where((d) => d.id == rs.itemId).toList();
+        if (match.isNotEmpty) {
+          loc = _findLocationByName(match.first.title);
+        }
+      }
+      final fallbackByLabel = _findLocationByName(rs.label);
+      final chosen = loc ?? fallbackByLabel;
+      if (chosen == null) continue;
+      if (stops.isNotEmpty && stops.last.name == chosen.name) continue;
+      stops.add(
+        _RouteStop(
+          name: chosen.name,
+          subtitle: _subtitleForLocation(chosen),
+        ),
+      );
+    }
+    return stops;
   }
 
   _RouteOption _generateFallbackRouteFromApi(
@@ -1798,6 +1851,7 @@ class _RouteOption {
   final String duration;
   final int stopsCount;
   final List<_RouteStop> stops;
+  final int priority;
   const _RouteOption({
     required this.emoji,
     required this.name,
@@ -1805,6 +1859,7 @@ class _RouteOption {
     required this.duration,
     required this.stopsCount,
     required this.stops,
+    this.priority = 0,
   });
 }
 

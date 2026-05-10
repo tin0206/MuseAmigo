@@ -249,6 +249,7 @@ class RouteDto {
     required this.name,
     required this.estimatedTime,
     required this.stopsCount,
+    this.stopsJson = const [],
     required this.museumId,
   });
 
@@ -256,14 +257,51 @@ class RouteDto {
   final String name;
   final String estimatedTime;
   final int stopsCount;
+  final List<RouteStopDto> stopsJson;
   final int museumId;
 
-  factory RouteDto.fromJson(Map<String, dynamic> json) => RouteDto(
-    id: json['id'] as int,
-    name: json['name'] as String,
-    estimatedTime: json['estimated_time'] as String,
-    stopsCount: json['stops_count'] as int,
-    museumId: json['museum_id'] as int,
+  factory RouteDto.fromJson(Map<String, dynamic> json) {
+    final rawStops = json['stops_json'];
+    final parsedStops = <RouteStopDto>[];
+    if (rawStops is List) {
+      for (final e in rawStops) {
+        if (e is Map<String, dynamic>) {
+          parsedStops.add(RouteStopDto.fromJson(e));
+        } else if (e is Map) {
+          parsedStops.add(
+            RouteStopDto.fromJson(
+              e.map((key, value) => MapEntry(key.toString(), value)),
+            ),
+          );
+        }
+      }
+    }
+    return RouteDto(
+      id: json['id'] as int,
+      name: json['name'] as String,
+      estimatedTime: json['estimated_time'] as String,
+      stopsCount: json['stops_count'] as int,
+      stopsJson: parsedStops,
+      museumId: json['museum_id'] as int,
+    );
+  }
+}
+
+class RouteStopDto {
+  const RouteStopDto({
+    required this.itemType,
+    this.itemId,
+    required this.label,
+  });
+
+  final String itemType;
+  final int? itemId;
+  final String label;
+
+  factory RouteStopDto.fromJson(Map<String, dynamic> json) => RouteStopDto(
+    itemType: (json['item_type'] as String? ?? 'custom').trim().toLowerCase(),
+    itemId: (json['item_id'] as num?)?.toInt(),
+    label: (json['label'] as String? ?? '').trim(),
   );
 }
 
