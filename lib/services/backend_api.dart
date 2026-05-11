@@ -189,7 +189,7 @@ class BackendApi {
     if (_definedBaseUrl.isNotEmpty) return _definedBaseUrl;
 
     // Use production backend URL
-    return 'http://localhost:8000';
+    return 'https://museamigo-backend.onrender.com';
 
     // Development URLs (commented out)
     // if (kIsWeb) return 'http://localhost:8000';
