@@ -50,21 +50,21 @@ class Artifact {
   /// Mapping of artifact codes to their asset filenames.
   /// This avoids hardcoding image paths in any UI file.
   static const Map<String, String> imageAssetMap = {
-    'IP-001': 'artifact/IP-001-T390.png',
-    'IP-002': 'artifact/IP-001-T843.png',
-    'IP-003': 'artifact/IP-003-UH1.png',
-    'IP-004': 'artifact/IP-004-W110.png',
-    'IP-005': 'artifact/IP-005-BunkeMap.png',
-    'IP-006': 'artifact/IP-006-Bombing.png',
-    'IP-007': 'artifact/IP-007-M151A2.png',
-    'IP-008': 'artifact/IP-008-BNDC.png',
-    'IP-009': 'artifact/IP-009-Cabinet.png',
-    'IP-010': 'artifact/IP-010-Tapestry.png',
-    'IP-011': 'artifact/IP-011-Telecom.png',
-    'IP-012': 'artifact/IP-012-Bed.png',
-    'IP-013': 'artifact/IP-013-Map.jpg',
-    'IP-014': 'artifact/IP-014-Projector.jpg',
-    'IP-015': 'artifact/IP-015-Desk.png',
+    'IP-001': 'assets/artifact/IP-001-T390.png',
+    'IP-002': 'assets/artifact/IP-001-T843.png',
+    'IP-003': 'assets/artifact/IP-003-UH1.png',
+    'IP-004': 'assets/artifact/IP-004-W110.png',
+    'IP-005': 'assets/artifact/IP-005-BunkeMap.png',
+    'IP-006': 'assets/artifact/IP-006-Bombing.png',
+    'IP-007': 'assets/artifact/IP-007-M151A2.png',
+    'IP-008': 'assets/artifact/IP-008-BNDC.png',
+    'IP-009': 'assets/artifact/IP-009-Cabinet.png',
+    'IP-010': 'assets/artifact/IP-010-Tapestry.png',
+    'IP-011': 'assets/artifact/IP-011-Telecom.png',
+    'IP-012': 'assets/artifact/IP-012-Bed.png',
+    'IP-013': 'assets/artifact/IP-013-Map.jpg',
+    'IP-014': 'assets/artifact/IP-014-Projector.jpg',
+    'IP-015': 'assets/artifact/IP-015-Desk.png',
   };
 
   static const String placeholderImage = 'assets/images/museum.jpg';
